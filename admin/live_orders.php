@@ -2,7 +2,7 @@
 /*
  * admin/live_orders.php
  * KitchCo: Cloud Kitchen Live Order Dashboard
- * Version 1.2 - Fixed order_id key
+ * Version 1.5 - Applied Store Status Fixes
  *
  * This is the main dashboard page. It's the "mission control" for the kitchen.
  */
@@ -53,16 +53,14 @@ but for now, we'll just set it in PHP.
         <p class="text-gray-600 mt-1">Welcome back, <?php echo $username; ?>. Here's what's happening.</p>
     </div>
     
-    <!-- (NEW) Store Open/Closed Toggle (From admin/settings.php) -->
-    <!-- This is a non-functional toggle for now. We will make it live in Phase 5 -->
+    <!-- (MODIFIED) Store Open/Closed Toggle -->
+    <!-- This is now a functional switch (if user is admin) -->
     <div class="flex items-center space-x-3 mt-4 sm:mt-0">
         <span class="font-medium text-gray-700">Store Status:</span>
-        <label for="store-toggle" class="relative inline-flex items-center cursor-pointer">
-            <!-- 
-                This is a demo toggle. In Phase 5, we will make this
-                a real form that updates the database via AJAX.
-            -->
-            <input type="checkbox" id="store-toggle" class="sr-only toggle-checkbox" <?php echo $store_is_open ? 'checked' : ''; ?>>
+        <label for="store-toggle" class="relative inline-flex items-center <?php echo hasAdminAccess() ? 'cursor-pointer' : 'cursor-not-allowed'; ?>">
+            <input type="checkbox" id="store-toggle" class="sr-only toggle-checkbox" 
+                   <?php echo $store_is_open ? 'checked' : ''; ?>
+                   <?php echo hasAdminAccess() ? '' : 'disabled'; ?>>
             <div class="w-14 h-8 bg-gray-300 rounded-full transition-all"></div>
             <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-all toggle-checkbox"></div>
         </label>
@@ -183,7 +181,8 @@ but for now, we'll just set it in PHP.
                         </div>
                         <div class="mt-3">
                             <div class="font-medium text-gray-700">Customer: <?php echo e($order['customer_name']); ?></div>
-                            <div class="text-sm text-gray-500">Rider: <?php echo e($order['assigned_rider_name'] ?? 'Not assigned'); ?></div>
+                            <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
+                            <div class="text-sm text-gray-500">Rider: <?php echo e($order['rider_name'] ?? 'Not assigned'); ?></div>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
                             <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
@@ -209,9 +208,91 @@ but for now, we'll just set it in PHP.
 // Includes all closing tags and mobile menu script
 require_once('footer.php');
 ?>
-<!-- (NEW) Live Order Polling JavaScript -->
+
+<!-- (MODIFIED) Live Order Polling JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- (START) NEW STORE STATUS TOGGLE LOGIC ---
+    
+    const storeToggle = document.getElementById('store-toggle');
+    const storeStatusText = document.getElementById('store-status-text');
+    // Get the current CSRF token from the header (assuming it's available)
+    // We will use the one from the 'logout' link
+    const csrfToken = '<?php echo e(get_csrf_token()); ?>'; 
+    
+    if (storeToggle) {
+        storeToggle.addEventListener('change', async function() {
+            const isChecked = this.checked;
+            const newStatusText = isChecked ? 'Open' : 'Closed';
+            
+            // Optimistically update the UI
+            storeStatusText.textContent = 'Updating...';
+            
+            try {
+                const response = await fetch('ajax_update_store_status.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken // Send CSRF token in header
+                    },
+                    body: JSON.stringify({
+                        store_is_open: isChecked
+                    })
+                });
+                
+                // IMPORTANT: Check response status BEFORE trying to parse JSON
+                if (!response.ok) {
+                    // Try to read error message if provided, otherwise default.
+                    let errorDetails = `HTTP Error ${response.status}.`;
+                    try {
+                        const errorBody = await response.text();
+                        // This handles the error you saw previously: non-JSON output.
+                        if (errorBody.startsWith('<')) {
+                            throw new Error('Server returned HTML instead of JSON (Possible PHP Warning).');
+                        }
+                        const jsonError = JSON.parse(errorBody);
+                        errorDetails = jsonError.error || errorBody;
+                    } catch (e) {
+                         // If reading text/JSON fails, the status text is enough.
+                    }
+                    throw new Error(errorDetails);
+                }
+
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Success! Update text and color
+                    storeStatusText.textContent = result.new_status_text;
+                    if (result.new_status_text === 'Open') {
+                        storeStatusText.classList.remove('text-red-600');
+                        storeStatusText.classList.add('text-green-600');
+                    } else {
+                        storeStatusText.classList.remove('text-green-600');
+                        storeStatusText.classList.add('text-red-600');
+                    }
+                } else {
+                    // Revert on failure
+                    throw new Error(result.error || 'Failed to update status.');
+                }
+                
+            } catch (error) {
+                console.error('Failed to update store status:', error);
+                // Revert the toggle and text
+                storeToggle.checked = !isChecked;
+                const oldStatusText = isChecked ? 'Closed' : 'Open';
+                storeStatusText.textContent = oldStatusText;
+                alert('Error: ' + error.message);
+            }
+        });
+    }
+    
+    // --- (END) NEW STORE STATUS TOGGLE LOGIC ---
+
+
+    // --- (START) LIVE ORDER POLLING LOGIC ---
+    
     // Get references to DOM elements
     const pendingList = document.getElementById('pending-orders-list');
     const noPendingMsg = document.getElementById('no-pending-orders');
@@ -264,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (order.order_status === 'Preparing') {
+            // (FIXED) Changed 'order.assigned_rider_name' to 'order.rider_name'
             return `
             <div id="order-card-${order.id}" class="order-card border border-blue-300 bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
                 <div class="flex justify-between items-center">
@@ -275,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="mt-3">
                     <div class="font-medium text-gray-700">Customer: ${order.customer_name}</div>
-                    <div class="text-sm text-gray-500">Rider: ${order.assigned_rider_name || 'Not assigned'}</div>
+                    <div class="text-sm text-gray-500">Rider: ${order.rider_name || 'Not assigned'}</div>
                 </div>
                 <div class="mt-3 flex justify-between items-center">
                     <span class="text-xl font-bold text-gray-900">${parseFloat(order.total_amount).toFixed(2)} BDT</span>
@@ -314,8 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         pendingList.insertAdjacentHTML('afterbegin', cardHtml);
                         
                         // Animate it
+                        // (FIXED) Changed 'order.order_id' to 'order.id'
                         setTimeout(() => {
-                            const newCard = document.getElementById(`order-card-${order.order_id}`);
+                            const newCard = document.getElementById(`order-card-${order.id}`);
                             if (newCard) {
                                 newCard.classList.remove('opacity-0', '-translate-y-4');
                             }
@@ -364,6 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Start the polling ---
     // Check every 15 seconds
     setInterval(checkNewOrders, 15000);
+    
+    // --- (END) LIVE ORDER POLLING LOGIC ---
 });
 </script>
 <!-- (END NEW) -->

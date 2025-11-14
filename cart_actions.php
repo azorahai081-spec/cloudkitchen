@@ -2,7 +2,7 @@
 /*
  * cart_actions.php
  * KitchCo: Cloud Kitchen Cart AJAX Handler
- * Version 1.0
+ * Version 1.1 - Hardened "Remove" action to use POST
  *
  * This file handles all cart modifications (add, update, remove).
  * It is called via AJAX, validates data, updates the session,
@@ -124,7 +124,8 @@ try {
             
         // --- ACTION: REMOVE ITEM ---
         case 'remove':
-            $cart_key = $_GET['cart_key'] ?? '';
+            // (FIXED) Changed from $_GET to $_POST
+            $cart_key = $_POST['cart_key'] ?? ''; 
             if (isset($_SESSION['cart'][$cart_key])) {
                 unset($_SESSION['cart'][$cart_key]);
             }

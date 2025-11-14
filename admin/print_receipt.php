@@ -2,7 +2,7 @@
 /*
  * admin/print_receipt.php
  * KitchCo: Cloud Kitchen Thermal Receipt
- * Version 1.0
+ * Version 1.1 - Fixed ALL column name bugs
  *
  * This page is STYLED FOR A 58mm THERMAL PRINTER.
  * It does NOT include the admin header or footer.
@@ -32,10 +32,11 @@ $order_id = (int)$order_id;
 
 // 4. --- LOAD ORDER DATA ---
 // A. Load Order Header
+// (FIXED) Changed 'o.order_id' to 'o.id'
 $sql_order = "SELECT o.*, da.area_name 
               FROM orders o
               LEFT JOIN delivery_areas da ON o.delivery_area_id = da.id
-              WHERE o.order_id = ?";
+              WHERE o.id = ?";
 $stmt_order = $db->prepare($sql_order);
 $stmt_order->bind_param('i', $order_id);
 $stmt_order->execute();
@@ -58,7 +59,8 @@ $stmt_items->execute();
 $result_items = $stmt_items->get_result();
 
 while ($item_row = $result_items->fetch_assoc()) {
-    $order_item_id = $item_row['order_item_id'];
+    // (FIXED) Changed 'order_item_id' to 'id' to match DB table
+    $order_item_id = $item_row['id']; 
     $item_row['options'] = [];
     $sql_options = "SELECT * FROM order_item_options WHERE order_item_id = ?";
     $stmt_options = $db->prepare($sql_options);
@@ -223,7 +225,8 @@ while ($item_row = $result_items->fetch_assoc()) {
                 <div><strong>Phone:</strong> <?php echo e($order['customer_phone']); ?></div>
                 <div><strong>Address:</strong> <?php echo e($order['customer_address']); ?></div>
                 <div><strong>Area:</strong> <?php echo e($order['area_name'] ?? 'N/A'); ?></div>
-                <div><strong>Rider:</strong> <?php echo e($order['assigned_rider_name'] ?? 'Not Assigned'); ?></div>
+                <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
+                <div><strong>Rider:</strong> <?php echo e($order['rider_name'] ?? 'Not Assigned'); ?></div>
             </div>
 
             <div class="item-list">

@@ -2,7 +2,7 @@
 /*
  * admin/order_details.php
  * KitchCo: Cloud Kitchen Order Details Page
- * Version 1.4 - Fixed all column key errors
+ * Version 1.5 - Fixed 'assigned_rider_name' vs 'rider_name' bug
  *
  * This page:
  * 1. Loads a single order and all its items/options.
@@ -56,10 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // B. Handle Rider Assignment
         if (isset($_POST['assign_rider'])) {
-            $rider_name = trim($_POST['assigned_rider_name']);
+            // (FIXED) Changed 'assigned_rider_name' to 'rider_name' to match DB
+            $rider_name = trim($_POST['rider_name']); 
             
             // (FIXED) Update WHERE id = ?
-            $sql_rider = "UPDATE orders SET assigned_rider_name = ? WHERE id = ?";
+            // (FIXED) Changed 'assigned_rider_name' to 'rider_name'
+            $sql_rider = "UPDATE orders SET rider_name = ? WHERE id = ?";
             $stmt_rider = $db->prepare($sql_rider);
             $stmt_rider->bind_param('si', $rider_name, $order_id);
             if ($stmt_rider->execute()) {
@@ -244,9 +246,10 @@ $stmt_options->close();
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 
                 <div>
-                    <label for="assigned_rider_name" class="block text-sm font-medium text-gray-700">Assign Rider</label>
-                    <input type="text" id="assigned_rider_name" name="assigned_rider_name" 
-                           value="<?php echo e($order['assigned_rider_name'] ?? ''); ?>"
+                    <label for="rider_name" class="block text-sm font-medium text-gray-700">Assign Rider</label>
+                    <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
+                    <input type="text" id="rider_name" name="rider_name" 
+                           value="<?php echo e($order['rider_name'] ?? ''); ?>"
                            placeholder="Type rider's name"
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
@@ -284,8 +287,9 @@ $stmt_options->close();
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500">Rider</label>
+                    <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
                     <p class="text-lg font-medium text-gray-900">
-                        <?php echo e(empty($order['assigned_rider_name']) ? 'Not Assigned' : $order['assigned_rider_name']); ?>
+                        <?php echo e(empty($order['rider_name']) ? 'Not Assigned' : $order['rider_name']); ?>
                     </p>
                 </div>
             </div>

@@ -2,7 +2,7 @@
 /*
  * cart.php
  * KitchCo: Cloud Kitchen View Cart Page
- * Version 1.0
+ * Version 1.1 - Hardened "Remove" action to use POST
  *
  * This page:
  * 1. Displays all items in the session cart.
@@ -80,9 +80,16 @@ foreach ($cart as $item) {
 
                                     <!-- Remove Button -->
                                     <div class="flex">
-                                        <a href="cart_actions.php?action=remove&cart_key=<?php echo e($cart_key); ?>" onclick="return confirm('Are you sure you want to remove this item?');" class="font-medium text-red-600 hover:text-red-500">
-                                            Remove
-                                        </a>
+                                        <!-- (FIXED) Changed from <a> link to a <form> to use POST -->
+                                        <form action="cart_actions.php" method="POST">
+                                            <input type="hidden" name="action" value="remove">
+                                            <input type="hidden" name="cart_key" value="<?php echo e($cart_key); ?>">
+                                            <button type="submit" 
+                                                    class="font-medium text-red-600 hover:text-red-500"
+                                                    onclick="return confirm('Are you sure you want to remove this item?');">
+                                                Remove
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

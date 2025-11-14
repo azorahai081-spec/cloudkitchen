@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.1 - Added CSRF Protection
+ * Version 1.3 - Removed TinyMCE
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $settings_query = $db->query("SELECT setting_key, setting_value FROM site_settings");
             if ($settings_query) {
                 while ($row = $settings_query->fetch_assoc()) {
-                    $settings[$row['setting_key']] = $row['setting_key'];
+                    $settings[$row['setting_key']] = $row['setting_value'];
                 }
             }
         }
@@ -116,31 +116,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
 ?>
 
-<!-- 
-This page needs the TinyMCE editor.
-We will load the script for it directly from the cloud CDN.
-This MUST be loaded *after* the header.php include.
--->
-<script 
-    src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" 
-    referrerpolicy="origin"
-></script>
-<script>
-    // Initialize TinyMCE on our textarea
-    tinymce.init({
-        selector: '#hero_subtitle',
-        plugins: 'lists link autolink autoresize',
-        toolbar: 'undo redo | bold italic | bullist numlist | link',
-        menubar: false,
-        height: 250,
-        autoresize_bottom_margin: 15,
-        // Make the editor blend in with the Tailwind form
-        skin: 'oxide',
-        content_css: 'default',
-        content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }'
-    });
-</script>
-
+<!-- (REMOVED) TinyMCE scripts -->
 
 <!-- Page Title -->
 <h1 class="text-3xl font-bold text-gray-900 mb-8"><?php echo e($page_title); ?></h1>
@@ -178,10 +154,10 @@ This MUST be loaded *after* the header.php include.
                 <label for="hero_subtitle" class="block text-sm font-medium text-gray-700">
                     Homepage Welcome Text / Subtitle
                 </label>
-                <!-- This textarea will be replaced by TinyMCE -->
+                <!-- (MODIFIED) This is now a standard textarea -->
                 <textarea id="hero_subtitle" name="hero_subtitle" rows="6"
                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                ><?php echo e($settings['hero_subtitle'] ?? ''); ?></textarea>
+                ><?php echo htmlspecialchars($settings['hero_subtitle'] ?? ''); ?></textarea>
             </div>
             
             <div>

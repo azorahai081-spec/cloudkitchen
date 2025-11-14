@@ -2,7 +2,7 @@
 /*
  * admin/ajax_check_new_orders.php
  * KitchCo: Cloud Kitchen AJAX Helper for Live Orders
- * Version 1.0
+ * Version 1.2 - Fixed unexpected HTML/JSON error
  *
  * This file is called by live_orders.php every 15 seconds.
  * It returns JSON data about:
@@ -12,11 +12,15 @@
  */
 
 // 1. CONFIGURATION
+// Start output buffering to catch any stray warnings/errors before JSON header
+ob_start();
 require_once('../config.php');
 header('Content-Type: application/json');
 
 // 2. SECURITY CHECK
 if (!isset($_SESSION['user_id'])) {
+    // Clear buffer before sending JSON response
+    ob_end_clean();
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Access Denied']);
     exit;
@@ -36,9 +40,9 @@ $response = [
 
 try {
     // --- A. Get NEW 'Pending' orders ---
-    // We fetch any orders with an ID greater than the last one the page saw
+    // (FIXED) Changed 'order_id' to 'id'
     $sql_new = "SELECT * FROM orders 
-                WHERE order_status = 'Pending' AND order_id > ?
+                WHERE order_status = 'Pending' AND id > ?
                 ORDER BY order_time ASC";
     $stmt_new = $db->prepare($sql_new);
     $stmt_new->bind_param('i', $last_id);
@@ -50,11 +54,9 @@ try {
     }
     
     // --- B. Get UPDATED orders (that moved from Pending to Preparing) ---
-    // This is a failsafe in case another admin accepts an order on a different computer.
-    // It checks for orders that are 'Preparing' but have an ID *less than* our last_id
-    // (meaning the page *should* have seen it, but as 'Pending').
+    // (FIXED) Changed 'order_id' to 'id'
     $sql_updated = "SELECT * FROM orders 
-                    WHERE order_status = 'Preparing' AND order_id <= ?
+                    WHERE order_status = 'Preparing' AND id <= ?
                     ORDER BY order_time ASC";
     $stmt_updated = $db->prepare($sql_updated);
     $stmt_updated->bind_param('i', $last_id);
@@ -83,9 +85,13 @@ try {
     }
 
     // 5. SEND JSON RESPONSE
+    // Clear buffer and send final JSON
+    ob_end_clean();
     echo json_encode($response);
     
 } catch (Exception $e) {
+    // Clear buffer and send error JSON
+    ob_end_clean();
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
