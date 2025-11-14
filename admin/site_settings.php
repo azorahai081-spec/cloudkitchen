@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -27,80 +27,84 @@ $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Update Settings) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // TODO: Add CSRF token validation in Phase 5
     
-    // Get all the new settings from the form
-    // We use an array to hold them, then loop to update the DB
-    $new_settings = [
-        'hero_title' => $_POST['hero_title'],
-        'hero_subtitle' => $_POST['hero_subtitle'],
-        'store_is_open' => isset($_POST['store_is_open']) ? '1' : '0',
-        'night_surcharge_amount' => $_POST['night_surcharge_amount'],
-        'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
-        'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
-        'timezone' => $_POST['timezone']
-    ];
-    
-    // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
-    $current_image = $settings['hero_image_url'];
-    $image_path = $current_image; // Default to current
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        // Get all the new settings from the form
+        // We use an array to hold them, then loop to update the DB
+        $new_settings = [
+            'hero_title' => $_POST['hero_title'],
+            'hero_subtitle' => $_POST['hero_subtitle'],
+            'store_is_open' => isset($_POST['store_is_open']) ? '1' : '0',
+            'night_surcharge_amount' => $_POST['night_surcharge_amount'],
+            'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
+            'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
+            'timezone' => $_POST['timezone']
+        ];
+        
+        // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
+        $current_image = $settings['hero_image_url'];
+        $image_path = $current_image; // Default to current
 
-    if (isset($_FILES['hero_image_url']) && $_FILES['hero_image_url']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/banners/'; // New folder for banners
-        
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
-        
-        $file = $_FILES['hero_image_url'];
-        $file_name = 'hero_banner_' . time() . '_' . basename($file['name']);
-        $target_path = $upload_dir . $file_name;
-        
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (in_array($file['type'], $allowed_types)) {
-            if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                $image_path = '/uploads/banners/' . $file_name;
-                // Delete old banner if it's not the default
-                if (!empty($current_image) && $current_image != '/uploads/default-banner.jpg' && file_exists('..' . $current_image)) {
-                    unlink('..' . $current_image);
+        if (isset($_FILES['hero_image_url']) && $_FILES['hero_image_url']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = '../uploads/banners/'; // New folder for banners
+            
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            $file = $_FILES['hero_image_url'];
+            $file_name = 'hero_banner_' . time() . '_' . basename($file['name']);
+            $target_path = $upload_dir . $file_name;
+            
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (in_array($file['type'], $allowed_types)) {
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $image_path = '/uploads/banners/' . $file_name;
+                    // Delete old banner if it's not the default
+                    if (!empty($current_image) && $current_image != '/uploads/default-banner.jpg' && file_exists('..' . $current_image)) {
+                        unlink('..' . $current_image);
+                    }
+                } else {
+                    $error_message = 'Failed to move uploaded banner.';
                 }
             } else {
-                $error_message = 'Failed to move uploaded banner.';
+                $error_message = 'Invalid file type for banner. Please upload a JPG, PNG, GIF, or WebP.';
             }
+        }
+        // Add the new image path to our settings array
+        $new_settings['hero_image_url'] = $image_path;
+        // --- END IMAGE UPLOAD LOGIC ---
+        
+        
+        // --- DATABASE UPDATE ---
+        // Prepare the update statement. We will re-use this.
+        $sql = "UPDATE site_settings SET setting_value = ? WHERE setting_key = ?";
+        $stmt = $db->prepare($sql);
+        
+        if (!$stmt) {
+            $error_message = "Error preparing statement: " . $db->error;
         } else {
-            $error_message = 'Invalid file type for banner. Please upload a JPG, PNG, GIF, or WebP.';
-        }
-    }
-    // Add the new image path to our settings array
-    $new_settings['hero_image_url'] = $image_path;
-    // --- END IMAGE UPLOAD LOGIC ---
-    
-    
-    // --- DATABASE UPDATE ---
-    // Prepare the update statement. We will re-use this.
-    $sql = "UPDATE site_settings SET setting_value = ? WHERE setting_key = ?";
-    $stmt = $db->prepare($sql);
-    
-    if (!$stmt) {
-        $error_message = "Error preparing statement: " . $db->error;
-    } else {
-        foreach ($new_settings as $key => $value) {
-            $stmt->bind_param('ss', $value, $key);
-            if (!$stmt->execute()) {
-                $error_message = "Error updating setting: $key";
+            foreach ($new_settings as $key => $value) {
+                $stmt->bind_param('ss', $value, $key);
+                if (!$stmt->execute()) {
+                    $error_message = "Error updating setting: $key";
+                }
             }
+            $stmt->close();
         }
-        $stmt->close();
-    }
 
-    if (empty($error_message)) {
-        $success_message = 'Settings updated successfully!';
-        // IMPORTANT: Reload settings from DB into our $settings array
-        // so the page shows the new values instantly.
-        $settings_query = $db->query("SELECT setting_key, setting_value FROM site_settings");
-        if ($settings_query) {
-            while ($row = $settings_query->fetch_assoc()) {
-                $settings[$row['setting_key']] = $row['setting_value'];
+        if (empty($error_message)) {
+            $success_message = 'Settings updated successfully!';
+            // IMPORTANT: Reload settings from DB into our $settings array
+            // so the page shows the new values instantly.
+            $settings_query = $db->query("SELECT setting_key, setting_value FROM site_settings");
+            if ($settings_query) {
+                while ($row = $settings_query->fetch_assoc()) {
+                    $settings[$row['setting_key']] = $row['setting_key'];
+                }
             }
         }
     }
@@ -155,6 +159,8 @@ This MUST be loaded *after* the header.php include.
 
 <!-- Settings are all in one form -->
 <form action="site_settings.php" method="POST" enctype="multipart/form-data" class="space-y-12">
+    <!-- (NEW) CSRF Token -->
+    <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
 
     <!-- Section 1: Homepage Content -->
     <div class="bg-white p-8 rounded-2xl shadow-lg">
@@ -243,6 +249,7 @@ This MUST be loaded *after* the header.php include.
             <!-- Surcharge Start -->
             <div>
                 <label for="night_surcharge_start_hour" class="block text-sm font-medium text-gray-700">Surcharge Start (Hour 0-23)</label>
+
                 <input type="number" min="0" max="23" id="night_surcharge_start_hour" name="night_surcharge_start_hour" 
                        value="<?php echo e($settings['night_surcharge_start_hour'] ?? '0'); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">

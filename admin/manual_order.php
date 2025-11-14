@@ -2,7 +2,7 @@
 /*
  * admin/manual_order.php
  * KitchCo: Cloud Kitchen Manual Order Entry (POS)
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This page allows logged-in staff to create orders on behalf of customers
  * (e.g., for phone orders).
@@ -19,77 +19,82 @@ $success_message = '';
 // 3. --- HANDLE POST REQUESTS (Submit the New Order) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     
-    // --- A. GET CUSTOMER & ORDER DATA ---
-    $customer_name = $_POST['customer_name'];
-    $customer_phone = $_POST['customer_phone'];
-    $customer_address = $_POST['customer_address'];
-    $delivery_area_id = $_POST['delivery_area_id'];
-    $subtotal = $_POST['final_subtotal'];
-    $delivery_fee = $_POST['final_delivery_fee'];
-    $total_amount = $_POST['final_total'];
-    $order_status = 'Preparing'; // Manual orders are usually accepted right away
-    
-    // --- B. GET CART DATA ---
-    // The cart data will be sent as a JSON string
-    $cart_json = $_POST['cart_data'];
-    $cart_items = json_decode($cart_json, true);
-    
-    // --- C. VALIDATION ---
-    if (empty($customer_name) || empty($customer_phone) || empty($delivery_area_id)) {
-        $error_message = 'Customer Name, Phone, and Delivery Area are required.';
-    } elseif (empty($cart_items)) {
-        $error_message = 'Cannot submit an empty order. Please add items to the cart.';
-    }
-    
-    if (empty($error_message)) {
-        // --- D. DATABASE TRANSACTION ---
-        // We use a transaction because we are writing to multiple tables.
-        // If one part fails, the whole order is rolled back.
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        // --- A. GET CUSTOMER & ORDER DATA ---
+        $customer_name = $_POST['customer_name'];
+        $customer_phone = $_POST['customer_phone'];
+        $customer_address = $_POST['customer_address'];
+        $delivery_area_id = $_POST['delivery_area_id'];
+        $subtotal = $_POST['final_subtotal'];
+        $delivery_fee = $_POST['final_delivery_fee'];
+        $total_amount = $_POST['final_total'];
+        $order_status = 'Preparing'; // Manual orders are usually accepted right away
         
-        $db->begin_transaction();
+        // --- B. GET CART DATA ---
+        // The cart data will be sent as a JSON string
+        $cart_json = $_POST['cart_data'];
+        $cart_items = json_decode($cart_json, true);
         
-        try {
-            // 1. Insert into `orders` table
-            $sql_order = "INSERT INTO orders (customer_name, customer_phone, customer_address, delivery_area_id, subtotal, delivery_fee, total_amount, order_status, order_time) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-            $stmt_order = $db->prepare($sql_order);
-            $stmt_order->bind_param('sssiddds', $customer_name, $customer_phone, $customer_address, $delivery_area_id, $subtotal, $delivery_fee, $total_amount, $order_status);
-            $stmt_order->execute();
-            $order_id = $db->insert_id; // Get the new order ID
+        // --- C. VALIDATION ---
+        if (empty($customer_name) || empty($customer_phone) || empty($delivery_area_id)) {
+            $error_message = 'Customer Name, Phone, and Delivery Area are required.';
+        } elseif (empty($cart_items)) {
+            $error_message = 'Cannot submit an empty order. Please add items to the cart.';
+        }
+        
+        if (empty($error_message)) {
+            // --- D. DATABASE TRANSACTION ---
+            // We use a transaction because we are writing to multiple tables.
+            // If one part fails, the whole order is rolled back.
             
-            // 2. Prepare statements for `order_items` and `order_item_options`
-            $sql_item = "INSERT INTO order_items (order_id, menu_item_id, quantity, base_price, total_price) VALUES (?, ?, ?, ?, ?)";
-            $stmt_item = $db->prepare($sql_item);
+            $db->begin_transaction();
             
-            $sql_option = "INSERT INTO order_item_options (order_item_id, option_name, option_price) VALUES (?, ?, ?)";
-            $stmt_option = $db->prepare($sql_option);
-            
-            // 3. Loop through cart items and insert them
-            foreach ($cart_items as $item) {
-                // Insert into `order_items`
-                $stmt_item->bind_param('iiidd', $order_id, $item['id'], $item['quantity'], $item['basePrice'], $item['totalPrice']);
-                $stmt_item->execute();
-                $order_item_id = $db->insert_id; // Get the new order_item_id
+            try {
+                // 1. Insert into `orders` table
+                $sql_order = "INSERT INTO orders (customer_name, customer_phone, customer_address, delivery_area_id, subtotal, delivery_fee, total_amount, order_status, order_time) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                $stmt_order = $db->prepare($sql_order);
+                $stmt_order->bind_param('sssiddds', $customer_name, $customer_phone, $customer_address, $delivery_area_id, $subtotal, $delivery_fee, $total_amount, $order_status);
+                $stmt_order->execute();
+                $order_id = $db->insert_id; // Get the new order ID
                 
-                // Insert into `order_item_options`
-                foreach ($item['options'] as $option) {
-                    $stmt_option->bind_param('isd', $order_item_id, $option['name'], $option['price']);
-                    $stmt_option->execute();
+                // 2. Prepare statements for `order_items` and `order_item_options`
+                $sql_item = "INSERT INTO order_items (order_id, menu_item_id, quantity, base_price, total_price) VALUES (?, ?, ?, ?, ?)";
+                $stmt_item = $db->prepare($sql_item);
+                
+                $sql_option = "INSERT INTO order_item_options (order_item_id, option_name, option_price) VALUES (?, ?, ?)";
+                $stmt_option = $db->prepare($sql_option);
+                
+                // 3. Loop through cart items and insert them
+                foreach ($cart_items as $item) {
+                    // Insert into `order_items`
+                    $stmt_item->bind_param('iiidd', $order_id, $item['id'], $item['quantity'], $item['basePrice'], $item['totalPrice']);
+                    $stmt_item->execute();
+                    $order_item_id = $db->insert_id; // Get the new order_item_id
+                    
+                    // Insert into `order_item_options`
+                    foreach ($item['options'] as $option) {
+                        $stmt_option->bind_param('isd', $order_item_id, $option['name'], $option['price']);
+                        $stmt_option->execute();
+                    }
                 }
+                
+                // 4. Commit the transaction
+                $db->commit();
+                
+                // Success!
+                $success_message = "Order #{$order_id} created successfully!";
+                // In a real app, you might redirect to a receipt page:
+                // header("Location: print_receipt.php?id={$order_id}");
+                
+            } catch (Exception $e) {
+                // Something went wrong, roll back
+                $db->rollback();
+                $error_message = 'Failed to create order. A database error occurred: ' . $e->getMessage();
             }
-            
-            // 4. Commit the transaction
-            $db->commit();
-            
-            // Success!
-            $success_message = "Order #{$order_id} created successfully!";
-            // In a real app, you might redirect to a receipt page:
-            // header("Location: print_receipt.php?id={$order_id}");
-            
-        } catch (Exception $e) {
-            // Something went wrong, roll back
-            $db->rollback();
-            $error_message = 'Failed to create order. A database error occurred: ' . $e->getMessage();
         }
     }
 }
@@ -136,6 +141,9 @@ This is a complex page. We use a single <form> for the final submission.
 The cart is managed by JavaScript and its data is stored in a hidden input.
 -->
 <form action="manual_order.php" method="POST" id="manual-order-form">
+    <!-- (NEW) CSRF Token -->
+    <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+    
     <!-- This hidden input will hold the JSON string of our cart -->
     <input type="hidden" name="cart_data" id="cart-data-input">
     
@@ -357,13 +365,13 @@ This is the "brain" of the manual order page.
                 optionsHtml += '</ul>';
 
                 cartItemsList.innerHTML += `
-                    <div classclass="border-b pb-2">
+                    <div class="border-b pb-2">
                         <div class="flex justify-between items-center">
                             <span class="font-medium text-gray-800">${item.quantity}x ${item.name}</span>
                             <span class="font-medium">${item.totalPrice.toFixed(2)}</span>
                         </div>
                         ${optionsHtml}
-                        <button type_button" class="text-xs text-red-500 hover:text-red-700" onclick="removeFromCart(${index})">
+                        <button type="button" class="text-xs text-red-500 hover:text-red-700" onclick="removeFromCart(${index})">
                             Remove
                         </button>
                     </div>
@@ -386,20 +394,16 @@ This is the "brain" of the manual order page.
             deliveryFee = parseFloat(selectedArea.dataset.charge);
             
             // --- NIGHT SURCHARGE LOGIC ---
-            // We get this from the $settings array (already in config.php)
             const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
             const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
             const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
             const currentHour = new Date().getHours(); // Get current hour (0-23)
             
-            // Check if current time is in the surcharge window
             if (surchargeStart > surchargeEnd) {
-                // Overnight (e.g., 22:00 to 06:00)
                 if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
                     deliveryFee += surchargeAmount;
                 }
             } else {
-                // Same day (e.g., 00:00 to 06:00)
                 if (currentHour >= surchargeStart && currentHour < surchargeEnd) {
                     deliveryFee += surchargeAmount;
                 }
@@ -543,8 +547,6 @@ This is the "brain" of the manual order page.
             quantity: quantity,
             options: selectedOptions,
             totalPrice: singleItemPrice * quantity,
-            // We use a unique ID based on options to stack identical items
-            // but for simplicity, we'll just add as a new line
         };
         
         cart.push(cartItem);

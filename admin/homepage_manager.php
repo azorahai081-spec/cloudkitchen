@@ -2,7 +2,7 @@
 /*
  * admin/homepage_manager.php
  * KitchCo: Cloud Kitchen Homepage Section Manager
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This page controls the `homepage_sections` table.
  * It's an ADMIN-ONLY page (like settings).
@@ -19,61 +19,65 @@ if (!hasAdminAccess()) {
 
 // 3. PAGE VARIABLES & INITIALIZATION
 $page_title = 'Manage Homepage Sections';
-
 $error_message = '';
 $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // --- A. Handle Add New Section ---
-    if (isset($_POST['add_section'])) {
-        $category_id = $_POST['category_id'];
-        $display_order = $_POST['display_order'];
-        
-        if (empty($category_id)) {
-            $error_message = 'Please select a category to add.';
-        } else {
-            // Check if this category is already added
-            $check_sql = "SELECT * FROM homepage_sections WHERE category_id = ?";
-            $check_stmt = $db->prepare($check_sql);
-            $check_stmt->bind_param('i', $category_id);
-            $check_stmt->execute();
-            $result = $check_stmt->get_result();
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        // --- A. Handle Add New Section ---
+        if (isset($_POST['add_section'])) {
+            $category_id = $_POST['category_id'];
+            $display_order = $_POST['display_order'];
             
-            if ($result->num_rows > 0) {
-                $error_message = 'That category is already on the homepage. You can edit it below.';
+            if (empty($category_id)) {
+                $error_message = 'Please select a category to add.';
             } else {
-                // Add it
-                $sql = "INSERT INTO homepage_sections (category_id, display_order, is_visible) VALUES (?, ?, 1)";
-                $stmt = $db->prepare($sql);
-                $stmt->bind_param('ii', $category_id, $display_order);
-                if ($stmt->execute()) {
-                    $success_message = 'Homepage section added successfully!';
+                // Check if this category is already added
+                $check_sql = "SELECT * FROM homepage_sections WHERE category_id = ?";
+                $check_stmt = $db->prepare($check_sql);
+                $check_stmt->bind_param('i', $category_id);
+                $check_stmt->execute();
+                $result = $check_stmt->get_result();
+                
+                if ($result->num_rows > 0) {
+                    $error_message = 'That category is already on the homepage. You can edit it below.';
                 } else {
-                    $error_message = 'Failed to add section.';
+                    // Add it
+                    $sql = "INSERT INTO homepage_sections (category_id, display_order, is_visible) VALUES (?, ?, 1)";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bind_param('ii', $category_id, $display_order);
+                    if ($stmt->execute()) {
+                        $success_message = 'Homepage section added successfully!';
+                    } else {
+                        $error_message = 'Failed to add section.';
+                    }
+                    $stmt->close();
                 }
-                $stmt->close();
+                $check_stmt->close();
             }
-            $check_stmt->close();
         }
-    }
-    
-    // --- B. Handle Update Existing Sections ---
-    if (isset($_POST['update_sections'])) {
-        $section_orders = $_POST['display_order']; // This is an array: [section_id => order]
-        $section_visibility = $_POST['is_visible'] ?? []; // Array of IDs that are visible
         
-        $sql = "UPDATE homepage_sections SET display_order = ?, is_visible = ? WHERE id = ?";
-        $stmt = $db->prepare($sql);
-        
-        foreach ($section_orders as $id => $order) {
-            $is_visible = in_array($id, $section_visibility) ? 1 : 0;
-            $stmt->bind_param('iii', $order, $is_visible, $id);
-            $stmt->execute();
+        // --- B. Handle Update Existing Sections ---
+        if (isset($_POST['update_sections'])) {
+            $section_orders = $_POST['display_order']; // This is an array: [section_id => order]
+            $section_visibility = $_POST['is_visible'] ?? []; // Array of IDs that are visible
+            
+            $sql = "UPDATE homepage_sections SET display_order = ?, is_visible = ? WHERE id = ?";
+            $stmt = $db->prepare($sql);
+            
+            foreach ($section_orders as $id => $order) {
+                $is_visible = in_array($id, $section_visibility) ? 1 : 0;
+                $stmt->bind_param('iii', $order, $is_visible, $id);
+                $stmt->execute();
+            }
+            $stmt->close();
+            $success_message = 'Homepage sections updated!';
         }
-        $stmt->close();
-        $success_message = 'Homepage sections updated!';
     }
 }
 
@@ -82,28 +86,31 @@ $action = $_GET['action'] ?? 'list';
 $section_id = $_GET['id'] ?? null;
 
 if ($action === 'delete' && $section_id) {
-    // TODO: Add CSRF check
-    $sql = "DELETE FROM homepage_sections WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $section_id);
-    if ($stmt->execute()) {
-        $success_message = 'Section removed from homepage.';
+    
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to remove section.';
+        $sql = "DELETE FROM homepage_sections WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $section_id);
+        if ($stmt->execute()) {
+            $success_message = 'Section removed from homepage.';
+        } else {
+            $error_message = 'Failed to remove section.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 
 // 6. --- LOAD DATA FOR DISPLAY ---
-// Load all categories for the "Add" dropdown
+// ... (rest of the file is unchanged) ...
 $categories = [];
 $cat_result = $db->query("SELECT id, name FROM categories ORDER BY name ASC");
 while ($row = $cat_result->fetch_assoc()) {
     $categories[] = $row;
 }
-
-// Load all *existing* homepage sections
 $sections = [];
 $sql = "SELECT hs.*, c.name as category_name 
         FROM homepage_sections hs
@@ -138,6 +145,8 @@ while ($row = $sec_result->fetch_assoc()) {
         <div class="bg-white p-6 rounded-2xl shadow-lg">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Add New Section</h2>
             <form action="homepage_manager.php" method="POST" class="space-y-4">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 
                 <div>
                     <label for="category_id" class="block text-sm font-medium text-gray-700">Category to Show</label>
@@ -171,6 +180,9 @@ while ($row = $sec_result->fetch_assoc()) {
             </h2>
             
             <form action="homepage_manager.php" method="POST">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -200,7 +212,10 @@ while ($row = $sec_result->fetch_assoc()) {
                                                    class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
                                         </td>
                                         <td class="px-6 py-4 text-right text-sm font-medium">
-                                            <a href="homepage_manager.php?action=delete&id=<?php echo e($section['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to remove this section?');">
+                                            <!-- (MODIFIED) Added CSRF token to delete link -->
+                                            <a href="homepage_manager.php?action=delete&id=<?php echo e($section['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                               class="text-red-600 hover:text-red-900" 
+                                               onclick="return confirm('Are you sure you want to remove this section?');">
                                                 Remove
                                             </a>
                                         </td>

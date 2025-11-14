@@ -2,7 +2,7 @@
 /*
  * admin/manage_menu_items.php
  * KitchCo: Cloud Kitchen Menu Item Manager
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This is the most complex CRUD page. It handles:
  * 1. CRUD for menu_items (name, price, image, etc.)
@@ -34,112 +34,117 @@ $success_message = '';
 
 // 3. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF Token validation (Phase 5)
     
-    // Get all form data
-    $item_name = $_POST['item_name'];
-    $item_description = $_POST['item_description'];
-    $item_price = $_POST['item_price'];
-    $item_category_id = $_POST['item_category_id'];
-    $is_available = isset($_POST['is_available']) ? 1 : 0;
-    $is_featured = isset($_POST['is_featured']) ? 1 : 0;
-    $current_image = $_POST['current_image'] ?? '';
-    // This will be an array of group IDs, e.g., [1, 3, 5]
-    $selected_option_groups = $_POST['option_groups'] ?? []; 
-    
-    // --- START IMAGE UPLOAD LOGIC ---
-    $image_path = $current_image; // Default to current
-    
-    if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/menu_items/'; // New folder for item images
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        // Get all form data
+        $item_name = $_POST['item_name'];
+        $item_description = $_POST['item_description'];
+        $item_price = $_POST['item_price'];
+        $item_category_id = $_POST['item_category_id'];
+        $is_available = isset($_POST['is_available']) ? 1 : 0;
+        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
+        $current_image = $_POST['current_image'] ?? '';
+        // This will be an array of group IDs, e.g., [1, 3, 5]
+        $selected_option_groups = $_POST['option_groups'] ?? []; 
         
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+        // --- START IMAGE UPLOAD LOGIC ---
+        $image_path = $current_image; // Default to current
         
-        $file = $_FILES['item_image'];
-        $file_name = time() . '_' . basename($file['name']);
-        $target_path = $upload_dir . $file_name;
-        
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (in_array($file['type'], $allowed_types)) {
-            if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                $image_path = '/uploads/menu_items/' . $file_name;
-                if (!empty($current_image) && file_exists('..' . $current_image)) {
-                    unlink('..' . $current_image);
+        if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = '../uploads/menu_items/'; // New folder for item images
+            
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            $file = $_FILES['item_image'];
+            $file_name = time() . '_' . basename($file['name']);
+            $target_path = $upload_dir . $file_name;
+            
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (in_array($file['type'], $allowed_types)) {
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $image_path = '/uploads/menu_items/' . $file_name;
+                    if (!empty($current_image) && file_exists('..' . $current_image)) {
+                        unlink('..' . $current_image);
+                    }
+                } else {
+                    $error_message = 'Failed to move uploaded file.';
                 }
             } else {
-                $error_message = 'Failed to move uploaded file.';
+                $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
             }
-        } else {
-            $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
         }
-    }
-    // --- END IMAGE UPLOAD LOGIC ---
-    
-    // Basic validation
-    if (empty($item_name) || empty($item_price) || empty($item_category_id)) {
-        $error_message = 'Item Name, Price, and Category are required.';
-    }
-    
-    if (empty($error_message)) {
-        if (isset($_POST['item_id']) && !empty($_POST['item_id'])) {
-            // --- UPDATE existing item ---
-            $item_id = $_POST['item_id'];
-            $sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_available = ?, is_featured = ? WHERE id = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('ssdsisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
-            
-            if ($stmt->execute()) {
-                $success_message = 'Menu item updated successfully!';
-            } else {
-                $error_message = 'Failed to update menu item.';
-            }
-            $stmt->close();
-            
-        } else {
-            // --- CREATE new item ---
-            $sql = "INSERT INTO menu_items (name, description, price, category_id, image, is_available, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('ssdsisi', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
-            
-            if ($stmt->execute()) {
-                $item_id = $db->insert_id; // Get the ID of the new item
-                $success_message = 'Menu item created successfully!';
-            } else {
-                $error_message = 'Failed to create menu item.';
-            }
-            $stmt->close();
+        // --- END IMAGE UPLOAD LOGIC ---
+        
+        // Basic validation
+        if (empty($item_name) || empty($item_price) || empty($item_category_id)) {
+            $error_message = 'Item Name, Price, and Category are required.';
         }
         
-        // --- SYNC OPTION GROUPS (The Join Table) ---
-        // This runs on both CREATE and UPDATE, as long as we have an $item_id
-        if ($item_id && empty($error_message)) {
-            // 1. Delete all *existing* associations for this item
-            $delete_sql = "DELETE FROM menu_item_options_groups WHERE menu_item_id = ?";
-            $delete_stmt = $db->prepare($delete_sql);
-            $delete_stmt->bind_param('i', $item_id);
-            $delete_stmt->execute();
-            $delete_stmt->close();
-            
-            // 2. Insert the new associations
-            if (!empty($selected_option_groups)) {
-                $insert_sql = "INSERT INTO menu_item_options_groups (menu_item_id, option_group_id) VALUES (?, ?)";
-                $insert_stmt = $db->prepare($insert_sql);
+        // (MODIFIED) Check for $error_message *before* DB operations
+        if (empty($error_message)) {
+            if (isset($_POST['item_id']) && !empty($_POST['item_id'])) {
+                // --- UPDATE existing item ---
+                $item_id = $_POST['item_id'];
+                $sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_available = ?, is_featured = ? WHERE id = ?";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('ssdsisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
                 
-                foreach ($selected_option_groups as $group_id) {
-                    $insert_stmt->bind_param('ii', $item_id, $group_id);
-                    $insert_stmt->execute();
+                if ($stmt->execute()) {
+                    $success_message = 'Menu item updated successfully!';
+                } else {
+                    $error_message = 'Failed to update menu item.';
                 }
-                $insert_stmt->close();
+                $stmt->close();
+                
+            } else {
+                // --- CREATE new item ---
+                $sql = "INSERT INTO menu_items (name, description, price, category_id, image, is_available, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('ssdsisi', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
+                
+                if ($stmt->execute()) {
+                    $item_id = $db->insert_id; // Get the ID of the new item
+                    $success_message = 'Menu item created successfully!';
+                } else {
+                    $error_message = 'Failed to create menu item.';
+                }
+                $stmt->close();
             }
-        }
-        
-        if (empty($error_message) && !isset($_POST['item_id'])) {
-             // Clear form fields on successful *creation*
-            $item_name = ''; $item_description = ''; $item_price = ''; 
-            $item_category_id = ''; $item_image = ''; $is_available = 1;
-            $is_featured = 0; $selected_option_groups = [];
+            
+            // --- SYNC OPTION GROUPS (The Join Table) ---
+            // This runs on both CREATE and UPDATE, as long as we have an $item_id
+            if ($item_id && empty($error_message)) {
+                // 1. Delete all *existing* associations for this item
+                $delete_sql = "DELETE FROM menu_item_options_groups WHERE menu_item_id = ?";
+                $delete_stmt = $db->prepare($delete_sql);
+                $delete_stmt->bind_param('i', $item_id);
+                $delete_stmt->execute();
+                $delete_stmt->close();
+                
+                // 2. Insert the new associations
+                if (!empty($selected_option_groups)) {
+                    $insert_sql = "INSERT INTO menu_item_options_groups (menu_item_id, option_group_id) VALUES (?, ?)";
+                    $insert_stmt = $db->prepare($insert_sql);
+                    
+                    foreach ($selected_option_groups as $group_id) {
+                        $insert_stmt->bind_param('ii', $item_id, $group_id);
+                        $insert_stmt->execute();
+                    }
+                    $insert_stmt->close();
+                }
+            }
+            
+            if (empty($error_message) && !isset($_POST['item_id'])) {
+                 // Clear form fields on successful *creation*
+                $item_name = ''; $item_description = ''; $item_price = ''; 
+                $item_category_id = ''; $item_image = ''; $is_available = 1;
+                $is_featured = 0; $selected_option_groups = [];
+            }
         }
     }
 }
@@ -185,32 +190,38 @@ if ($action === 'edit' && $item_id) {
 }
 
 if ($action === 'delete' && $item_id) {
-    // Get image path for deletion
-    $img_sql = "SELECT image FROM menu_items WHERE id = ?";
-    $img_stmt = $db->prepare($img_sql);
-    $img_stmt->bind_param('i', $item_id);
-    $img_stmt->execute();
-    $img_result = $img_stmt->get_result();
-    $image_to_delete = '';
-    if ($img_result->num_rows === 1) {
-        $image_to_delete = $img_result->fetch_assoc()['image'];
-    }
-    $img_stmt->close();
     
-    // Delete the item (cascades will handle join table)
-    $sql = "DELETE FROM menu_items WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $item_id);
-    
-    if ($stmt->execute()) {
-        $success_message = 'Menu item deleted successfully!';
-        if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
-            unlink('..' . $image_to_delete);
-        }
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to delete menu item. It might be part of an old order.';
+        // Get image path for deletion
+        $img_sql = "SELECT image FROM menu_items WHERE id = ?";
+        $img_stmt = $db->prepare($img_sql);
+        $img_stmt->bind_param('i', $item_id);
+        $img_stmt->execute();
+        $img_result = $img_stmt->get_result();
+        $image_to_delete = '';
+        if ($img_result->num_rows === 1) {
+            $image_to_delete = $img_result->fetch_assoc()['image'];
+        }
+        $img_stmt->close();
+        
+        // Delete the item (cascades will handle join table)
+        $sql = "DELETE FROM menu_items WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $item_id);
+        
+        if ($stmt->execute()) {
+            $success_message = 'Menu item deleted successfully!';
+            if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
+                unlink('..' . $image_to_delete);
+            }
+        } else {
+            $error_message = 'Failed to delete menu item. It might be part of an old order.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
     $action = 'list';
 }
 
@@ -302,7 +313,10 @@ while ($row = $item_result->fetch_assoc()) {
                             </td>
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                 <a href="manage_menu_items.php?action=edit&id=<?php echo e($item['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                <a href="manage_menu_items.php?action=delete&id=<?php echo e($item['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                                <!-- (MODIFIED) Added CSRF token to delete link -->
+                                <a href="manage_menu_items.php?action=delete&id=<?php echo e($item['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                   class="text-red-600 hover:text-red-900" 
+                                   onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -324,6 +338,9 @@ while ($row = $item_result->fetch_assoc()) {
         
         <!-- Column 1: Main Details -->
         <div class="lg:col-span-2 space-y-6">
+            <!-- (NEW) CSRF Token -->
+            <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+            
             <?php if ($action === 'edit' && $item_id): ?>
                 <input type="hidden" name="item_id" value="<?php echo e($item_id); ?>">
             <?php endif; ?>

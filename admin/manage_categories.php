@@ -2,24 +2,22 @@
 /*
  * admin/manage_categories.php
  * KitchCo: Cloud Kitchen Category Manager
- * Version 1.1 - Added Image Upload Logic
+ * Version 1.2 - Added CSRF Protection
  *
  * This page handles full CRUD for food categories.
- * It uses a single-page approach with URL parameters (?action=)
  */
 
 // 1. HEADER
-// Includes session start, DB connection, and security check.
 require_once('header.php');
 
 // 2. PAGE VARIABLES & INITIALIZATION
-$action = $_GET['action'] ?? 'list'; // Default action is 'list'
+$action = $_GET['action'] ?? 'list';
 $category_id = $_GET['id'] ?? null;
 $page_title = 'Manage Categories';
 
 $category_name = '';
 $category_description = '';
-$category_image = ''; // Will hold the path of the image
+$category_image = '';
 $is_visible = 1;
 
 $error_message = '';
@@ -27,84 +25,79 @@ $success_message = '';
 
 // 3. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF Token validation (will be added in Phase 5, for now we check a hidden field)
     
-    $category_name = $_POST['category_name'];
-    $category_description = $_POST['category_description'];
-    $is_visible = isset($_POST['is_visible']) ? 1 : 0;
-    $current_image = $_POST['current_image'] ?? ''; // Get the path of the current image, if editing
-    
-    // --- START IMAGE UPLOAD LOGIC ---
-    $image_path = $current_image; // Default to the current image
-    
-    if (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/categories/';
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        $category_name = $_POST['category_name'];
+        $category_description = $_POST['category_description'];
+        $is_visible = isset($_POST['is_visible']) ? 1 : 0;
+        $current_image = $_POST['current_image'] ?? '';
         
-        // Ensure the upload directory exists
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+        // --- START IMAGE UPLOAD LOGIC ---
+        $image_path = $current_image;
         
-        $file = $_FILES['category_image'];
-        $file_name = time() . '_' . basename($file['name']);
-        $target_path = $upload_dir . $file_name;
-        
-        // Validate file type (simple check)
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (in_array($file['type'], $allowed_types)) {
-            // Move the file
-            if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                // Save the *web-accessible* path, not the server path
-                $image_path = '/uploads/categories/' . $file_name;
-                
-                // If this is an UPDATE, delete the old image
-                if (!empty($current_image) && file_exists('..' . $current_image)) {
-                    unlink('..' . $current_image);
+        if (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = '../uploads/categories/';
+            
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            $file = $_FILES['category_image'];
+            $file_name = time() . '_' . basename($file['name']);
+            $target_path = $upload_dir . $file_name;
+            
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (in_array($file['type'], $allowed_types)) {
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    $image_path = '/uploads/categories/' . $file_name;
+                    if (!empty($current_image) && file_exists('..' . $current_image)) {
+                        unlink('..' . $current_image);
+                    }
+                } else {
+                    $error_message = 'Failed to move uploaded file.';
                 }
             } else {
-                $error_message = 'Failed to move uploaded file.';
+                $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
             }
-        } else {
-            $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
         }
-    }
-    // --- END IMAGE UPLOAD LOGIC ---
-    
-    if (empty($category_name)) {
-        $error_message = 'Category name is required.';
-    } else {
-        if (isset($_POST['category_id']) && !empty($_POST['category_id'])) {
-            // --- UPDATE existing category ---
-            $cat_id = $_POST['category_id'];
-            // Now we include the `image` field in the update
-            $sql = "UPDATE categories SET name = ?, description = ?, image = ?, is_visible = ? WHERE id = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('sssii', $category_name, $category_description, $image_path, $is_visible, $cat_id);
-            
-            if ($stmt->execute()) {
-                $success_message = 'Category updated successfully!';
+        // --- END IMAGE UPLOAD LOGIC ---
+        
+        if (empty($category_name)) {
+            $error_message = 'Category name is required.';
+        } elseif (empty($error_message)) { // Only proceed if no errors so far
+            if (isset($_POST['category_id']) && !empty($_POST['category_id'])) {
+                // --- UPDATE existing category ---
+                $cat_id = $_POST['category_id'];
+                $sql = "UPDATE categories SET name = ?, description = ?, image = ?, is_visible = ? WHERE id = ?";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('sssii', $category_name, $category_description, $image_path, $is_visible, $cat_id);
+                
+                if ($stmt->execute()) {
+                    $success_message = 'Category updated successfully!';
+                } else {
+                    $error_message = 'Failed to update category.';
+                }
+                $stmt->close();
+                
             } else {
-                $error_message = 'Failed to update category. Please try again.';
+                // --- CREATE new category ---
+                $sql = "INSERT INTO categories (name, description, is_visible, image) VALUES (?, ?, ?, ?)";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('ssis', $category_name, $category_description, $is_visible, $image_path);
+                
+                if ($stmt->execute()) {
+                    $success_message = 'Category created successfully!';
+                    $category_name = '';
+                    $category_description = '';
+                    $image_path = '';
+                } else {
+                    $error_message = 'Failed to create category.';
+                }
+                $stmt->close();
             }
-            $stmt->close();
-            
-        } else {
-            // --- CREATE new category ---
-            // Now we include the `image` field in the insert
-            $sql = "INSERT INTO categories (name, description, is_visible, image) VALUES (?, ?, ?, ?)";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('ssis', $category_name, $category_description, $is_visible, $image_path);
-            
-            if ($stmt->execute()) {
-                $success_message = 'Category created successfully!';
-                // Clear fields after success
-                $category_name = '';
-                $category_description = '';
-                $image_path = ''; // Clear image path on success
-            } else {
-                $error_message = 'Failed to create category. Please try again.';
-            }
-            $stmt->close();
         }
     }
 }
@@ -125,50 +118,51 @@ if ($action === 'edit' && $category_id) {
         $category_name = $category['name'];
         $category_description = $category['description'];
         $is_visible = $category['is_visible'];
-        $category_image = $category['image']; // Load the image path
+        $category_image = $category['image'];
     } else {
         $error_message = 'Category not found.';
-        $action = 'list'; // Reset action
+        $action = 'list';
     }
     $stmt->close();
 }
 
 // Handle "Delete"
 if ($action === 'delete' && $category_id) {
-    // TODO: Add CSRF token check
     
-    // First, get the image path so we can delete the file
-    $img_sql = "SELECT image FROM categories WHERE id = ?";
-    $img_stmt = $db->prepare($img_sql);
-    $img_stmt->bind_param('i', $category_id);
-    $img_stmt->execute();
-    $img_result = $img_stmt->get_result();
-    if ($img_result->num_rows === 1) {
-        $img_row = $img_result->fetch_assoc();
-        $image_to_delete = $img_row['image'];
-    }
-    $img_stmt->close();
-    
-    // Now, delete the category from the database
-    $sql = "DELETE FROM categories WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $category_id);
-    
-    if ($stmt->execute()) {
-        $success_message = 'Category deleted successfully!';
-        // After successful DB deletion, delete the file from the server
-        if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
-            unlink('..' . $image_to_delete);
-        }
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to delete category. It might have menu items linked to it.';
+        // First, get the image path
+        $img_sql = "SELECT image FROM categories WHERE id = ?";
+        $img_stmt = $db->prepare($img_sql);
+        $img_stmt->bind_param('i', $category_id);
+        $img_stmt->execute();
+        $img_result = $img_stmt->get_result();
+        if ($img_result->num_rows === 1) {
+            $image_to_delete = $img_result->fetch_assoc()['image'];
+        }
+        $img_stmt->close();
+        
+        // Now, delete the category
+        $sql = "DELETE FROM categories WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $category_id);
+        
+        if ($stmt->execute()) {
+            $success_message = 'Category deleted successfully!';
+            if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
+                unlink('..' . $image_to_delete);
+            }
+        } else {
+            $error_message = 'Failed to delete category. It might have menu items linked to it.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
-    $action = 'list'; // Reset to list view
+    $action = 'list';
 }
 
 // 5. --- LOAD DATA FOR DISPLAY ---
-// Always fetch the list of categories to display in the table
 $categories = [];
 $result = $db->query("SELECT * FROM categories ORDER BY name ASC");
 if ($result) {
@@ -194,11 +188,6 @@ if ($result) {
     </div>
 <?php endif; ?>
 
-<!-- 
-This grid layout splits the page into two columns:
-1. The form (for adding/editing)
-2. The list (for viewing all categories)
--->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <!-- Column 1: Add/Edit Form -->
@@ -208,14 +197,14 @@ This grid layout splits the page into two columns:
                 <?php echo ($action === 'edit') ? 'Edit Category' : 'Add New Category'; ?>
             </h2>
             
-            <!-- IMPORTANT: We must add enctype for file uploads -->
             <form action="manage_categories.php" method="POST" class="space-y-4" enctype="multipart/form-data">
-                <!-- Hidden field for UPDATE operations -->
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                
                 <?php if ($action === 'edit' && $category_id): ?>
                     <input type="hidden" name="category_id" value="<?php echo e($category_id); ?>">
                 <?php endif; ?>
                 
-                <!-- Hidden field to store current image path during edit -->
                 <input type="hidden" name="current_image" value="<?php echo e($category_image); ?>">
 
                 <!-- Category Name -->
@@ -246,7 +235,7 @@ This grid layout splits the page into two columns:
                     ><?php echo e($category_description); ?></textarea>
                 </div>
                 
-                <!-- Image Upload (Now Enabled) -->
+                <!-- Image Upload -->
                 <div>
                     <label for="category_image" class="block text-sm font-medium text-gray-700">
                         Category Image
@@ -320,7 +309,7 @@ This grid layout splits the page into two columns:
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if (empty($categories)): ?>
                             <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
                                     No categories found. Add one using the form!
                                 </td>
                             </tr>
@@ -354,7 +343,10 @@ This grid layout splits the page into two columns:
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="manage_categories.php?action=edit&id=<?php echo e($category['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_categories.php?action=delete&id=<?php echo e($category['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this category? This cannot be undone.');">Delete</a>
+                                        <!-- (MODIFIED) Added CSRF token to delete link -->
+                                        <a href="manage_categories.php?action=delete&id=<?php echo e($category['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                           class="text-red-600 hover:text-red-900" 
+                                           onclick="return confirm('Are you sure you want to delete this category? This cannot be undone.');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -369,6 +361,5 @@ This grid layout splits the page into two columns:
 
 <?php
 // 6. FOOTER
-// Includes all closing tags and mobile menu script
 require_once('footer.php');
 ?>

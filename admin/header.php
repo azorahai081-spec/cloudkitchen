@@ -2,7 +2,7 @@
 /*
  * admin/header.php
  * KitchCo: Cloud Kitchen Master Admin Header
- * Version 1.0
+ * Version 1.1 - Updated Nav Links
  *
  * This file is included at the top of ALL protected admin pages.
  * It handles:
@@ -135,8 +135,9 @@ $user_initial = strtoupper(substr($username, 0, 1));
                     <span class="font-medium">Live Orders</span>
                 </a>
                 
-                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10.5 11.25v6M13.5 11.25v6M2.25 7.5h19.5" /></svg>
+                <!-- (MODIFIED) Updated link from # -->
+                <a href="manage_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-5.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 17.25V12z" /></svg>
                     <span class="font-medium">Order History</span>
                 </a>
 
@@ -167,15 +168,16 @@ $user_initial = strtoupper(substr($username, 0, 1));
                     <p class="px-3 text-xs font-semibold text-gray-400 uppercase">Administration</p>
 
                     <a href="manage_delivery_areas.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <span class="font-medium">Delivery Areas</span>
                     </a>
                     <a href="homepage_manager.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
                         <span class="font-medium">Homepage Editor</span>
                     </a>
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66m6.68 0a6.72 6.72 0 01-.668 1.66c-.677 1.02-1.952 1.66-3.34 1.66s-2.663-.64-3.34-1.66a6.72 6.72 0 01-.668-1.66m6.68 0c.677-1.02 1.952-1.66 3.34-1.66 1.388 0 2.663.64 3.34 1.66m-6.68 0a6.72 6.72 0 00.668 1.66c.677 1.02 1.952 1.66 3.34 1.66s2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0H6.75m6.68 0h6.68m0 0c.677 1.02 1.952 1.66 3.34 1.66 1.388 0 2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66a6.72 6.72 0 00-.668-1.66" /></svg>
+                    <!-- (MODIFIED) Updated link from # -->
+                    <a href="marketing_settings.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66m6.68 0a6.72 6.72 0 01-.668 1.66c-.677 1.02-1.952 1.66-3.34 1.66s-2.663-.64-3.34-1.66a6.72 6.72 0 01-.668-1.66m6.68 0c.677-1.02 1.952-1.66 3.34-1.66 1.388 0 2.663.64 3.34 1.66m-6.68 0a6.72 6.72 0 00.668 1.66c.677 1.02 1.952 1.66 3.34 1.66s2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0H6.75m6.68 0h6.68m0 0c.677 1.02 1.952 1.66 3.34 1.66 1.388 0 2.663-.64 3.34 1.66a6.72 6.72 0 00.668-1.66m-6.68 0c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66a6.72 6.72 0 00-.668-1.66" /></svg>
                         <span class="font-medium">Marketing</span>
                     </a>
                     <a href="site_settings.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">

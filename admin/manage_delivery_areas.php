@@ -2,19 +2,16 @@
 /*
  * admin/manage_delivery_areas.php
  * KitchCo: Cloud Kitchen Delivery Area Manager
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This is an ADMIN-ONLY page.
- * It provides full CRUD for the `delivery_areas` table.
  */
 
 // 1. HEADER
 require_once('header.php');
 
 // 2. SECURITY CHECK - ADMINS ONLY
-// This is our role-based security check from header.php
 if (!hasAdminAccess()) {
-    // If not an admin, boot them to the dashboard
     header('Location: live_orders.php');
     exit;
 }
@@ -24,7 +21,6 @@ $action = $_GET['action'] ?? 'list';
 $area_id = $_GET['id'] ?? null;
 $page_title = 'Manage Delivery Areas';
 
-// Form placeholders
 $area_name = '';
 $base_charge = '';
 $is_active = 1;
@@ -34,49 +30,52 @@ $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // TODO: Add CSRF token validation in Phase 5
     
-    $area_name = $_POST['area_name'];
-    $base_charge = $_POST['base_charge'];
-    $is_active = isset($_POST['is_active']) ? 1 : 0;
-    
-    if (empty($area_name) || !is_numeric($base_charge)) {
-        $error_message = 'Area name is required, and base charge must be a number.';
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        if (isset($_POST['area_id']) && !empty($_POST['area_id'])) {
-            // --- UPDATE existing area ---
-            $cat_id = $_POST['area_id'];
-            $sql = "UPDATE delivery_areas SET area_name = ?, base_charge = ?, is_active = ? WHERE id = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('sdii', $area_name, $base_charge, $is_active, $cat_id);
-            
-            if ($stmt->execute()) {
-                $success_message = 'Delivery area updated successfully!';
-            } else {
-                $error_message = 'Failed to update area.';
-            }
-            $stmt->close();
-            
+        $area_name = $_POST['area_name'];
+        $base_charge = $_POST['base_charge'];
+        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        
+        if (empty($area_name) || !is_numeric($base_charge)) {
+            $error_message = 'Area name is required, and base charge must be a number.';
         } else {
-            // --- CREATE new area ---
-            $sql = "INSERT INTO delivery_areas (area_name, base_charge, is_active) VALUES (?, ?, ?)";
-            $stmt = $db->prepare($sql);
-            $stmt->bind_param('sdi', $area_name, $base_charge, $is_active);
-            
-            if ($stmt->execute()) {
-                $success_message = 'Delivery area created successfully!';
-                $area_name = ''; $base_charge = ''; // Clear form
+            if (isset($_POST['area_id']) && !empty($_POST['area_id'])) {
+                // --- UPDATE existing area ---
+                $cat_id = $_POST['area_id'];
+                $sql = "UPDATE delivery_areas SET area_name = ?, base_charge = ?, is_active = ? WHERE id = ?";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('sdii', $area_name, $base_charge, $is_active, $cat_id);
+                
+                if ($stmt->execute()) {
+                    $success_message = 'Delivery area updated successfully!';
+                } else {
+                    $error_message = 'Failed to update area.';
+                }
+                $stmt->close();
+                
             } else {
-                $error_message = 'Failed to create area.';
+                // --- CREATE new area ---
+                $sql = "INSERT INTO delivery_areas (area_name, base_charge, is_active) VALUES (?, ?, ?)";
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param('sdi', $area_name, $base_charge, $is_active);
+                
+                if ($stmt->execute()) {
+                    $success_message = 'Delivery area created successfully!';
+                    $area_name = ''; $base_charge = '';
+                } else {
+                    $error_message = 'Failed to create area.';
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 }
 
 // 5. --- HANDLE GET ACTIONS (Edit & Delete) ---
 
-// Handle "Edit" - Load data into the form
 if ($action === 'edit' && $area_id) {
     $page_title = 'Edit Delivery Area';
     $sql = "SELECT * FROM delivery_areas WHERE id = ?";
@@ -97,24 +96,27 @@ if ($action === 'edit' && $area_id) {
     $stmt->close();
 }
 
-// Handle "Delete"
 if ($action === 'delete' && $area_id) {
-    // TODO: Add CSRF token check
-    $sql = "DELETE FROM delivery_areas WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $area_id);
     
-    if ($stmt->execute()) {
-        $success_message = 'Delivery area deleted successfully!';
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to delete area. It might be linked to existing orders.';
+        $sql = "DELETE FROM delivery_areas WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $area_id);
+        
+        if ($stmt->execute()) {
+            $success_message = 'Delivery area deleted successfully!';
+        } else {
+            $error_message = 'Failed to delete area. It might be linked to existing orders.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
     $action = 'list';
 }
 
 // 6. --- LOAD DATA FOR DISPLAY ---
-// Always fetch the list of areas to display in the table
 $areas = [];
 $result = $db->query("SELECT * FROM delivery_areas ORDER BY area_name ASC");
 if ($result) {
@@ -149,6 +151,9 @@ if ($result) {
             </h2>
             
             <form action="manage_delivery_areas.php" method="POST" class="space-y-4">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+
                 <?php if ($action === 'edit' && $area_id): ?>
                     <input type="hidden" name="area_id" value="<?php echo e($area_id); ?>">
                 <?php endif; ?>
@@ -225,7 +230,10 @@ if ($result) {
                                     </td>
                                     <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                         <a href="manage_delivery_areas.php?action=edit&id=<?php echo e($area['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_delivery_areas.php?action=delete&id=<?php echo e($area['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this area?');">Delete</a>
+                                        <!-- (MODIFIED) Added CSRF token to delete link -->
+                                        <a href="manage_delivery_areas.php?action=delete&id=<?php echo e($area['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                           class="text-red-600 hover:text-red-900" 
+                                           onclick="return confirm('Are you sure you want to delete this area?');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

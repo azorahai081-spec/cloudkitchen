@@ -1,16 +1,18 @@
 <?php
 // admin/login.php
-// This is the main login page for both Admins and Managers.
+// Version 1.1 - Added CSRF Protection
 
 // 1. CONFIGURATION
 // We must include the config file to start the session and connect to the DB.
 require_once('../config.php');
 
+// (NEW) Generate a token for the login form
+generate_csrf_token(); 
+
 // 2. INITIALIZATION
 $error_message = '';
 
 // 3. SECURITY: If user is ALREADY logged in, redirect them to the dashboard.
-// We will send them to 'live_orders.php' as that will be the main page.
 if (isset($_SESSION['user_id'])) {
     header('Location: live_orders.php');
     exit;
@@ -18,49 +20,54 @@ if (isset($_SESSION['user_id'])) {
 
 // 4. HANDLE FORM SUBMISSION (POST REQUEST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    if (empty($username) || empty($password)) {
-        $error_message = 'Please enter both username and password.';
+    
+    // (NEW) Validate CSRF Token
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // --- SECURITY: Use PREPARED STATEMENTS ---
-        // This prevents SQL Injection. We are querying the `admin_users` table.
-        $sql = "SELECT id, username, password, role FROM admin_users WHERE username = ? LIMIT 1";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param('s', $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $username = $_POST['username'];
+        $password = $_POST['password'];
 
-        if ($result->num_rows === 1) {
-            // User found. Now we verify the password.
-            $user = $result->fetch_assoc();
+        if (empty($username) || empty($password)) {
+            $error_message = 'Please enter both username and password.';
+        } else {
+            // --- SECURITY: Use PREPARED STATEMENTS ---
+            $sql = "SELECT id, username, password, role FROM admin_users WHERE username = ? LIMIT 1";
             
-            // password_verify() securely checks the hashed password
-            if (password_verify($password, $user['password'])) {
-                // SUCCESS! Passwords match.
-                // Store user data in the session.
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['user_role'] = $user['role']; // This is 'admin' or 'manager'
+            $stmt = $db->prepare($sql);
+            $stmt->bind_param('s', $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows === 1) {
+                // User found. Now we verify the password.
+                $user = $result->fetch_assoc();
                 
-                // Redirect to the main dashboard page
-                header('Location: live_orders.php');
-                exit;
+                if (password_verify($password, $user['password'])) {
+                    // SUCCESS! Passwords match.
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['user_role'] = $user['role']; // This is 'admin' or 'manager'
+                    
+                    // (NEW) Regenerate CSRF token after login
+                    generate_csrf_token(); 
+                    
+                    // Redirect to the main dashboard page
+                    header('Location: live_orders.php');
+                    exit;
+                } else {
+                    // Invalid password
+                    $error_message = 'Invalid username or password.';
+                }
             } else {
-                // Invalid password
+                // User not found
                 $error_message = 'Invalid username or password.';
             }
-        } else {
-            // User not found
-            $error_message = 'Invalid username or password.';
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
-// The rest of this file is the HTML for the login page.
 ?>
 
 <!DOCTYPE html>
@@ -106,12 +113,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Error Message Display -->
             <?php if (!empty($error_message)): ?>
                 <div class="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
-                    <?php echo e($error_message); // Using our 'e()' function from config.php ?>
+                    <?php echo e($error_message); ?>
                 </div>
             <?php endif; ?>
 
             <!-- Login Form -->
             <form action="login.php" method="POST" class="space-y-6">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                
                 <!-- Username Field -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">

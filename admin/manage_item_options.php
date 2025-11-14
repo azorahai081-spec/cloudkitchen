@@ -2,7 +2,7 @@
 /*
  * admin/manage_item_options.php
  * KitchCo: Cloud Kitchen Item Options Manager
- * Version 1.0
+ * Version 1.1 - Added CSRF Protection
  *
  * This page handles full CRUD for:
  * 1. `item_options_groups` (e.g., "Size", "Toppings")
@@ -29,79 +29,85 @@ $success_message = '';
 
 // 3. --- HANDLE POST REQUESTS (Create/Update Groups & Options) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $form_type = $_POST['form_type'] ?? '';
-
-    // --- A. Handle Group Form ---
-    if ($form_type === 'group') {
-        $group_name = $_POST['group_name'];
-        $group_type = $_POST['group_type'];
-        $edit_group_id = $_POST['group_id'] ?? null;
-
-        if (empty($group_name)) {
-            $error_message = 'Group name is required.';
-        } else {
-            if ($edit_group_id) {
-                // UPDATE Group
-                $sql = "UPDATE item_options_groups SET name = ?, type = ? WHERE id = ?";
-                $stmt = $db->prepare($sql);
-                $stmt->bind_param('ssi', $group_name, $group_type, $edit_group_id);
-                if ($stmt->execute()) {
-                    $success_message = 'Option group updated successfully!';
-                } else {
-                    $error_message = 'Failed to update group.';
-                }
-                $stmt->close();
-            } else {
-                // CREATE Group
-                $sql = "INSERT INTO item_options_groups (name, type) VALUES (?, ?)";
-                $stmt = $db->prepare($sql);
-                $stmt->bind_param('ss', $group_name, $group_type);
-                if ($stmt->execute()) {
-                    $success_message = 'Option group created successfully!';
-                    $group_name = ''; // Clear form
-                } else {
-                    $error_message = 'Failed to create group.';
-                }
-                $stmt->close();
-            }
-        }
-    }
     
-    // --- B. Handle Option Form ---
-    if ($form_type === 'option' && $group_id) {
-        $option_name = $_POST['option_name'];
-        $option_price = $_POST['option_price'];
-        $edit_option_id = $_POST['option_id'] ?? null;
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
+    } else {
+        $form_type = $_POST['form_type'] ?? '';
 
-        if (empty($option_name)) {
-            $error_message = 'Option name is required.';
-        } else {
-            if ($edit_option_id) {
-                // UPDATE Option
-                $sql = "UPDATE item_options SET name = ?, price_increase = ? WHERE id = ? AND group_id = ?";
-                $stmt = $db->prepare($sql);
-                $stmt->bind_param('sdii', $option_name, $option_price, $edit_option_id, $group_id);
-                if ($stmt->execute()) {
-                    $success_message = 'Option updated successfully!';
-                } else {
-                    $error_message = 'Failed to update option.';
-                }
-                $stmt->close();
+        // --- A. Handle Group Form ---
+        if ($form_type === 'group') {
+            $group_name = $_POST['group_name'];
+            $group_type = $_POST['group_type'];
+            $edit_group_id = $_POST['group_id'] ?? null;
+
+            if (empty($group_name)) {
+                $error_message = 'Group name is required.';
             } else {
-                // CREATE Option
-                $sql = "INSERT INTO item_options (group_id, name, price_increase) VALUES (?, ?, ?)";
-                $stmt = $db->prepare($sql);
-                $stmt->bind_param('isd', $group_id, $option_name, $option_price);
-                if ($stmt->execute()) {
-                    $success_message = 'Option created successfully!';
-                    $option_name = ''; $option_price = 0; // Clear form
+                if ($edit_group_id) {
+                    // UPDATE Group
+                    $sql = "UPDATE item_options_groups SET name = ?, type = ? WHERE id = ?";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bind_param('ssi', $group_name, $group_type, $edit_group_id);
+                    if ($stmt->execute()) {
+                        $success_message = 'Option group updated successfully!';
+                    } else {
+                        $error_message = 'Failed to update group.';
+                    }
+                    $stmt->close();
                 } else {
-                    $error_message = 'Failed to create option.';
+                    // CREATE Group
+                    $sql = "INSERT INTO item_options_groups (name, type) VALUES (?, ?)";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bind_param('ss', $group_name, $group_type);
+                    if ($stmt->execute()) {
+                        $success_message = 'Option group created successfully!';
+                        $group_name = ''; // Clear form
+                    } else {
+                        $error_message = 'Failed to create group.';
+                    }
+                    $stmt->close();
                 }
-                $stmt->close();
             }
         }
-        $action = 'manage_options'; // Stay on the options page
+        
+        // --- B. Handle Option Form ---
+        if ($form_type === 'option' && $group_id) {
+            $option_name = $_POST['option_name'];
+            $option_price = $_POST['option_price'];
+            $edit_option_id = $_POST['option_id'] ?? null;
+
+            if (empty($option_name)) {
+                $error_message = 'Option name is required.';
+            } else {
+                if ($edit_option_id) {
+                    // UPDATE Option
+                    $sql = "UPDATE item_options SET name = ?, price_increase = ? WHERE id = ? AND group_id = ?";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bind_param('sdii', $option_name, $option_price, $edit_option_id, $group_id);
+                    if ($stmt->execute()) {
+                        $success_message = 'Option updated successfully!';
+                    } else {
+                        $error_message = 'Failed to update option.';
+                    }
+                    $stmt->close();
+                } else {
+                    // CREATE Option
+                    $sql = "INSERT INTO item_options (group_id, name, price_increase) VALUES (?, ?, ?)";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bind_param('isd', $group_id, $option_name, $option_price);
+                    if ($stmt->execute()) {
+                        $success_message = 'Option created successfully!';
+                        $option_name = ''; $option_price = 0; // Clear form
+                    } else {
+                        $error_message = 'Failed to create option.';
+                    }
+                    $stmt->close();
+                }
+            }
+            $action = 'manage_options'; // Stay on the options page
+        }
     }
 }
 
@@ -126,16 +132,21 @@ if ($action === 'edit_group' && $group_id) {
 }
 
 if ($action === 'delete_group' && $group_id) {
-    // Deleting a group will cascade and delete all its options (due to DB constraint)
-    $sql = "DELETE FROM item_options_groups WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $group_id);
-    if ($stmt->execute()) {
-        $success_message = 'Group and all its options deleted successfully!';
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to delete group. It might be linked to a menu item.';
+        // Deleting a group will cascade and delete all its options (due to DB constraint)
+        $sql = "DELETE FROM item_options_groups WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $group_id);
+        if ($stmt->execute()) {
+            $success_message = 'Group and all its options deleted successfully!';
+        } else {
+            $error_message = 'Failed to delete group. It might be linked to a menu item.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
     $action = 'list_groups';
 }
 
@@ -159,15 +170,20 @@ if ($action === 'edit_option' && $group_id && $option_id) {
 }
 
 if ($action === 'delete_option' && $group_id && $option_id) {
-    $sql = "DELETE FROM item_options WHERE id = ? AND group_id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('ii', $option_id, $group_id);
-    if ($stmt->execute()) {
-        $success_message = 'Option deleted successfully!';
+    // (NEW) CSRF Token validation
+    if (!validate_csrf_token()) {
+        $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $error_message = 'Failed to delete option.';
+        $sql = "DELETE FROM item_options WHERE id = ? AND group_id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('ii', $option_id, $group_id);
+        if ($stmt->execute()) {
+            $success_message = 'Option deleted successfully!';
+        } else {
+            $error_message = 'Failed to delete option.';
+        }
+        $stmt->close();
     }
-    $stmt->close();
     $action = 'manage_options';
 }
 
@@ -255,6 +271,8 @@ This grid layout splits the page into two columns:
             </h2>
             
             <form action="manage_item_options.php" method="POST" class="space-y-4">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 <input type="hidden" name="form_type" value="group">
                 <?php if ($action === 'edit_group' && $group_id): ?>
                     <input type="hidden" name="group_id" value="<?php echo e($group_id); ?>">
@@ -300,6 +318,8 @@ This grid layout splits the page into two columns:
             </h2>
             
             <form action="manage_item_options.php?action=manage_options&group_id=<?php echo e($group_id); ?>" method="POST" class="space-y-4">
+                <!-- (NEW) CSRF Token -->
+                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 <input type="hidden" name="form_type" value="option">
                 <?php if ($action === 'edit_option' && $option_id): ?>
                     <input type="hidden" name="option_id" value="<?php echo e($option_id); ?>">
@@ -366,7 +386,10 @@ This grid layout splits the page into two columns:
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="manage_item_options.php?action=manage_options&group_id=<?php echo e($group['id']); ?>" class="text-blue-600 hover:text-blue-900 font-bold">Manage Options</a>
                                         <a href="manage_item_options.php?action=edit_group&id=<?php echo e($group['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_item_options.php?action=delete_group&id=<?php echo e($group['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this group? ALL its options will be deleted.');">Delete</a>
+                                        <!-- (MODIFIED) Added CSRF token to delete link -->
+                                        <a href="manage_item_options.php?action=delete_group&id=<?php echo e($group['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                           class="text-red-600 hover:text-red-900" 
+                                           onclick="return confirm('Are you sure you want to delete this group? ALL its options will be deleted.');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -400,7 +423,10 @@ This grid layout splits the page into two columns:
                                     <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-700">+ <?php echo e(number_format($option['price_increase'], 2)); ?> BDT</div></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="manage_item_options.php?action=edit_option&group_id=<?php echo e($group_id); ?>&option_id=<?php echo e($option['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_item_options.php?action=delete_option&group_id=<?php echo e($group_id); ?>&option_id=<?php echo e($option['id']); ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this option?');">Delete</a>
+                                        <!-- (MODIFIED) Added CSRF token to delete link -->
+                                        <a href="manage_item_options.php?action=delete_option&group_id=<?php echo e($group_id); ?>&option_id=<?php echo e($option['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                           class="text-red-600 hover:text-red-900" 
+                                           onclick="return confirm('Are you sure you want to delete this option?');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
