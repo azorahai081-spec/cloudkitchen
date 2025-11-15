@@ -2,7 +2,7 @@
 /*
  * order_success.php
  * KitchCo: Cloud Kitchen Order Success ("Thank You") Page
- * Version 1.1 - Fixed 'order_id' vs 'id' bug
+ * Version 1.3 - Changed Order ID prefix to PM-
  *
  * This page:
  * 1. Confirms the order was placed.
@@ -21,7 +21,8 @@ require_once('includes/header.php');
 // 3. --- SECURITY CHECK & LOAD DATA ---
 if (!isset($_SESSION['last_order_id'])) {
     // If no order was just placed, redirect to homepage
-    header('Location: index.php');
+    // (MODIFIED) Clean URL
+    header('Location: ' . BASE_URL . '/');
     exit;
 }
 
@@ -37,7 +38,8 @@ $result = $stmt->get_result();
 
 if ($result->num_rows == 0) {
     // Can't find the order, something is wrong
-    header('Location: index.php');
+    // (MODIFIED) Clean URL
+    header('Location: ' . BASE_URL . '/');
     exit;
 }
 $order = $result->fetch_assoc();
@@ -76,8 +78,8 @@ unset($_SESSION['last_order_id']);
         <div class="space-y-2">
             <div class="flex justify-between">
                 <span class="text-gray-600">Order ID:</span>
-                <!-- (FIXED) Use 'id' not 'order_id' -->
-                <span class="font-medium text-gray-900">KCO-<?php echo e($order['id']); ?></span>
+                <!-- (MODIFIED) Changed prefix -->
+                <span class="font-medium text-gray-900">PM-<?php echo e($order['id']); ?></span>
             </div>
             <div class="flex justify-between">
                 <span class="text-gray-600">Payment Method:</span>
@@ -95,7 +97,8 @@ unset($_SESSION['last_order_id']);
         </p>
     </div>
     
-    <a href="index.php" class="mt-8 inline-block px-6 py-3 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
+    <!-- (MODIFIED) Clean URL -->
+    <a href="<?php echo BASE_URL; ?>/" class="mt-8 inline-block px-6 py-3 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
         &larr; Back to Homepage
     </a>
 </div>

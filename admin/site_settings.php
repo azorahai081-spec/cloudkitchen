@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.5 - Removed redundant Store Status field
+ * Version 1.6 - (MODIFIED) Added CKEditor 5
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // We use an array to hold them, then loop to update the DB
         $new_settings = [
             'hero_title' => $_POST['hero_title'],
-            'hero_subtitle' => $_POST['hero_subtitle'],
+            'hero_subtitle' => $_POST['hero_subtitle'], // CKEditor will POST valid HTML
             // --- 'store_is_open' field intentionally removed from this form ---
             'night_surcharge_amount' => $_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
@@ -116,8 +116,6 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
 ?>
 
-<!-- (REMOVED) TinyMCE scripts -->
-
 <!-- Page Title -->
 <h1 class="text-3xl font-bold text-gray-900 mb-8"><?php echo e($page_title); ?></h1>
 
@@ -154,7 +152,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 <label for="hero_subtitle" class="block text-sm font-medium text-gray-700">
                     Homepage Welcome Text / Subtitle
                 </label>
-                <!-- (MODIFIED) This is now a standard textarea -->
+                <!-- (MODIFIED) This textarea will be converted into a rich text editor by the script below -->
                 <textarea id="hero_subtitle" name="hero_subtitle" rows="6"
                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 ><?php echo htmlspecialchars($settings['hero_subtitle'] ?? ''); ?></textarea>
@@ -168,6 +166,8 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 
                 <?php if (!empty($settings['hero_image_url'])): ?>
                     <div class="mt-4">
+                        <!-- (VERIFIED) This line correctly uses the BASE_URL. -->
+                        <!-- With the config.php fix, this will now work. -->
                         <img src="<?php echo e(BASE_URL . $settings['hero_image_url']); ?>" alt="Current Banner" class="w-auto h-32 object-cover rounded-lg shadow-md">
                         <p class="text-xs text-gray-500 mt-1">Current banner. Uploading a new one will replace it.</p>
                     </div>
@@ -234,6 +234,20 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
     </div>
     
 </form>
+
+<!-- (NEW) CKEditor 5 Scripts -->
+<!-- We load the editor from a CDN, just like Tailwind -->
+<script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
+<script>
+    // Find the <textarea> with id 'hero_subtitle' and replace it with CKEditor
+    ClassicEditor
+        .create(document.querySelector('#hero_subtitle'), {
+            toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo' ]
+        })
+        .catch(error => {
+            console.error('Error loading CKEditor:', error);
+        });
+</script>
 
 <?php
 // 6. FOOTER

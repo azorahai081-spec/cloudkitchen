@@ -2,7 +2,7 @@
 /*
  * includes/fb_capi.php
  * KitchCo: Facebook Conversion API (CAPI) Helper
- * Version 1.0
+ * Version 1.1 - Changed Order ID prefix to PM-
  *
  * This file contains the function to send server-side purchase events
  * to Facebook after an order is successfully placed.
@@ -50,7 +50,8 @@ function fire_facebook_capi($order, $items, $settings) {
         'value' => $order['total_amount'],
         'currency' => 'BDT',
         'contents' => $contents,
-        'order_id' => 'KCO-' . $order['order_id'], // Add prefix to make it unique
+        // (MODIFIED) Changed prefix
+        'order_id' => 'PM-' . $order['order_id'], // Add prefix to make it unique
     ];
 
     // 5. --- Build Final Payload ---

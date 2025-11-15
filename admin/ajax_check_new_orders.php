@@ -2,75 +2,81 @@
 /*
  * admin/ajax_check_new_orders.php
  * KitchCo: Cloud Kitchen AJAX Helper for Live Orders
- * Version 1.2 - Fixed unexpected HTML/JSON error
+ * Version 2.2 - (MODIFIED) Added "Ready" status and LIMIT 5
  *
  * This file is called by live_orders.php every 15 seconds.
- * It returns JSON data about:
- * 1. Any 'Pending' orders newer than the 'last_id' provided.
- * 2. Any orders that changed status (e.g., 'Pending' -> 'Preparing').
- * 3. The total count of 'Pending' and 'Preparing' orders.
+ * It returns JSON data with two complete lists:
+ * 1. All orders with 'Pending' status.
+ * 2. All orders with 'Preparing' status.
  */
 
 // 1. CONFIGURATION
-// Start output buffering to catch any stray warnings/errors before JSON header
 ob_start();
 require_once('../config.php');
 header('Content-Type: application/json');
 
 // 2. SECURITY CHECK
 if (!isset($_SESSION['user_id'])) {
-    // Clear buffer before sending JSON response
     ob_end_clean();
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Access Denied']);
     exit;
 }
 
-// 3. GET LAST KNOWN ID
-$last_id = (int)($_GET['last_id'] ?? 0);
-
-// 4. PREPARE RESPONSE
+// 3. PREPARE RESPONSE
 $response = [
     'success' => true,
-    'new_orders' => [],
-    'updated_orders' => [],
+    'pending_orders' => [],
+    'preparing_orders' => [],
+    'ready_orders' => [], // (NEW)
     'pending_count' => 0,
-    'preparing_count' => 0
+    'preparing_count' => 0,
+    'ready_count' => 0 // (NEW)
 ];
 
 try {
-    // --- A. Get NEW 'Pending' orders ---
-    // (FIXED) Changed 'order_id' to 'id'
-    $sql_new = "SELECT * FROM orders 
-                WHERE order_status = 'Pending' AND id > ?
-                ORDER BY order_time ASC";
-    $stmt_new = $db->prepare($sql_new);
-    $stmt_new->bind_param('i', $last_id);
-    $stmt_new->execute();
-    $result_new = $stmt_new->get_result();
+    // --- A. Get TOP 5 'Pending' orders ---
+    // (MODIFIED) Added LIMIT 5
+    $sql_pending = "SELECT * FROM orders 
+                    WHERE order_status = 'Pending'
+                    ORDER BY order_time DESC LIMIT 5";
+    $result_pending = $db->query($sql_pending);
     
-    while ($row = $result_new->fetch_assoc()) {
-        $response['new_orders'][] = $row;
+    if ($result_pending) {
+        while ($row = $result_pending->fetch_assoc()) {
+            $response['pending_orders'][] = $row;
+        }
     }
     
-    // --- B. Get UPDATED orders (that moved from Pending to Preparing) ---
-    // (FIXED) Changed 'order_id' to 'id'
-    $sql_updated = "SELECT * FROM orders 
-                    WHERE order_status = 'Preparing' AND id <= ?
-                    ORDER BY order_time ASC";
-    $stmt_updated = $db->prepare($sql_updated);
-    $stmt_updated->bind_param('i', $last_id);
-    $stmt_updated->execute();
-    $result_updated = $stmt_updated->get_result();
+    // --- B. Get TOP 5 'Preparing' orders ---
+    // (MODIFIED) Added LIMIT 5
+    $sql_preparing = "SELECT * FROM orders 
+                      WHERE order_status = 'Preparing'
+                      ORDER BY order_time DESC LIMIT 5";
+    $result_preparing = $db->query($sql_preparing);
     
-    while ($row = $result_updated->fetch_assoc()) {
-        $response['updated_orders'][] = $row;
+    if ($result_preparing) {
+        while ($row = $result_preparing->fetch_assoc()) {
+            $response['preparing_orders'][] = $row;
+        }
+    }
+
+    // --- C. (NEW) Get TOP 5 'Ready' orders ---
+    $sql_ready = "SELECT * FROM orders 
+                  WHERE order_status = 'Ready'
+                  ORDER BY order_time DESC LIMIT 5";
+    $result_ready = $db->query($sql_ready);
+    
+    if ($result_ready) {
+        while ($row = $result_ready->fetch_assoc()) {
+            $response['ready_orders'][] = $row;
+        }
     }
     
-    // --- C. Get total counts for stats ---
+    // --- D. Get counts (We count ALL orders for the stats, not just the top 5) ---
     $result_counts = $db->query("SELECT order_status, COUNT(*) as count 
                                  FROM orders 
-                                 WHERE order_status IN ('Pending', 'Preparing') 
+                                 WHERE order_status IN ('Pending', 'Preparing', 'Ready') 
                                  GROUP BY order_status");
     
     if ($result_counts) {
@@ -81,16 +87,17 @@ try {
             if ($row['order_status'] == 'Preparing') {
                 $response['preparing_count'] = (int)$row['count'];
             }
+            if ($row['order_status'] == 'Ready') {
+                $response['ready_count'] = (int)$row['count'];
+            }
         }
     }
 
     // 5. SEND JSON RESPONSE
-    // Clear buffer and send final JSON
     ob_end_clean();
     echo json_encode($response);
     
 } catch (Exception $e) {
-    // Clear buffer and send error JSON
     ob_end_clean();
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);

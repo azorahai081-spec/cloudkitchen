@@ -2,7 +2,7 @@
 /*
  * includes/footer.php
  * KitchCo: Cloud Kitchen Public Footer
- * Version 1.0
+ * Version 1.1 - Updated links for Clean URLs
  *
  * This file is included at the bottom of ALL public-facing pages.
  * It handles:
@@ -30,10 +30,11 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-2">Quick Links</h3>
                     <ul class="space-y-1">
-                        <li><a href="index.php" class="hover:text-white">Home</a></li>
-                        <li><a href="menu.php" class="hover:text-white">Full Menu</a></li>
-                        <li><a href="cart.php" class="hover:text-white">My Cart</a></li>
-                        <li><a href="checkout.php" class="hover:text-white">Checkout</a></li>
+                        <!-- (MODIFIED) Clean URLs -->
+                        <li><a href="<?php echo BASE_URL; ?>/" class="hover:text-white">Home</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/menu" class="hover:text-white">Full Menu</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/cart" class="hover:text-white">My Cart</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/checkout" class="hover:text-white">Checkout</a></li>
                     </ul>
                 </div>
                 

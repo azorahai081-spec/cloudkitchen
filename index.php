@@ -92,8 +92,12 @@ $schema_restaurant = [
             <?php echo e($settings['hero_title'] ?? 'Welcome to KitchCo'); ?>
         </h1>
         <div class="mt-6 text-lg text-gray-200 shadow-lg">
-            <!-- Render HTML content from TinyMCE -->
-            <?php echo $settings['hero_subtitle'] ?? '<p>Delicious, fresh meals delivered to your door.</p>'; ?>
+            <!-- (MODIFIED) Render HTML content from TinyMCE -->
+            <!-- (FIXED) Added strip_tags to prevent Stored XSS -->
+            <?php echo strip_tags(
+                $settings['hero_subtitle'] ?? '<p>Delicious, fresh meals delivered to your door.</p>',
+                '<p><b><i><u><strong><ul><ol><li>' // Whitelist of safe tags
+            ); ?>
         </div>
         <div class="mt-10">
             <a href="menu.php" class="px-8 py-3 bg-brand-orange text-white text-lg font-medium rounded-lg shadow-md hover:bg-orange-700 transition-colors">

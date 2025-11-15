@@ -2,7 +2,7 @@
 /*
  * admin/manual_order.php
  * KitchCo: Cloud Kitchen Manual Order Entry (POS)
- * Version 1.1 - Added CSRF Protection
+ * Version 1.2 - Fixed Client-Side Price Trust
  *
  * This page allows logged-in staff to create orders on behalf of customers
  * (e.g., for phone orders).
@@ -23,18 +23,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // --- A. GET CUSTOMER & ORDER DATA ---
+        // --- A. GET CUSTOMER DATA ---
         $customer_name = $_POST['customer_name'];
         $customer_phone = $_POST['customer_phone'];
         $customer_address = $_POST['customer_address'];
-        $delivery_area_id = $_POST['delivery_area_id'];
-        $subtotal = $_POST['final_subtotal'];
-        $delivery_fee = $_POST['final_delivery_fee'];
-        $total_amount = $_POST['final_total'];
+        $delivery_area_id = (int)$_POST['delivery_area_id'];
+        
+        // (MODIFIED) DO NOT TRUST THESE. We will recalculate them.
+        // $subtotal = $_POST['final_subtotal'];
+        // $delivery_fee = $_POST['final_delivery_fee'];
+        // $total_amount = $_POST['final_total'];
+        
         $order_status = 'Preparing'; // Manual orders are usually accepted right away
         
         // --- B. GET CART DATA ---
-        // The cart data will be sent as a JSON string
         $cart_json = $_POST['cart_data'];
         $cart_items = json_decode($cart_json, true);
         
@@ -46,54 +48,133 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
         }
         
         if (empty($error_message)) {
-            // --- D. DATABASE TRANSACTION ---
-            // We use a transaction because we are writing to multiple tables.
-            // If one part fails, the whole order is rolled back.
+            // --- D. (MODIFIED) SERVER-SIDE PRICE RE-CALCULATION ---
             
             $db->begin_transaction();
             
             try {
+                $subtotal = 0;
+                $verified_cart_for_db = []; // To hold our re-calculated data
+
+                // Prepare statements outside the loop for efficiency
+                $stmt_item = $db->prepare("SELECT price FROM menu_items WHERE id = ?");
+                $stmt_option = $db->prepare("SELECT name, price_increase FROM item_options WHERE id = ?");
+
+                foreach ($cart_items as $item) {
+                    $item_id = (int)$item['id'];
+                    $quantity = (int)$item['quantity'];
+
+                    // 1. Get base item price from DB
+                    $stmt_item->bind_param('i', $item_id);
+                    $stmt_item->execute();
+                    $result_item = $stmt_item->get_result();
+                    if ($result_item->num_rows == 0) throw new Exception("Item ID {$item_id} not found.");
+                    $db_item = $result_item->fetch_assoc();
+                    $base_price = (float)$db_item['price'];
+                    
+                    // 2. Get options prices from DB
+                    $options_price = 0;
+                    $verified_options_list = [];
+                    if (!empty($item['options'])) {
+                        foreach ($item['options'] as $option) {
+                            $option_id = (int)$option['id']; // Get ID from fixed JS
+                            $stmt_option->bind_param('i', $option_id);
+                            $stmt_option->execute();
+                            $result_option = $stmt_option->get_result();
+                            if ($result_option->num_rows == 0) throw new Exception("Option ID {$option_id} not found.");
+                            
+                            $db_option = $result_option->fetch_assoc();
+                            $price_increase = (float)$db_option['price_increase'];
+                            
+                            $options_price += $price_increase;
+                            $verified_options_list[] = [
+                                'name' => $db_option['name'], // Use verified name
+                                'price' => $price_increase   // Use verified price
+                            ];
+                        }
+                    }
+
+                    // 3. Calculate verified totals for this item
+                    $single_item_price = $base_price + $options_price;
+                    $total_item_price = $single_item_price * $quantity;
+                    $subtotal += $total_item_price;
+
+                    // 4. Store for DB insertion
+                    $verified_cart_for_db[] = [
+                        'item_id' => $item_id,
+                        'quantity' => $quantity,
+                        'base_price' => $base_price,
+                        'total_price' => $total_item_price,
+                        'options' => $verified_options_list
+                    ];
+                }
+
+                // 5. Calculate Delivery Fee (re-using logic from submit_order.php)
+                $stmt_area = $db->prepare("SELECT base_charge FROM delivery_areas WHERE id = ? AND is_active = 1");
+                $stmt_area->bind_param('i', $delivery_area_id);
+                $stmt_area->execute();
+                $result_area = $stmt_area->get_result();
+                if ($result_area->num_rows == 0) throw new Exception("Selected delivery area is not available.");
+                
+                $base_charge = (float)$result_area->fetch_assoc()['base_charge'];
+                $surcharge_amount = 0;
+                $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
+                
+                if ($surcharge > 0) {
+                    $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
+                    $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
+                    $current_hour = (int)date('G');
+                    if (($start_hour > $end_hour && ($current_hour >= $start_hour || $current_hour < $end_hour)) ||
+                        ($start_hour <= $end_hour && ($current_hour >= $start_hour && $current_hour < $end_hour))) {
+                        $surcharge_amount = $surcharge;
+                    }
+                }
+                
+                $total_delivery_fee = $base_charge + $surcharge_amount;
+                $total_amount = $subtotal + $total_delivery_fee;
+
+                // --- E. SAVE TO DATABASE ---
+                
                 // 1. Insert into `orders` table
                 $sql_order = "INSERT INTO orders (customer_name, customer_phone, customer_address, delivery_area_id, subtotal, delivery_fee, total_amount, order_status, order_time) 
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                 $stmt_order = $db->prepare($sql_order);
-                $stmt_order->bind_param('sssiddds', $customer_name, $customer_phone, $customer_address, $delivery_area_id, $subtotal, $delivery_fee, $total_amount, $order_status);
+                $stmt_order->bind_param('sssiddds', $customer_name, $customer_phone, $customer_address, $delivery_area_id, $subtotal, $total_delivery_fee, $total_amount, $order_status);
                 $stmt_order->execute();
                 $order_id = $db->insert_id; // Get the new order ID
                 
-                // 2. Prepare statements for `order_items` and `order_item_options`
+                if ($order_id <= 0) throw new Exception("Failed to create order header.");
+
+                // 2. Prepare statements for items and options
                 $sql_item = "INSERT INTO order_items (order_id, menu_item_id, quantity, base_price, total_price) VALUES (?, ?, ?, ?, ?)";
-                $stmt_item = $db->prepare($sql_item);
+                $stmt_item_db = $db->prepare($sql_item);
                 
-                $sql_option = "INSERT INTO order_item_options (order_item_id, option_name, option_price) VALUES (?, ?, ?)";
-                $stmt_option = $db->prepare($sql_option);
+                $sql_option_db = "INSERT INTO order_item_options (order_item_id, option_name, option_price) VALUES (?, ?, ?)";
+                $stmt_option_db = $db->prepare($sql_option_db);
                 
-                // 3. Loop through cart items and insert them
-                foreach ($cart_items as $item) {
-                    // Insert into `order_items`
-                    $stmt_item->bind_param('iiidd', $order_id, $item['id'], $item['quantity'], $item['basePrice'], $item['totalPrice']);
-                    $stmt_item->execute();
-                    $order_item_id = $db->insert_id; // Get the new order_item_id
+                // 3. Loop through our VERIFIED cart and insert
+                foreach ($verified_cart_for_db as $item) {
+                    $stmt_item_db->bind_param('iiidd', $order_id, $item['item_id'], $item['quantity'], $item['base_price'], $item['total_price']);
+                    $stmt_item_db->execute();
+                    $order_item_id = $db->insert_id;
                     
-                    // Insert into `order_item_options`
+                    if ($order_item_id <= 0) throw new Exception("Failed to save order item.");
+                    
                     foreach ($item['options'] as $option) {
-                        $stmt_option->bind_param('isd', $order_item_id, $option['name'], $option['price']);
-                        $stmt_option->execute();
+                        $stmt_option_db->bind_param('isd', $order_item_id, $option['name'], $option['price']);
+                        $stmt_option_db->execute();
                     }
                 }
                 
                 // 4. Commit the transaction
                 $db->commit();
                 
-                // Success!
                 $success_message = "Order #{$order_id} created successfully!";
-                // In a real app, you might redirect to a receipt page:
-                // header("Location: print_receipt.php?id={$order_id}");
                 
             } catch (Exception $e) {
                 // Something went wrong, roll back
                 $db->rollback();
-                $error_message = 'Failed to create order. A database error occurred: ' . $e->getMessage();
+                $error_message = 'Failed to create order: ' . $e->getMessage();
             }
         }
     }
@@ -147,10 +228,10 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
     <!-- This hidden input will hold the JSON string of our cart -->
     <input type="hidden" name="cart_data" id="cart-data-input">
     
-    <!-- Hidden inputs for final calculated totals -->
-    <input type="hidden" name="final_subtotal" id="final-subtotal-input" value="0">
-    <input type="hidden" name="final_delivery_fee" id="final-delivery-fee-input" value="0">
-    <input type="hidden" name="final_total" id="final-total-input" value="0">
+    <!-- (MODIFIED) These are now only for JS display, not for POST -->
+    <input type="hidden" id="js-subtotal" value="0">
+    <input type="hidden" id="js-delivery-fee" value="0">
+    <input type="hidden" id="js-total" value="0">
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -314,9 +395,11 @@ This is the "brain" of the manual order page.
 
     const form = document.getElementById('manual-order-form');
     const cartDataInput = document.getElementById('cart-data-input');
-    const finalSubtotalInput = document.getElementById('final-subtotal-input');
-    const finalDeliveryFeeInput = document.getElementById('final-delivery-fee-input');
-    const finalTotalInput = document.getElementById('final-total-input');
+    
+    // (MODIFIED) References to JS-only hidden inputs
+    const jsSubtotalInput = document.getElementById('js-subtotal');
+    const jsDeliveryFeeInput = document.getElementById('js-delivery-fee');
+    const jsTotalInput = document.getElementById('js-total');
     
     
     // 4. --- CORE FUNCTIONS ---
@@ -417,10 +500,10 @@ This is the "brain" of the manual order page.
         cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
         cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
         
-        // Update the hidden form inputs
-        finalSubtotalInput.value = subtotal.toFixed(2);
-        finalDeliveryFeeInput.value = deliveryFee.toFixed(2);
-        finalTotalInput.value = total.toFixed(2);
+        // (MODIFIED) Update the JS-only hidden inputs
+        jsSubtotalInput.value = subtotal.toFixed(2);
+        jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
+        jsTotalInput.value = total.toFixed(2);
     }
     
     /**
@@ -531,6 +614,8 @@ This is the "brain" of the manual order page.
         selectedElements.forEach(opt => {
             const price = parseFloat(opt.dataset.price);
             selectedOptions.push({
+                // (MODIFIED) Add the option ID for server-side verification
+                id: opt.value, 
                 name: opt.dataset.name,
                 price: price
             });

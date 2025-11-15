@@ -2,7 +2,7 @@
 /*
  * admin/manage_users.php
  * KitchCo: Cloud Kitchen User Manager
- * Version 1.1 - Added CSRF Protection
+ * Version 1.2 - Added "Last Admin" check
  *
  * This is an ADMIN-ONLY page.
  */
@@ -117,16 +117,42 @@ if ($action === 'delete' && $user_id) {
     } elseif ($user_id == $_SESSION['user_id']) {
         $error_message = "You cannot delete your own account.";
     } else {
-        $sql = "DELETE FROM admin_users WHERE id = ?";
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param('i', $user_id);
         
-        if ($stmt->execute()) {
-            $success_message = 'User deleted successfully!';
-        } else {
-            $error_message = 'Failed to delete user.';
+        // --- (MODIFIED) "LAST ADMIN" CHECK ---
+        // First, check if this user is an admin
+        $role_sql = "SELECT role FROM admin_users WHERE id = ?";
+        $role_stmt = $db->prepare($role_sql);
+        $role_stmt->bind_param('i', $user_id);
+        $role_stmt->execute();
+        $role_result = $role_stmt->get_result();
+        $user_to_delete = $role_result->fetch_assoc();
+
+        if ($user_to_delete && $user_to_delete['role'] === 'admin') {
+            // This is an admin. Check if they are the last one.
+            $count_sql = "SELECT COUNT(*) as admin_count FROM admin_users WHERE role = 'admin'";
+            $count_result = $db->query($count_sql);
+            $admin_count = $count_result->fetch_assoc()['admin_count'];
+            
+            if ($admin_count <= 1) {
+                $error_message = 'Cannot delete the last admin account.';
+            }
         }
-        $stmt->close();
+        $role_stmt->close();
+        // --- END "LAST ADMIN" CHECK ---
+        
+        // Only proceed if there is no error
+        if (empty($error_message)) {
+            $sql = "DELETE FROM admin_users WHERE id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->bind_param('i', $user_id);
+            
+            if ($stmt->execute()) {
+                $success_message = 'User deleted successfully!';
+            } else {
+                $error_message = 'Failed to delete user.';
+            }
+            $stmt->close();
+        }
     }
     $action = 'list';
 }

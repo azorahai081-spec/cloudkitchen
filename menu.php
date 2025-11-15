@@ -2,7 +2,7 @@
 /*
  * menu.php
  * KitchCo: Cloud Kitchen Full Menu Page
- * Version 1.1 - Added Menu Schema.org
+ * Version 1.2 - Updated links for Clean URLs
  *
  * This page:
  * 1. Loads all visible categories for filtering.
@@ -107,13 +107,15 @@ $schema_menu = [
             <h2 class="text-xl font-bold text-gray-900 mb-4">Categories</h2>
             <ul class="space-y-2">
                 <li>
-                    <a href="menu.php" class="block px-3 py-2 rounded-lg font-medium <?php echo !$filter_category_id ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <!-- (MODIFIED) Clean URL -->
+                    <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-lg font-medium <?php echo !$filter_category_id ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         All Categories
                     </a>
                 </li>
                 <?php foreach ($categories as $category): ?>
                 <li>
-                    <a href="menu.php?category=<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium <?php echo ($filter_category_id == $category['id']) ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <!-- (MODIFIED) Clean URL for categories -->
+                    <a href="<?php echo BASE_URL; ?>/menu/category/<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium <?php echo ($filter_category_id == $category['id']) ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         <?php echo e($category['name']); ?>
                     </a>
                 </li>
@@ -134,7 +136,8 @@ $schema_menu = [
                         Our menu is currently empty. Please check back later!
                     <?php endif; ?>
                 </p>
-                <a href="menu.php" class="mt-4 inline-block px-5 py-2 bg-brand-orange text-white font-medium rounded-lg">
+                <!-- (MODIFIED) Clean URL -->
+                <a href="<?php echo BASE_URL; ?>/menu" class="mt-4 inline-block px-5 py-2 bg-brand-orange text-white font-medium rounded-lg">
                     View All Categories
                 </a>
             </div>
@@ -258,6 +261,8 @@ $schema_menu = [
     const modalQuantity = document.getElementById('modal-quantity');
     const modalTotalPrice = document.getElementById('modal-total-price');
     const modalAddToCartBtn = document.getElementById('modal-add-to-cart-btn');
+    // (NEW) Get CSRF token from config.php (via header.php)
+    const csrfToken = '<?php echo e(get_csrf_token()); ?>';
 
     /**
      * Opens the Item Options modal
@@ -291,7 +296,8 @@ $schema_menu = [
 
         // 2. Fetch item options
         try {
-            const response = await fetch(`admin/ajax_get_item_details.php?id=${itemId}`);
+            // (MODIFIED) Point to the new public AJAX file
+            const response = await fetch(`ajax_get_item_details.php?id=${itemId}`);
             if (!response.ok) throw new Error('Network error');
             
             const data = await response.json();
@@ -398,6 +404,9 @@ $schema_menu = [
                 formData.append('options[]', optId);
             });
             
+            // (NEW) Add CSRF token to the form data
+            formData.append('csrf_token', csrfToken);
+
             const response = await fetch('cart_actions.php', {
                 method: 'POST',
                 body: formData

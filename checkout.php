@@ -2,7 +2,7 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.0
+ * Version 1.1 - Fixed "Headers Already Sent" bug
  *
  * This page:
  * 1. Requires a non-empty cart to view.
@@ -12,23 +12,26 @@
  * 5. Uses AJAX to calculate delivery fees live.
  */
 
-// 1. PAGE SETUP
-$page_title = 'Checkout - KitchCo';
-$meta_description = 'Complete your order and get your food delivered.';
+// 1. CONFIGURATION
+require_once('config.php');
 
-// 2. HEADER
-require_once('includes/header.php');
-
-// 3. --- LOAD DATA & CART ---
+// 2. --- (MODIFIED) SECURITY CHECK (MOVED UP) ---
+// This check MUST happen before any HTML is output (i.e., before header.php)
 $cart = $_SESSION['cart'] ?? [];
+$store_is_open = $settings['store_is_open'] ?? '1'; // Get store status from config
 
-// 4. --- SECURITY: Check if cart is empty ---
 if (empty($cart) || $store_is_open == '0') {
     // If cart is empty or store is closed, redirect them.
-    // We check $store_is_open (from header.php)
     header('Location: menu.php');
     exit;
 }
+
+// 3. PAGE SETUP
+$page_title = 'Checkout - KitchCo';
+$meta_description = 'Complete your order and get your food delivered.';
+
+// 4. HEADER (HTML output starts here)
+require_once('includes/header.php');
 
 // 5. --- LOAD DELIVERY AREAS ---
 $delivery_areas = [];

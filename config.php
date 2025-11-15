@@ -2,7 +2,7 @@
 /*
  * config.php
  * KitchCo: Cloud Kitchen Master Configuration File
- * Version 1.1 - Added CSRF Protection
+ * Version 1.3 - Fixed "context-aware" BASE_URL bug
  *
  * This file is included at the top of almost all other PHP files.
  * It handles:
@@ -10,7 +10,7 @@
  * 2. Connecting to the MySQL database
  * 3. Loading all store settings from the `site_settings` table
  * 4. Setting the default timezone
- * 5. (NEW) CSRF Protection Functions
+ * 5. (MODIFIED) CSRF Protection Functions (now for all users)
  */
 
 // --- 1. SESSION ---
@@ -19,7 +19,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// --- (NEW) CSRF PROTECTION ---
+// --- (MODIFIED) CSRF PROTECTION ---
 
 /**
  * Generates a new CSRF token and stores it in the session.
@@ -57,11 +57,9 @@ function get_csrf_token() {
     return $_SESSION['csrf_token'];
 }
 
-// Generate a token for all admin pages
-if (isset($_SESSION['user_id'])) {
-    generate_csrf_token();
-}
-// --- (END NEW) ---
+// (MODIFIED) Generate a token for ALL sessions, not just admin
+generate_csrf_token();
+// --- (END MODIFIED) ---
 
 
 // --- 2. DATABASE CONNECTION (IMPORTANT!) ---
@@ -99,8 +97,22 @@ if (!empty($settings['timezone'])) {
 }
 
 // --- 5. GLOBAL VARIABLES & HELPERS ---
-// (!!!) IMPORTANT: UPDATE THIS TO YOUR PROJECT'S URL
-define('BASE_URL', 'http://localhost/cloudkitchen'); // CHANGE THIS
+// (!!!) (MODIFIED) Made BASE_URL dynamic and context-aware
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https:" : "http:";
+$host = $_SERVER['HTTP_HOST'];
+
+// Get the server's filesystem path to this config file
+$config_dir = dirname(__FILE__);
+// Get the server's web root (e.g., C:/wamp64/www)
+$document_root = $_SERVER['DOCUMENT_ROOT'];
+
+// Find the web path by removing the document root from the config file's path
+// This correctly finds the base folder (e.g., /cloudbak)
+$path = str_replace('\\', '/', substr($config_dir, strlen($document_root)));
+$path = rtrim($path, '/\\'); // Clean up any trailing slashes
+
+define('BASE_URL', $protocol . '//' . $host . $path);
+
 define('UPLOADS_PATH', __DIR__ . '/uploads/');
 define('ASSETS_PATH', BASE_URL . '/assets/');
 

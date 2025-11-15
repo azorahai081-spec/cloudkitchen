@@ -2,7 +2,7 @@
 /*
  * admin/header.php
  * KitchCo: Cloud Kitchen Master Admin Header
- * Version 1.1 - Updated Nav Links
+ * Version 1.3 - (MODIFIED) Removed broken toggle CSS
  *
  * This file is included at the top of ALL protected admin pages.
  * It handles:
@@ -74,9 +74,9 @@ $user_initial = strtoupper(substr($username, 0, 1));
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .toggle-checkbox:checked { right: 0; border-color: #22c55e; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #22c55e; }
         
+        /* (REMOVED) Broken toggle styles */
+
         /* This style is for the "active" nav link */
         .nav-link-active {
             background-color: #ea580c; /* orange-600 */
@@ -167,6 +167,12 @@ $user_initial = strtoupper(substr($username, 0, 1));
                     <hr class="border-gray-700 my-4">
                     <p class="px-3 text-xs font-semibold text-gray-400 uppercase">Administration</p>
 
+                    <!-- (NEW) Reports Link -->
+                    <a href="reports.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3.75h16.5M3.75 12h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5M3.75 8.25h16.5" /></svg>
+                        <span class="font-medium">Reports</span>
+                    </a>
+                    
                     <a href="manage_delivery_areas.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <span class="font-medium">Delivery Areas</span>
@@ -203,8 +209,9 @@ $user_initial = strtoupper(substr($username, 0, 1));
                             <div class="text-sm text-gray-400 capitalize"><?php echo e($user_role); ?></div>
                         </div>
                     </div>
-                    <!-- Logout Button -->
-                    <a href="logout.php" title="Logout" class="p-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
+                    <!-- (MODIFIED) Logout Button -->
+                    <!-- Added the CSRF token as a query parameter -->
+                    <a href="logout.php?csrf_token=<?php echo e(get_csrf_token()); ?>" title="Logout" class="p-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                         </svg>

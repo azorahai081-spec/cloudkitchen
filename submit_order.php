@@ -2,7 +2,7 @@
 /*
  * submit_order.php
  * KitchCo: Cloud Kitchen Order Submission Handler
- * Version 1.0
+ * Version 1.3 - Changed Order ID prefix to PM-
  *
  * This file is NOT a visible page. It:
  * 1. Is the target for the checkout.php form.
@@ -16,18 +16,22 @@
 
 // 1. CONFIGURATION
 require_once('config.php');
+// (NEW) 1B. Include CAPI Helper
+require_once('includes/fb_capi.php');
 
 // 2. --- INITIAL VALIDATION ---
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Not a POST request
-    header('Location: index.php');
+    // (MODIFIED) Clean URL
+    header('Location: ' . BASE_URL . '/');
     exit;
 }
 
 $cart = $_SESSION['cart'] ?? [];
 if (empty($cart) || $settings['store_is_open'] == '0') {
     // Cart is empty or store is closed
-    header('Location: menu.php');
+    // (MODIFIED) Clean URL
+    header('Location: ' . BASE_URL . '/menu');
     exit;
 }
 
@@ -124,6 +128,15 @@ try {
     $stmt_order->execute();
     $order_id = $db->insert_id; // Get the new order ID
     
+    // (NEW) Create array for CAPI
+    $order_for_capi = [
+        'order_id' => $order_id,
+        'customer_name' => $customer_name,
+        'customer_phone' => $customer_phone,
+        'total_amount' => $total_amount
+    ];
+    $items_for_capi = [];
+
     if ($order_id <= 0) throw new Exception("Failed to create order header.");
 
     // --- B. Insert into `order_items` and `order_item_options` ---
@@ -157,6 +170,13 @@ try {
             'price' => $item['single_item_price'],
             'quantity' => $item['quantity']
         ];
+        
+        // (NEW) Add to CAPI items array
+        $items_for_capi[] = [
+            'menu_item_id' => $item['item_id'],
+            'quantity' => $item['quantity'],
+            'single_item_price' => $item['single_item_price']
+        ];
     }
     
     // 6. --- COMMIT TRANSACTION ---
@@ -168,7 +188,8 @@ try {
     $_SESSION['gtm_purchase_data'] = [
         'event' => 'purchase',
         'ecommerce' => [
-            'transaction_id' => 'KCO-' . $order_id,
+            // (MODIFIED) Changed prefix
+            'transaction_id' => 'PM-' . $order_id,
             'value' => $total_amount,
             'tax' => 0, // Assuming no tax for now
             'shipping' => $total_delivery_fee,
@@ -177,9 +198,9 @@ try {
         ]
     ];
     
-    // B. (PHASE 5) Placeholder for Facebook CAPI (Server-Side)
-    // This is where you would call your CAPI function:
-    // fire_facebook_capi($order_id, $total_amount, $customer_phone, ...);
+    // B. (MODIFIED) Fire Facebook CAPI (Server-Side)
+    // The $settings array is already loaded from config.php
+    fire_facebook_capi($order_for_capi, $items_for_capi, $settings);
 
     // 8. --- CLEANUP & REDIRECT ---
     
@@ -190,7 +211,8 @@ try {
     $_SESSION['last_order_id'] = $order_id;
     
     // C. Redirect to "Thank You" page
-    header('Location: order_success.php');
+    // (MODIFIED) Clean URL
+    header('Location: ' . BASE_URL . '/order-success');
     exit;
 
 } catch (Exception $e) {

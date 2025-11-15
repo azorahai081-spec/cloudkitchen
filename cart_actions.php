@@ -2,7 +2,7 @@
 /*
  * cart_actions.php
  * KitchCo: Cloud Kitchen Cart AJAX Handler
- * Version 1.1 - Hardened "Remove" action to use POST
+ * Version 1.2 - Added CSRF Protection
  *
  * This file handles all cart modifications (add, update, remove).
  * It is called via AJAX, validates data, updates the session,
@@ -23,6 +23,19 @@ if (!isset($_SESSION['cart'])) {
 $action = $_POST['action'] ?? $_GET['action'] ?? null;
 
 try {
+    // (NEW) CSRF Check for all actions
+    if ($action === 'add' || $action === 'update' || $action === 'remove') {
+        if (!validate_csrf_token()) {
+            // For AJAX 'add', throw exception. For 'update'/'remove', just redirect.
+            if ($action === 'add') {
+                throw new Exception('Invalid session. Please refresh the page and try again.');
+            } else {
+                header('Location: cart.php');
+                exit;
+            }
+        }
+    }
+    
     switch ($action) {
         // --- ACTION: ADD TO CART ---
         case 'add':

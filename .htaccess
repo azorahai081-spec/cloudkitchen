@@ -1,0 +1,41 @@
+# KitchCo Apache Configuration
+# This file creates "Clean URLs" and improves security.
+
+# 1. Prevent directory listing
+Options -Indexes
+
+# 2. Turn on the URL rewriting engine
+RewriteEngine On
+
+# 3. Set the base directory (important!)
+# (MODIFIED) This now correctly matches your WAMP folder "cloud"
+RewriteBase /cloud/
+
+# 4. Do not rewrite if the file or directory already exists
+# This protects /admin, /includes, /uploads, and all existing .php files
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# --- Public Page Rewrite Rules ---
+
+# 5. Rule for: /menu
+RewriteRule ^menu/?$ menu.php [L,NC]
+
+# 6. Rule for: /menu/category/1
+RewriteRule ^menu/category/([0-9]+)/?$ menu.php?category=$1 [L,NC,QSA]
+
+# 7. Rule for: /cart
+RewriteRule ^cart/?$ cart.php [L,NC]
+
+# 8. Rule for: /checkout
+RewriteRule ^checkout/?$ checkout.php [L,NC]
+
+# 9. Rule for: /order-success
+RewriteRule ^order-success/?$ order_success.php [L,NC]
+
+# (NEW) 10. Rule for: /track-order
+RewriteRule ^track-order/?$ track_order.php [L,NC,QSA]
+
+# 11. Rule for homepage (root /)
+RewriteRule ^/?$ index.php [L]

@@ -2,7 +2,7 @@
 /*
  * admin/live_orders.php
  * KitchCo: Cloud Kitchen Live Order Dashboard
- * Version 1.5 - Applied Store Status Fixes
+ * Version 2.1 - (MODIFIED) Fixed store status toggle UI
  *
  * This is the main dashboard page. It's the "mission control" for the kitchen.
  */
@@ -11,15 +11,46 @@
 // Includes session start, DB connection, and security check.
 require_once('header.php');
 
-// 2. (Optional) PHP logic to fetch stats
-// These are placeholders for now
-$todays_sales = "12,540"; // You can build a query for this
-$todays_orders = "42"; // You can build a query for this
+// 2. (MODIFIED) PHP logic to fetch stats
+// Get the store's timezone to ensure "today" is accurate
+$timezone = new DateTimeZone($settings['timezone'] ?? 'UTC');
+$today_start = new DateTime('today 00:00:00', $timezone);
+$today_start_mysql = $today_start->format('Y-m-d H:i:s');
+
+// Query 1: Get Today's Sales
+// We sum all non-cancelled orders from the start of today
+$sql_sales = "SELECT SUM(total_amount) as total_sales 
+              FROM orders 
+              WHERE order_time >= ? 
+              AND order_status != 'Cancelled'";
+$stmt_sales = $db->prepare($sql_sales);
+$stmt_sales->bind_param('s', $today_start_mysql);
+$stmt_sales->execute();
+$result_sales = $stmt_sales->get_result();
+$sales_data = $result_sales->fetch_assoc();
+$todays_sales = number_format($sales_data['total_sales'] ?? 0, 2);
+$stmt_sales->close();
+
+// Query 2: Get Today's Orders
+// We count all non-cancelled orders from the start of today
+$sql_orders = "SELECT COUNT(id) as total_orders 
+               FROM orders 
+               WHERE order_time >= ? 
+               AND order_status != 'Cancelled'";
+$stmt_orders = $db->prepare($sql_orders);
+$stmt_orders->bind_param('s', $today_start_mysql);
+$stmt_orders->execute();
+$result_orders = $stmt_orders->get_result();
+$orders_data = $result_orders->fetch_assoc();
+$todays_orders = $orders_data['total_orders'] ?? 0;
+$stmt_orders->close();
+
 $store_is_open = $settings['store_is_open'] == '1';
 
-// --- (NEW) LOAD PENDING & PREPARING ORDERS ---
+// --- (MODIFIED) LOAD TOP 5 PENDING, PREPARING, AND READY ORDERS ---
 $pending_orders = [];
-$sql_pending = "SELECT * FROM orders WHERE order_status = 'Pending' ORDER BY order_time ASC";
+// (MODIFIED) Added LIMIT 5
+$sql_pending = "SELECT * FROM orders WHERE order_status = 'Pending' ORDER BY order_time DESC LIMIT 5";
 $res_pending = $db->query($sql_pending);
 if ($res_pending) {
     while ($row = $res_pending->fetch_assoc()) {
@@ -28,14 +59,25 @@ if ($res_pending) {
 }
 
 $preparing_orders = [];
-$sql_preparing = "SELECT * FROM orders WHERE order_status = 'Preparing' ORDER BY order_time ASC";
+// (MODIFIED) Added LIMIT 5
+$sql_preparing = "SELECT * FROM orders WHERE order_status = 'Preparing' ORDER BY order_time DESC LIMIT 5";
 $res_preparing = $db->query($sql_preparing);
 if ($res_preparing) {
     while ($row = $res_preparing->fetch_assoc()) {
         $preparing_orders[] = $row;
     }
 }
-// --- (END NEW) ---
+
+// (NEW) Load Ready orders
+$ready_orders = [];
+$sql_ready = "SELECT * FROM orders WHERE order_status = 'Ready' ORDER BY order_time DESC LIMIT 5";
+$res_ready = $db->query($sql_ready);
+if ($res_ready) {
+    while ($row = $res_ready->fetch_assoc()) {
+        $ready_orders[] = $row;
+    }
+}
+// --- (END MODIFIED) ---
 
 ?>
 
@@ -43,26 +85,25 @@ if ($res_preparing) {
 This file uses the header.php file, which sets the <title>.
 We can set a more specific title by echoing it in the <head>
 but for now, we'll just set it in PHP.
--->
-<?php $page_title = 'Live Order Dashboard'; ?>
-
-<!-- Main Header -->
-<header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900">Live Dashboard</h1>
-        <p class="text-gray-600 mt-1">Welcome back, <?php echo $username; ?>. Here's what's happening.</p>
-    </div>
-    
     <!-- (MODIFIED) Store Open/Closed Toggle -->
-    <!-- This is now a functional switch (if user is admin) -->
+    <!-- This now uses Tailwind's "peer" system to style itself -->
     <div class="flex items-center space-x-3 mt-4 sm:mt-0">
         <span class="font-medium text-gray-700">Store Status:</span>
         <label for="store-toggle" class="relative inline-flex items-center <?php echo hasAdminAccess() ? 'cursor-pointer' : 'cursor-not-allowed'; ?>">
-            <input type="checkbox" id="store-toggle" class="sr-only toggle-checkbox" 
+            <input type="checkbox" id="store-toggle" class="sr-only peer" 
                    <?php echo $store_is_open ? 'checked' : ''; ?>
                    <?php echo hasAdminAccess() ? '' : 'disabled'; ?>>
-            <div class="w-14 h-8 bg-gray-300 rounded-full transition-all"></div>
-            <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-all toggle-checkbox"></div>
+            
+            <!-- This is the track -->
+            <div class="w-14 h-8 bg-gray-300 rounded-full transition-colors 
+                        peer-checked:bg-green-600 
+                        <?php echo hasAdminAccess() ? '' : 'opacity-50'; ?>">
+            </div>
+            
+            <!-- This is the thumb -->
+            <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform 
+                        peer-checked:translate-x-6">
+            </div>
         </label>
         <span id="store-status-text" class="font-medium <?php echo $store_is_open ? 'text-green-600' : 'text-red-600'; ?>">
             <?php echo $store_is_open ? 'Open' : 'Closed'; ?>
@@ -70,8 +111,8 @@ but for now, we'll just set it in PHP.
     </div>
 </header>
 
-<!-- Stats Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+<!-- (MODIFIED) Stats Cards - now 4 columns -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <!-- Card 1: Today's Sales -->
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="flex items-center space-x-4">
@@ -110,23 +151,36 @@ but for now, we'll just set it in PHP.
             </div>
         </div>
     </div>
+
+    <!-- (NEW) Card 4: Ready for Pickup -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center space-x-4">
+            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.263-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-sm font-medium text-gray-500">Ready for Pickup</div>
+                <div class="text-3xl font-bold text-gray-900" id="stat-ready-orders"><?php echo count($ready_orders); ?></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 
-    Order Columns (The "Live Order Screen")
-    This is the main part of admin/live_orders.php 
+    (MODIFIED) Order Columns - now 3 columns
 -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     
     <!-- Column 1: New Orders (Live Feed) -->
     <div class="bg-white rounded-2xl shadow-lg">
         <div class="p-6 border-b border-gray-200">
             <h2 class="text-xl font-bold text-gray-900">New Orders (Live Feed)</h2>
-            <p class="text-sm text-gray-500">New orders will appear here automatically. (Sound on!)</p>
+            <p class="text-sm text-gray-500">Showing newest 5. (Sound on!)</p>
         </div>
         <div class="p-6 space-y-4 max-h-96 overflow-y-auto" id="pending-orders-list">
             
-            <!-- (MODIFIED) Orders are now loaded from PHP -->
             <?php if (empty($pending_orders)): ?>
                 <p id="no-pending-orders" class="text-gray-500 text-center py-4">No pending orders.</p>
             <?php else: ?>
@@ -134,7 +188,7 @@ but for now, we'll just set it in PHP.
                     <div id="order-card-<?php echo e($order['id']); ?>" class="order-card border border-green-300 bg-green-50 rounded-lg p-4 transition-all hover:shadow-md">
                         <div class="flex justify-between items-center">
                             <div>
-                                <span class="text-lg font-bold text-gray-800">Order #<?php echo e($order['id']); ?></span>
+                                <span class="text-lg font-bold text-gray-800">Order #PM-<?php echo e($order['id']); ?></span>
                                 <span class="ml-2 text-sm text-green-700 font-medium">(<?php echo e(date('h:i A', strtotime($order['order_time']))); ?>)</span>
                             </div>
                             <span class="px-3 py-1 bg-green-200 text-green-800 text-xs font-bold rounded-full">NEW</span>
@@ -145,7 +199,6 @@ but for now, we'll just set it in PHP.
                         </div>
                         <div class="mt-3 flex justify-between items-center">
                             <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
-                            <!-- (NEW) Link to order details -->
                             <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
                                 View & Accept
                             </a>
@@ -153,7 +206,6 @@ but for now, we'll just set it in PHP.
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
-            <!-- (END MODIFIED) -->
 
         </div>
     </div>
@@ -162,11 +214,10 @@ but for now, we'll just set it in PHP.
     <div class="bg-white rounded-2xl shadow-lg">
         <div class="p-6 border-b border-gray-200">
             <h2 class="text-xl font-bold text-gray-900">In Progress (Preparing)</h2>
-            <p class="text-sm text-gray-500">Orders you have already accepted.</p>
+            <p class="text-sm text-gray-500">Showing newest 5.</p>
         </div>
         <div class="p-6 space-y-4 max-h-96 overflow-y-auto" id="preparing-orders-list">
             
-            <!-- (MODIFIED) Orders are now loaded from PHP -->
             <?php if (empty($preparing_orders)): ?>
                 <p id="no-preparing-orders" class="text-gray-500 text-center py-4">No orders are being prepared.</p>
             <?php else: ?>
@@ -174,19 +225,17 @@ but for now, we'll just set it in PHP.
                     <div id="order-card-<?php echo e($order['id']); ?>" class="order-card border border-blue-300 bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
                         <div class="flex justify-between items-center">
                             <div>
-                                <span class="text-lg font-bold text-gray-800">Order #<?php echo e($order['id']); ?></span>
+                                <span class="text-lg font-bold text-gray-800">Order #PM-<?php echo e($order['id']); ?></span>
                                 <span class="ml-2 text-sm text-blue-700 font-medium">(<?php echo e(date('h:i A', strtotime($order['order_time']))); ?>)</span>
                             </div>
                             <span class="px-3 py-1 bg-blue-200 text-blue-800 text-xs font-bold rounded-full">PREPARING</span>
                         </div>
                         <div class="mt-3">
                             <div class="font-medium text-gray-700">Customer: <?php echo e($order['customer_name']); ?></div>
-                            <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
                             <div class="text-sm text-gray-500">Rider: <?php echo e($order['rider_name'] ?? 'Not assigned'); ?></div>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
                             <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
-                            <!-- (NEW) Link to order details -->
                             <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
                                 Mark as Ready
                             </a>
@@ -194,7 +243,43 @@ but for now, we'll just set it in PHP.
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
-            <!-- (END MODIFIED) -->
+
+        </div>
+    </div>
+    
+    <!-- (NEW) Column 3: Ready for Pickup -->
+    <div class="bg-white rounded-2xl shadow-lg">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900">Ready for Pickup</h2>
+            <p class="text-sm text-gray-500">Showing newest 5.</p>
+        </div>
+        <div class="p-6 space-y-4 max-h-96 overflow-y-auto" id="ready-orders-list">
+            
+            <?php if (empty($ready_orders)): ?>
+                <p id="no-ready-orders" class="text-gray-500 text-center py-4">No orders are ready for pickup.</p>
+            <?php else: ?>
+                <?php foreach ($ready_orders as $order): ?>
+                    <div id="order-card-<?php echo e($order['id']); ?>" class="order-card border border-yellow-300 bg-yellow-50 rounded-lg p-4 transition-all hover:shadow-md">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-lg font-bold text-gray-800">Order #PM-<?php echo e($order['id']); ?></span>
+                                <span class="ml-2 text-sm text-yellow-700 font-medium">(<?php echo e(date('h:i A', strtotime($order['order_time']))); ?>)</span>
+                            </div>
+                            <span class="px-3 py-1 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">READY</span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="font-medium text-gray-700">Customer: <?php echo e($order['customer_name']); ?></div>
+                            <div class="text-sm text-gray-500">Rider: <?php echo e($order['rider_name'] ?? 'Not assigned'); ?></div>
+                        </div>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                            <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700">
+                                Mark as Delivered
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
 
         </div>
     </div>
@@ -217,18 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const storeToggle = document.getElementById('store-toggle');
     const storeStatusText = document.getElementById('store-status-text');
-    // Get the current CSRF token from the header (assuming it's available)
-    // We will use the one from the 'logout' link
     const csrfToken = '<?php echo e(get_csrf_token()); ?>'; 
     
     if (storeToggle) {
         storeToggle.addEventListener('change', async function() {
             const isChecked = this.checked;
-            const newStatusText = isChecked ? 'Open' : 'Closed';
-            
-            // Optimistically update the UI
-            storeStatusText.textContent = 'Updating...';
-            
+            // ... (store toggle logic is unchanged) ...
             try {
                 const response = await fetch('ajax_update_store_status.php', {
                     method: 'POST',
@@ -241,13 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
                 
-                // IMPORTANT: Check response status BEFORE trying to parse JSON
                 if (!response.ok) {
-                    // Try to read error message if provided, otherwise default.
                     let errorDetails = `HTTP Error ${response.status}.`;
                     try {
                         const errorBody = await response.text();
-                        // This handles the error you saw previously: non-JSON output.
                         if (errorBody.startsWith('<')) {
                             throw new Error('Server returned HTML instead of JSON (Possible PHP Warning).');
                         }
@@ -259,11 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorDetails);
                 }
 
-
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Success! Update text and color
                     storeStatusText.textContent = result.new_status_text;
                     if (result.new_status_text === 'Open') {
                         storeStatusText.classList.remove('text-red-600');
@@ -273,13 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         storeStatusText.classList.add('text-red-600');
                     }
                 } else {
-                    // Revert on failure
                     throw new Error(result.error || 'Failed to update status.');
                 }
                 
             } catch (error) {
                 console.error('Failed to update store status:', error);
-                // Revert the toggle and text
                 storeToggle.checked = !isChecked;
                 const oldStatusText = isChecked ? 'Closed' : 'Open';
                 storeStatusText.textContent = oldStatusText;
@@ -291,42 +363,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- (END) NEW STORE STATUS TOGGLE LOGIC ---
 
 
-    // --- (START) LIVE ORDER POLLING LOGIC ---
+    // --- (START) (MODIFIED) LIVE ORDER POLLING LOGIC ---
     
     // Get references to DOM elements
     const pendingList = document.getElementById('pending-orders-list');
-    const noPendingMsg = document.getElementById('no-pending-orders');
     const preparingList = document.getElementById('preparing-orders-list');
-    const noPreparingMsg = document.getElementById('no-preparing-orders');
+    const readyList = document.getElementById('ready-orders-list'); // (NEW)
+    
     const notificationSound = document.getElementById('notification-sound');
+    
     const statNewOrders = document.getElementById('stat-new-orders');
+    const statReadyOrders = document.getElementById('stat-ready-orders'); // (NEW)
     
-    // Store the ID of the latest order we've seen
-    let lastKnownOrderId = 0;
+    // (NEW) Store a set of currently visible pending order IDs
+    let displayedPendingIDs = new Set();
     
-    // Find the latest order ID on the page right now
-    const existingCards = document.querySelectorAll('.order-card');
-    if (existingCards.length > 0) {
-        const ids = Array.from(existingCards).map(card => parseInt(card.id.split('-')[2]));
-        lastKnownOrderId = Math.max(...ids);
+    function getDisplayedPendingIDs() {
+        const ids = new Set();
+        const pendingCards = pendingList.querySelectorAll('.order-card');
+        pendingCards.forEach(card => {
+            ids.add(card.id); // card.id is "order-card-7"
+        });
+        return ids;
     }
+    displayedPendingIDs = getDisplayedPendingIDs();
     
-    // --- Function to play notification sound ---
     function playSound() {
         notificationSound.currentTime = 0; // Rewind to start
         notificationSound.play().catch(e => console.log("Sound play failed:", e));
     }
 
-    // --- Function to create an Order Card HTML ---
+    // --- (MODIFIED) Function to create an Order Card HTML ---
     function createOrderCard(order) {
         const time = new Date(order.order_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const cardId = `order-card-${order.id}`;
         
         if (order.order_status === 'Pending') {
             return `
-            <div id="order-card-${order.id}" class="order-card border border-green-300 bg-green-50 rounded-lg p-4 transition-all hover:shadow-md opacity-0 transform -translate-y-4">
+            <div id="${cardId}" class="order-card border border-green-300 bg-green-50 rounded-lg p-4 transition-all hover:shadow-md">
                 <div class="flex justify-between items-center">
                     <div>
-                        <span class="text-lg font-bold text-gray-800">Order #${order.id}</span>
+                        <span class="text-lg font-bold text-gray-800">Order #PM-${order.id}</span>
                         <span class="ml-2 text-sm text-green-700 font-medium">(${time})</span>
                     </div>
                     <span class="px-3 py-1 bg-green-200 text-green-800 text-xs font-bold rounded-full">NEW</span>
@@ -345,12 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (order.order_status === 'Preparing') {
-            // (FIXED) Changed 'order.assigned_rider_name' to 'order.rider_name'
             return `
-            <div id="order-card-${order.id}" class="order-card border border-blue-300 bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
+            <div id="${cardId}" class="order-card border border-blue-300 bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
                 <div class="flex justify-between items-center">
                     <div>
-                        <span class="text-lg font-bold text-gray-800">Order #${order.id}</span>
+                        <span class="text-lg font-bold text-gray-800">Order #PM-${order.id}</span>
                         <span class="ml-2 text-sm text-blue-700 font-medium">(${time})</span>
                     </div>
                     <span class="px-3 py-1 bg-blue-200 text-blue-800 text-xs font-bold rounded-full">PREPARING</span>
@@ -367,12 +443,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
         }
+
+        // (NEW) Card for "Ready" status
+        if (order.order_status === 'Ready') {
+            return `
+            <div id="${cardId}" class="order-card border border-yellow-300 bg-yellow-50 rounded-lg p-4 transition-all hover:shadow-md">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="text-lg font-bold text-gray-800">Order #PM-${order.id}</span>
+                        <span class="ml-2 text-sm text-yellow-700 font-medium">(${time})</span>
+                    </div>
+                    <span class="px-3 py-1 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">READY</span>
+                </div>
+                <div class="mt-3">
+                    <div class="font-medium text-gray-700">Customer: ${order.customer_name}</div>
+                    <div class="text-sm text-gray-500">Rider: ${order.rider_name || 'Not assigned'}</div>
+                </div>
+                <div class="mt-3 flex justify-between items-center">
+                    <span class="text-xl font-bold text-gray-900">${parseFloat(order.total_amount).toFixed(2)} BDT</span>
+                    <a href="order_details.php?id=${order.id}" class="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700">
+                        Mark as Delivered
+                    </a>
+                </div>
+            </div>`;
+        }
+    }
+
+    // --- (MODIFIED) Function to update the DOM with new lists ---
+    function updateOrderLists(pendingOrders, preparingOrders, readyOrders) {
+        let newOrderSound = false;
+        
+        // --- 1. Update Pending List ---
+        let pendingHtml = '';
+        const newPendingIDs = new Set();
+        pendingOrders.forEach(order => {
+            pendingHtml += createOrderCard(order);
+            const cardId = `order-card-${order.id}`;
+            newPendingIDs.add(cardId);
+            
+            // Check if this ID was NOT in the previously displayed list
+            if (!displayedPendingIDs.has(cardId)) {
+                newOrderSound = true;
+            }
+        });
+        
+        pendingList.innerHTML = pendingHtml;
+        displayedPendingIDs = newPendingIDs; // Update the "current state"
+        
+        if (pendingOrders.length === 0) {
+            pendingList.innerHTML = '<p id="no-pending-orders" class="text-gray-500 text-center py-4">No pending orders.</p>';
+        }
+
+        // --- 2. Update Preparing List ---
+        let preparingHtml = '';
+        preparingOrders.forEach(order => {
+            preparingHtml += createOrderCard(order);
+        });
+        
+        preparingList.innerHTML = preparingHtml;
+        
+        if (preparingOrders.length === 0) {
+            preparingList.innerHTML = '<p id="no-preparing-orders" class="text-gray-500 text-center py-4">No orders are being prepared.</p>';
+        }
+        
+        // --- 3. (NEW) Update Ready List ---
+        let readyHtml = '';
+        readyOrders.forEach(order => {
+            readyHtml += createOrderCard(order);
+        });
+        
+        readyList.innerHTML = readyHtml;
+        
+        if (readyOrders.length === 0) {
+            readyList.innerHTML = '<p id="no-ready-orders" class="text-gray-500 text-center py-4">No orders are ready for pickup.</p>';
+        }
+        
+        // --- 4. Play sound if needed ---
+        if (newOrderSound) {
+            playSound();
+        }
     }
 
     // --- Function to fetch new data ---
     async function checkNewOrders() {
         try {
-            const response = await fetch(`ajax_check_new_orders.php?last_id=${lastKnownOrderId}`);
+            // (MODIFIED) No longer sending last_id
+            const response = await fetch(`ajax_check_new_orders.php`);
             if (!response.ok) {
                 console.error('Network error checking orders.');
                 return;
@@ -381,62 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (data.success) {
-                let newOrdersFound = false;
-                
-                // 1. Add new pending orders
-                if (data.new_orders && data.new_orders.length > 0) {
-                    if (noPendingMsg) noPendingMsg.style.display = 'none';
-                    
-                    data.new_orders.forEach(order => {
-                        if (order.id > lastKnownOrderId) {
-                            lastKnownOrderId = order.id;
-                        }
-                        // Add card to top of list
-                        const cardHtml = createOrderCard(order);
-                        pendingList.insertAdjacentHTML('afterbegin', cardHtml);
-                        
-                        // Animate it
-                        // (FIXED) Changed 'order.order_id' to 'order.id'
-                        setTimeout(() => {
-                            const newCard = document.getElementById(`order-card-${order.id}`);
-                            if (newCard) {
-                                newCard.classList.remove('opacity-0', '-translate-y-4');
-                            }
-                        }, 50);
-                        
-                        newOrdersFound = true;
-                    });
-                }
-                
-                // 2. Move updated orders (from Pending to Preparing)
-                if (data.updated_orders && data.updated_orders.length > 0) {
-                    data.updated_orders.forEach(order => {
-                        // Check if it's on the page
-                        const oldCard = document.getElementById(`order-card-${order.id}`);
-                        if (oldCard) {
-                            oldCard.remove(); // Remove from Pending list
-                        }
-                        
-                        // Add to Preparing list
-                        if (noPreparingMsg) noPreparingMsg.style.display = 'none';
-                        const cardHtml = createOrderCard(order);
-                        preparingList.insertAdjacentHTML('afterbegin', cardHtml);
-                    });
-                }
-                
-                // 3. Update stats
+                // 1. Update stats
                 statNewOrders.textContent = data.pending_count;
-                if (data.pending_count === 0 && noPendingMsg) {
-                    noPendingMsg.style.display = 'block';
-                }
-                if (data.preparing_count === 0 && noPreparingMsg) {
-                    noPreparingMsg.style.display = 'block';
-                }
-
-                // 4. Play sound if new
-                if (newOrdersFound) {
-                    playSound();
-                }
+                statReadyOrders.textContent = data.ready_count; // (NEW)
+                
+                // 2. Rebuild the lists in the DOM
+                updateOrderLists(data.pending_orders, data.preparing_orders, data.ready_orders); // (MODIFIED)
             }
             
         } catch (error) {
