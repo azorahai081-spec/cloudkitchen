@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.3 - Removed TinyMCE
+ * Version 1.5 - Removed redundant Store Status field
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_settings = [
             'hero_title' => $_POST['hero_title'],
             'hero_subtitle' => $_POST['hero_subtitle'],
-            'store_is_open' => isset($_POST['store_is_open']) ? '1' : '0',
+            // --- 'store_is_open' field intentionally removed from this form ---
             'night_surcharge_amount' => $_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
@@ -180,28 +180,10 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
     <!-- Section 2: Store & Surcharge Settings -->
     <div class="bg-white p-8 rounded-2xl shadow-lg">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Store & Surcharge Settings</h2>
+        <p class="text-sm text-gray-500 mb-6">Store Open/Closed status is managed live on the **Live Dashboard** page.</p>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <!-- Store Status -->
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Store Status</label>
-                <div class="mt-2 p-4 bg-slate-50 rounded-lg flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-gray-900">Store is Open</h3>
-                        <p class="text-sm text-gray-500">
-                            When "Closed", customers will be blocked from placing new orders.
-                        </p>
-                    </div>
-                    <label for="store_is_open" class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="store_is_open" name="store_is_open" value="1" 
-                               class="sr-only toggle-checkbox" 
-                               <?php echo ($settings['store_is_open'] == '1') ? 'checked' : ''; ?>>
-                        <div class="w-14 h-8 bg-gray-300 rounded-full transition-all"></div>
-                        <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-all toggle-checkbox"></div>
-                    </label>
-                </div>
-            </div>
-
             <!-- Night Surcharge -->
             <div>
                 <label for="night_surcharge_amount" class="block text-sm font-medium text-gray-700">Night Surcharge Amount (BDT)</label>

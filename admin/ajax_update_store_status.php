@@ -2,7 +2,7 @@
 /*
  * admin/ajax_update_store_status.php
  * KitchCo: Cloud Kitchen AJAX Helper
- * Version 1.1 - Added Output Buffering to ensure clean JSON
+ * Version 1.2 - Finalized JSON error handling
  *
  * This file is called by JavaScript from live_orders.php.
  * It updates the 'store_is_open' setting in the database.
@@ -15,11 +15,14 @@ require_once('../config.php');
 header('Content-Type: application/json');
 
 // 2. SECURITY CHECK (Admin Only)
-if (!isset($_SESSION['user_id']) || !hasAdminAccess()) {
+// Note: hasAdminAccess() is defined in header.php, which config.php doesn't include.
+// Since config is first, we must redefine hasAdminAccess or rely on user_role session.
+$is_admin = ($_SESSION['user_role'] ?? '') === 'admin';
+if (!isset($_SESSION['user_id']) || !$is_admin) {
     // Clear buffer before sending JSON response
     ob_end_clean();
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Access Denied']);
+    echo json_encode(['success' => false, 'error' => 'Access Denied (Admin role required).']);
     exit;
 }
 
@@ -31,7 +34,7 @@ $new_status = isset($data['store_is_open']) && $data['store_is_open'] ? '1' : '0
 // 4. VALIDATE CSRF TOKEN
 // We pass the token in a custom header
 $token_header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (!hash_equals($_SESSION['csrf_token'], $token_header)) {
+if (empty($token_header) || !hash_equals($_SESSION['csrf_token'], $token_header)) {
     // Clear buffer before sending JSON response
     ob_end_clean();
     http_response_code(403);
