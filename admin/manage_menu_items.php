@@ -2,7 +2,7 @@
 /*
  * admin/manage_menu_items.php
  * KitchCo: Cloud Kitchen Menu Item Manager
- * Version 1.1 - Added CSRF Protection
+ * Version 1.3 - (FIXED) Image paths and sort order
  *
  * This is the most complex CRUD page. It handles:
  * 1. CRUD for menu_items (name, price, image, etc.)
@@ -61,12 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             $file = $_FILES['item_image'];
-            $file_name = time() . '_' . basename($file['name']);
+            // (FIX) Sanitize filename to prevent issues
+            $file_name = time() . '_' . preg_replace("/[^a-zA-Z0-9\._-]/", "", basename($file['name']));
             $target_path = $upload_dir . $file_name;
             
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (in_array($file['type'], $allowed_types)) {
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    // (FIX) Store path relative to the /uploads/ folder
                     $image_path = '/uploads/menu_items/' . $file_name;
                     if (!empty($current_image) && file_exists('..' . $current_image)) {
                         unlink('..' . $current_image);
@@ -214,6 +216,7 @@ if ($action === 'delete' && $item_id) {
         
         if ($stmt->execute()) {
             $success_message = 'Menu item deleted successfully!';
+            // (FIX) Use '..' to go up one directory to the project root
             if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
                 unlink('..' . $image_to_delete);
             }
@@ -243,11 +246,11 @@ while ($row = $group_result->fetch_assoc()) {
 
 // Load Menu Items for the list
 $menu_items = [];
-// Use a JOIN to get the category name
+// (MODIFIED) Changed ORDER BY from m.name ASC to m.id DESC
 $sql = "SELECT m.*, c.name as category_name 
         FROM menu_items m
         LEFT JOIN categories c ON m.category_id = c.id
-        ORDER BY m.name ASC";
+        ORDER BY m.id DESC";
 $item_result = $db->query($sql);
 while ($row = $item_result->fetch_assoc()) {
     $menu_items[] = $row;
@@ -300,7 +303,13 @@ while ($row = $item_result->fetch_assoc()) {
                 <?php else: ?>
                     <?php foreach ($menu_items as $item): ?>
                         <tr>
-                            <td class="px-6 py-4"><img src="<?php echo e(BASE_URL . ($item['image'] ?? '/uploads/placeholder.png')); ?>" alt="<?php echo e($item['name']); ?>" class="w-12 h-12 object-cover rounded-lg" onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'"></td>
+                            <td class="px-6 py-4">
+                                <!-- (FIX) Use BASE_URL for the image path -->
+                                <img src="<?php echo e(BASE_URL); ?><?php echo e($item['image']); ?>" 
+                                     alt="<?php echo e($item['name']); ?>" 
+                                     class="w-12 h-12 object-cover rounded-lg" 
+                                     onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'">
+                            </td>
                             <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($item['name']); ?></div></td>
                             <td class="px-6 py-4"><div class="text-sm text-gray-500"><?php echo e($item['category_name']); ?></div></td>
                             <td class="px-6 py-4"><div class="text-sm text-gray-900"><?php echo e(number_format($item['price'], 2)); ?> BDT</div></td>
@@ -400,7 +409,11 @@ while ($row = $item_result->fetch_assoc()) {
                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
                     <div class="space-y-1 text-center">
                         <?php if ($action === 'edit' && !empty($item_image)): ?>
-                            <img src="<?php echo e(BASE_URL . $item_image); ?>" alt="Current Image" class="w-40 h-40 mx-auto object-cover rounded-lg mb-4">
+                            <!-- (FIX) Use BASE_URL for the image path -->
+                            <img src="<?php echo e(BASE_URL); ?><?php echo e($item_image); ?>" 
+                                 alt="Current Image" 
+                                 class="w-40 h-40 mx-auto object-cover rounded-lg mb-4"
+                                 onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'">
                         <?php else: ?>
                             <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                         <?php endif; ?>

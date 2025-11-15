@@ -2,7 +2,7 @@
 /*
  * cart_actions.php
  * KitchCo: Cloud Kitchen Cart AJAX Handler
- * Version 1.2 - Added CSRF Protection
+ * Version 1.3 - (MODIFIED) Added Global Discount Logic
  *
  * This file handles all cart modifications (add, update, remove).
  * It is called via AJAX, validates data, updates the session,
@@ -13,6 +13,26 @@
 // Start session, connect to DB
 require_once('config.php');
 header('Content-Type: application/json');
+
+// (NEW) Helper function to apply global discount
+function calculate_discounted_price($original_price, $settings) {
+    if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
+        return $original_price;
+    }
+
+    $discount_type = $settings['global_discount_type'];
+    $discount_value = (float)$settings['global_discount_value'];
+    $new_price = $original_price;
+
+    if ($discount_type == 'percentage') {
+        $new_price = $original_price - ($original_price * ($discount_value / 100));
+    } elseif ($discount_type == 'fixed') {
+        $new_price = $original_price - $discount_value;
+    }
+    
+    // Don't let price go below 0
+    return ($new_price > 0) ? $new_price : 0;
+}
 
 // 2. INITIALIZE SESSION CART
 if (!isset($_SESSION['cart'])) {
@@ -61,7 +81,10 @@ try {
                 throw new Exception('This item is not available.');
             }
             $item_data = $result_item->fetch_assoc();
-            $base_price = $item_data['price'];
+            
+            // (MODIFIED) Apply global discount
+            $original_base_price = (float)$item_data['price'];
+            $base_price = calculate_discounted_price($original_base_price, $settings);
             $item_name = $item_data['name'];
 
             // B. Get options and their prices
@@ -89,7 +112,7 @@ try {
             }
             // --- END VALIDATION ---
             
-            // Calculate final price for a single item
+            // (MODIFIED) Calculate final price for a single item
             $single_item_price = $base_price + $options_price;
 
             // Create a unique key for this item configuration
@@ -105,9 +128,9 @@ try {
                     'item_id' => $item_id,
                     'item_name' => $item_name,
                     'quantity' => (int)$quantity,
-                    'base_price' => (float)$base_price,
+                    'base_price' => (float)$base_price, // (MODIFIED) This is now the discounted base price
                     'options' => $options_desc, // Store text description
-                    'single_item_price' => (float)$single_item_price,
+                    'single_item_price' => (float)$single_item_price, // (MODIFIED) This is the discounted price + options
                 ];
             }
             

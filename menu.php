@@ -2,12 +2,12 @@
 /*
  * menu.php
  * KitchCo: Cloud Kitchen Full Menu Page
- * Version 1.3 - (MODIFIED) Redesigned buttons
+ * Version 1.6 - (MODIFIED) Changed to single-page scroll-to category
  *
  * This page:
  * 1. Loads all visible categories for filtering.
- * 2. Loads all visible items, grouped by category.
- * 3. Can be filtered by a GET param: menu.php?category=ID
+ * 2. (MODIFIED) Loads ALL visible items, grouped by category.
+ * 3. Calculates and displays global discounts.
  * 4. Includes the "Item Options" modal popup.
  * 5. Handles adding items to the cart via AJAX.
  */
@@ -19,10 +19,30 @@ $meta_description = 'Browse our full menu of delicious, fresh meals.';
 // 2. HEADER
 require_once('includes/header.php');
 
+// (NEW) Helper function to apply global discount
+function calculate_discounted_price($original_price, $settings) {
+    if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
+        return $original_price;
+    }
+
+    $discount_type = $settings['global_discount_type'];
+    $discount_value = (float)$settings['global_discount_value'];
+    $new_price = $original_price;
+
+    if ($discount_type == 'percentage') {
+        $new_price = $original_price - ($original_price * ($discount_value / 100));
+    } elseif ($discount_type == 'fixed') {
+        $new_price = $original_price - $discount_value;
+    }
+    
+    // Don't let price go below 0
+    return ($new_price > 0) ? $new_price : 0;
+}
+
+
 // 3. --- LOAD DATA FOR DISPLAY ---
 
-// Get the category filter, if any
-$filter_category_id = $_GET['category'] ?? null;
+// (MODIFIED) Page heading is now static
 $page_heading = 'Our Full Menu';
 
 // --- A. Load Categories for Sidebar ---
@@ -32,14 +52,12 @@ $result_cat = $db->query($sql_cat);
 if ($result_cat) {
     while ($row = $result_cat->fetch_assoc()) {
         $categories[] = $row;
-        if ($filter_category_id && $row['id'] == $filter_category_id) {
-            $page_heading = 'Menu: ' . e($row['name']);
-        }
     }
 }
 
 // --- B. Load All Menu Items (grouped by category) ---
 $menu = [];
+// (MODIFIED) Removed the "$filter_category_id" from the query. We always load all items.
 $sql_menu = "SELECT 
                 c.id as category_id, 
                 c.name as category_name, 
@@ -52,20 +70,25 @@ $sql_menu = "SELECT
              JOIN categories c ON m.category_id = c.id
              WHERE m.is_available = 1 AND c.is_visible = 1";
 
-if ($filter_category_id) {
-    $sql_menu .= " AND c.id = " . intval($filter_category_id);
-}
 $sql_menu .= " ORDER BY c.name ASC, m.name ASC";
 
 $result_menu = $db->query($sql_menu);
 if ($result_menu) {
     while ($row = $result_menu->fetch_assoc()) {
+        // (NEW) Apply global discount logic
+        $original_price = (float)$row['item_price'];
+        $discounted_price = calculate_discounted_price($original_price, $settings);
+        
+        $row['original_price'] = $original_price;
+        $row['item_price'] = $discounted_price; // Overwrite with new price
+        $row['has_discount'] = ($discounted_price < $original_price);
+        
         // Group items by their category name
         $menu[$row['category_name']][] = $row;
     }
 }
 
-// 4. --- (NEW) Schema.org JSON-LD for Menu ---
+// 4. --- (MODIFIED) Schema.org JSON-LD for Menu ---
 $schema_menu_items = [];
 foreach ($menu as $category => $items) {
     foreach ($items as $item) {
@@ -76,7 +99,7 @@ foreach ($menu as $category => $items) {
             'image' => BASE_URL . ($item['item_image'] ?? ''),
             'offers' => [
                 '@type' => 'Offer',
-                'price' => $item['item_price'],
+                'price' => $item['item_price'], // (MODIFIED) This now sends the discounted price
                 'priceCurrency' => 'BDT'
             ]
         ];
@@ -86,18 +109,18 @@ foreach ($menu as $category => $items) {
 $schema_menu = [
     '@context' => 'https://schema.org',
     '@type' => 'Menu',
-    'name' => 'KitchCo Full Menu',
+    'name' => 'Pizza Mania Full Menu', // (MODIFIED)
     'hasMenuItem' => $schema_menu_items
 ];
 ?>
 
-<!-- (NEW) Schema.org Script -->
+<!-- (MODIFIED) Schema.org Script -->
 <script type="application/ld+json">
 <?php echo json_encode($schema_menu, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
 </script>
 
-<!-- Page Heading -->
-<h1 class="text-3xl font-bold text-gray-900 mb-8"><?php echo e($page_heading); ?></h1>
+<!-- (NEW) Add ID for scrolling -->
+<h1 id="menu-heading" class="text-3xl font-bold text-gray-900 mb-8"><?php echo e($page_heading); ?></h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
     
@@ -107,15 +130,15 @@ $schema_menu = [
             <h2 class="text-xl font-bold text-gray-900 mb-4">Categories</h2>
             <ul class="space-y-2">
                 <li>
-                    <!-- (MODIFIED) Clean URL -->
-                    <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-lg font-medium <?php echo !$filter_category_id ? 'bg-orange-100 text-brand-red' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <!-- (FIX) Changed to hash link to scroll to top of menu -->
+                    <a href="#menu-heading" class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
                         All Categories
                     </a>
                 </li>
                 <?php foreach ($categories as $category): ?>
                 <li>
-                    <!-- (MODIFIED) Clean URL for categories -->
-                    <a href="<?php echo BASE_URL; ?>/menu/category/<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium <?php echo ($filter_category_id == $category['id']) ? 'bg-orange-100 text-brand-red' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <!-- (FIX) Changed to hash link to scroll to section -->
+                    <a href="#category-<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
                         <?php echo e($category['name']); ?>
                     </a>
                 </li>
@@ -130,20 +153,13 @@ $schema_menu = [
             <div class="bg-white p-8 rounded-2xl shadow-lg text-center">
                 <h3 class="text-xl font-bold text-gray-900">No Items Found</h3>
                 <p class="text-gray-600 mt-2">
-                    <?php if ($filter_category_id): ?>
-                        There are no available items in this category right now.
-                    <?php else: ?>
-                        Our menu is currently empty. Please check back later!
-                    <?php endif; ?>
+                    Our menu is currently empty. Please check back later!
                 </p>
-                <!-- (MODIFIED) Clean URL -->
-                <a href="<?php echo BASE_URL; ?>/menu" class="mt-4 inline-block px-5 py-2 bg-brand-red text-white font-medium rounded-lg">
-                    View All Categories
-                </a>
             </div>
         <?php else: ?>
             <!-- Loop through each Category -->
             <?php foreach ($menu as $category_name => $items): ?>
+                <!-- (MODIFIED) This ID is the target for the scroll -->
                 <section id="category-<?php echo e($items[0]['category_id']); ?>">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-red">
                         <?php echo e($category_name); ?>
@@ -164,8 +180,16 @@ $schema_menu = [
                                         <p class="text-sm text-gray-600 mt-1"><?php echo e($item['item_description']); ?></p>
                                     </div>
                                     <div class="flex justify-between items-center mt-4">
-                                        <span class="text-xl font-bold text-brand-red"><?php echo e(number_format($item['item_price'], 2)); ?> BDT</span>
-                                        <!-- (MODIFIED) Button styling updated -->
+                                        <!-- (NEW) Price display logic -->
+                                        <span class="text-xl font-bold text-brand-red">
+                                            <?php if ($item['has_discount']): ?>
+                                                <?php echo e(number_format($item['item_price'], 2)); ?> BDT
+                                                <span class="text-sm text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 2)); ?></span>
+                                            <?php else: ?>
+                                                <?php echo e(number_format($item['item_price'], 2)); ?> BDT
+                                            <?php endif; ?>
+                                        </span>
+                                        <!-- (MODIFIED) Pass the (potentially discounted) item_price to the modal -->
                                         <button 
                                             onclick="openItemModal(<?php echo e($item['item_id']); ?>, '<?php echo e(addslashes($item['item_name'])); ?>', <?php echo e($item['item_price']); ?>)"
                                             class="px-4 py-2 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-all transform hover:scale-105 <?php echo ($store_is_open == '0') ? 'hidden' : ''; ?>">
@@ -238,6 +262,7 @@ $schema_menu = [
             items: [
                 <?php foreach($menu as $category => $items) {
                     foreach($items as $item) {
+                        // (MODIFIED) Push the correct price
                         echo "{
                             item_id: '{$item['item_id']}',
                             item_name: '{$item['item_name']}',
@@ -276,6 +301,7 @@ $schema_menu = [
         modalOptionsContent.innerHTML = '<p class="text-gray-500 text-center">Loading options...</p>';
         modalQuantity.value = 1;
         modalItemId.value = itemId;
+        // (MODIFIED) This basePrice is now the *discounted* price
         modalBasePrice.value = basePrice;
         
         // Modal animations
@@ -291,7 +317,7 @@ $schema_menu = [
                 items: [{
                     item_id: itemId,
                     item_name: itemName,
-                    price: basePrice
+                    price: basePrice // (MODIFIED) This is now the discounted price
                 }]
             }
         });
@@ -370,6 +396,7 @@ $schema_menu = [
             optionsPrice += parseFloat(opt.dataset.price);
         });
         
+        // (MODIFIED) modalBasePrice.value is already discounted
         const basePrice = parseFloat(modalBasePrice.value);
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (basePrice + optionsPrice) * quantity;
@@ -428,7 +455,7 @@ $schema_menu = [
                         items: [{
                             item_id: itemId,
                             item_name: modalItemName.textContent,
-                            price: parseFloat(modalBasePrice.value),
+                            price: parseFloat(modalBasePrice.value), // (MODIFIED) This is now the discounted price
                             quantity: parseInt(quantity)
                         }]
                     }

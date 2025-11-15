@@ -2,14 +2,16 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.2 - (MODIFIED) Redesigned buttons
+ * Version 1.4 - (MODIFIED) Added Order Note Textarea
  *
  * This page:
  * 1. Requires a non-empty cart to view.
  * 2. Displays the final order summary.
  * 3. Collects customer info (name, phone, address).
- * 4. Loads delivery areas for a dropdown.
- * 5. Uses AJAX to calculate delivery fees live.
+ * 4. (NEW) Collects optional order note.
+ * 5. Loads delivery areas for a dropdown.
+ * 6. Uses AJAX to calculate delivery fees live.
+ * 7. Uses AJAX to apply coupon codes.
  */
 
 // 1. CONFIGURATION
@@ -113,6 +115,15 @@ foreach ($cart as $item) {
                     <textarea id="customer_address" name="customer_address" rows="3" required
                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
                 </div>
+
+                <!-- (NEW) Order Note -->
+                <div class="md:col-span-2">
+                    <label for="order_note" class="block text-sm font-medium text-gray-700">Note / Special Instructions (Optional)</label>
+                    <textarea id="order_note" name="order_note" rows="3"
+                              placeholder="e.g. less spicy, don't ring doorbell, etc."
+                              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
+                </div>
+
             </div>
             
             <h2 class="text-xl font-bold text-gray-900 mt-8 mb-6 border-b pb-3">2. Payment Method</h2>
@@ -157,6 +168,11 @@ foreach ($cart as $item) {
                         <span>Subtotal</span>
                         <span id="summary-subtotal"><?php echo e(number_format($subtotal, 2)); ?></span>
                     </div>
+                    <!-- (NEW) Coupon Discount Row -->
+                    <div id="summary-discount-row" class="hidden flex justify-between text-brand-red">
+                        <span>Discount</span>
+                        <span id="summary-discount-fee">0.00</span>
+                    </div>
                     <div class="flex justify-between text-gray-700">
                         <span>Delivery Fee</span>
                         <span id="summary-delivery-fee">...</span>
@@ -171,9 +187,22 @@ foreach ($cart as $item) {
                     </div>
                 </div>
 
+                <!-- (NEW) Coupon Form -->
+                <div class="mt-4 space-y-2 border-t pt-4">
+                    <label for="coupon_code" class="block text-sm font-medium text-gray-700">Have a coupon?</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="coupon_code" name="coupon_code_display" placeholder="Enter coupon code" class="flex-grow mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
+                        <button type="button" id="apply-coupon-btn" class="mt-1 px-5 py-3 bg-brand-yellow text-gray-900 font-semibold rounded-lg shadow-sm hover:bg-yellow-500 transition-colors">Apply</button>
+                    </div>
+                    <p id="coupon-message" class="text-sm mt-1"></p>
+                </div>
+
                 <!-- Hidden inputs for final totals -->
                 <input type="hidden" name="final_subtotal" id="final-subtotal" value="<?php echo e($subtotal); ?>">
                 <input type="hidden" name="final_delivery_fee" id="final-delivery-fee" value="0">
+                <!-- (NEW) Hidden inputs for discount -->
+                <input type="hidden" name="final_discount_code" id="final-discount-code" value="">
+                <input type="hidden" name="final_discount_amount" id="final-discount-amount" value="0">
                 <input type="hidden" name="final_total" id="final-total" value="0">
 
                 <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
@@ -209,7 +238,83 @@ foreach ($cart as $item) {
         const finalDeliveryFeeInput = document.getElementById('final-delivery-fee');
         const finalTotalInput = document.getElementById('final-total');
 
-        // --- Function to calculate fees ---
+        // (NEW) Coupon Elements
+        const couponInput = document.getElementById('coupon_code');
+        const couponBtn = document.getElementById('apply-coupon-btn');
+        const couponMsg = document.getElementById('coupon-message');
+        const summaryDiscountRow = document.getElementById('summary-discount-row');
+        const summaryDiscountFee = document.getElementById('summary-discount-fee');
+        const finalDiscountCodeInput = document.getElementById('final-discount-code');
+        const finalDiscountAmountInput = document.getElementById('final-discount-amount');
+
+        // (NEW) State variable for discount
+        let currentDiscount = 0;
+        let currentDeliveryFee = 0;
+
+        // --- (NEW) Function to apply coupon ---
+        async function applyCoupon() {
+            const code = couponInput.value.trim();
+            if (!code) {
+                couponMsg.textContent = 'Please enter a code.';
+                couponMsg.className = 'text-sm mt-1 text-red-600';
+                return;
+            }
+
+            couponBtn.disabled = true;
+            couponBtn.textContent = '...';
+            couponMsg.textContent = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('coupon_code', code);
+                formData.append('subtotal', subtotal);
+                formData.append('csrf_token', '<?php echo e(get_csrf_token()); ?>');
+
+                const response = await fetch('ajax_apply_coupon.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDiscount = data.discount_amount;
+                    finalDiscountCodeInput.value = code; // Save code for submission
+                    finalDiscountAmountInput.value = currentDiscount;
+                    
+                    summaryDiscountFee.textContent = `-${currentDiscount.toFixed(2)}`;
+                    summaryDiscountRow.classList.remove('hidden');
+                    
+                    couponMsg.textContent = data.message;
+                    couponMsg.className = 'text-sm mt-1 text-green-600';
+                    couponInput.disabled = true;
+                    couponBtn.textContent = 'Applied';
+                } else {
+                    currentDiscount = 0;
+                    finalDiscountCodeInput.value = '';
+                    finalDiscountAmountInput.value = 0;
+                    summaryDiscountRow.classList.add('hidden');
+
+                    couponMsg.textContent = data.message;
+                    couponMsg.className = 'text-sm mt-1 text-red-600';
+                    couponBtn.disabled = false;
+                    couponBtn.textContent = 'Apply';
+                }
+
+            } catch (error) {
+                couponMsg.textContent = 'Error: ' + error.message;
+                couponMsg.className = 'text-sm mt-1 text-red-600';
+                couponBtn.disabled = false;
+                couponBtn.textContent = 'Apply';
+            }
+            
+            // Recalculate total after applying coupon
+            updateGrandTotal();
+        }
+
+        // --- (MODIFIED) Function to calculate fees ---
         async function calculateFees() {
             const areaId = deliverySelect.value;
             if (!areaId) {
@@ -217,6 +322,8 @@ foreach ($cart as $item) {
                 summaryTotal.textContent = '...';
                 submitBtn.disabled = true;
                 submitError.textContent = 'Please select a delivery area.';
+                currentDeliveryFee = 0;
+                updateGrandTotal();
                 return;
             }
             
@@ -224,7 +331,7 @@ foreach ($cart as $item) {
             summaryFee.textContent = 'Calculating...';
             
             try {
-                // Call our new AJAX file
+                // Call our existing AJAX file
                 const response = await fetch(`ajax_calculate_fee.php?area_id=${areaId}`);
                 if (!response.ok) throw new Error('Network error');
                 
@@ -233,12 +340,10 @@ foreach ($cart as $item) {
                 if (data.success) {
                     const baseFee = data.base_charge;
                     const surcharge = data.surcharge_amount;
-                    const totalFee = data.total_delivery_fee;
-                    const grandTotal = subtotal + totalFee;
+                    currentDeliveryFee = data.total_delivery_fee; // Store fee
 
                     // Update summary
-                    summaryFee.textContent = `${totalFee.toFixed(2)}`;
-                    summaryTotal.textContent = `${grandTotal.toFixed(2)} BDT`;
+                    summaryFee.textContent = `${currentDeliveryFee.toFixed(2)}`;
 
                     // Show surcharge row if applied
                     if (surcharge > 0) {
@@ -249,8 +354,7 @@ foreach ($cart as $item) {
                     }
                     
                     // Update hidden inputs
-                    finalDeliveryFeeInput.value = totalFee.toFixed(2);
-                    finalTotalInput.value = grandTotal.toFixed(2);
+                    finalDeliveryFeeInput.value = currentDeliveryFee.toFixed(2);
                     
                     // Enable button
                     submitBtn.disabled = false;
@@ -262,13 +366,33 @@ foreach ($cart as $item) {
             } catch (error) {
                 submitBtn.disabled = true;
                 summaryFee.textContent = 'Error';
-                summaryTotal.textContent = 'Error';
+                currentDeliveryFee = 0;
                 submitError.textContent = error.message;
             }
+
+            // Update grand total
+            updateGrandTotal();
         }
 
-        // --- Event Listener ---
+        // (NEW) Function to update the final total
+        function updateGrandTotal() {
+            // Recalculate grand total
+            const grandTotal = subtotal - currentDiscount + currentDeliveryFee;
+            summaryTotal.textContent = `${grandTotal.toFixed(2)} BDT`;
+            finalTotalInput.value = grandTotal.toFixed(2);
+        }
+
+        // --- Event Listeners ---
         deliverySelect.addEventListener('change', calculateFees);
+        couponBtn.addEventListener('click', applyCoupon);
+
+        // (NEW) Check session storage for an applied coupon from cart.php
+        const sessionCoupon = sessionStorage.getItem('coupon_code');
+        if (sessionCoupon) {
+            couponInput.value = sessionCoupon;
+            applyCoupon();
+            sessionStorage.removeItem('coupon_code'); // Clear it
+        }
     });
 </script>
 

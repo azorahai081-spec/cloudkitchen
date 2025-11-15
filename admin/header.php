@@ -2,7 +2,7 @@
 /*
  * admin/header.php
  * KitchCo: Cloud Kitchen Master Admin Header
- * Version 1.3 - (MODIFIED) Removed broken toggle CSS
+ * Version 1.4 - (MODIFIED) Added Manage Coupons Link
  *
  * This file is included at the top of ALL protected admin pages.
  * It handles:
@@ -186,6 +186,15 @@ $user_initial = strtoupper(substr($username, 0, 1));
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66m6.68 0a6.72 6.72 0 01-.668 1.66c-.677 1.02-1.952 1.66-3.34 1.66s-2.663-.64-3.34-1.66a6.72 6.72 0 01-.668-1.66m6.68 0c.677-1.02 1.952-1.66 3.34-1.66 1.388 0 2.663.64 3.34 1.66m-6.68 0a6.72 6.72 0 00.668 1.66c.677 1.02 1.952 1.66 3.34 1.66s2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0H6.75m6.68 0h6.68m0 0c.677 1.02 1.952 1.66 3.34 1.66 1.388 0 2.663-.64 3.34 1.66a6.72 6.72 0 00.668-1.66m-6.68 0c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66a6.72 6.72 0 00-.668-1.66" /></svg>
                         <span class="font-medium">Marketing</span>
                     </a>
+                    
+                    <!-- (NEW) Manage Coupons Link -->
+                    <a href="manage_coupons.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-3m2.25-4.125c0-1.036.84-1.875 1.875-1.875h.375c1.036 0 1.875.84 1.875 1.875v.006c0 1.036-.84 1.875-1.875 1.875h-.375c-1.036 0-1.875-.84-1.875-1.875v-.006zM12 19.5h-5.25c-1.036 0-1.875-.84-1.875-1.875v-13.5c0-1.036.84-1.875 1.875-1.875h13.5c1.036 0 1.875.84 1.875 1.875v5.25" />
+                        </svg>
+                        <span class="font-medium">Manage Coupons</span>
+                    </a>
+
                     <a href="site_settings.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h3.75" /></svg>
                         <span class="font-medium">Store Settings</span>

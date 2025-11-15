@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.6 - (MODIFIED) Added CKEditor 5
+ * Version 1.7 - (MODIFIED) Added Global Discount Settings
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -41,7 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'night_surcharge_amount' => $_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
-            'timezone' => $_POST['timezone']
+            'timezone' => $_POST['timezone'],
+            // (NEW) Add global discount fields
+            'global_discount_type' => $_POST['global_discount_type'],
+            'global_discount_value' => $_POST['global_discount_value'] ?? 0,
+            'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0'
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -88,9 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Error preparing statement: " . $db->error;
         } else {
             foreach ($new_settings as $key => $value) {
-                $stmt->bind_param('ss', $value, $key);
-                if (!$stmt->execute()) {
-                    $error_message = "Error updating setting: $key";
+                // (MODIFIED) Check if key exists, otherwise INSERT it
+                if (array_key_exists($key, $settings)) {
+                    $stmt->bind_param('ss', $value, $key);
+                    if (!$stmt->execute()) {
+                         $error_message = "Error updating setting: $key";
+                    }
+                } else {
+                    // This handles the new discount settings on first save
+                    $insert_sql = "INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)";
+                    $insert_stmt = $db->prepare($insert_sql);
+                    $insert_stmt->bind_param('ss', $key, $value);
+                    $insert_stmt->execute();
+                    $insert_stmt->close();
                 }
             }
             $stmt->close();
@@ -226,6 +240,43 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         </div>
     </div>
     
+    <!-- (NEW) Section 3: Global Discount Settings -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Global Store Discount</h2>
+        <p class="text-sm text-gray-500 mb-6">Apply a discount to ALL menu items. This is calculated *before* cart-level coupons.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div>
+                <label for="global_discount_type" class="block text-sm font-medium text-gray-700">Discount Type</label>
+                <select id="global_discount_type" name="global_discount_type" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <option value="none" <?php echo (($settings['global_discount_type'] ?? 'none') == 'none') ? 'selected' : ''; ?>>None</option>
+                    <option value="percentage" <?php echo (($settings['global_discount_type'] ?? 'none') == 'percentage') ? 'selected' : ''; ?>>Percentage (%)</option>
+                    <option value="fixed" <?php echo (($settings['global_discount_type'] ?? 'none') == 'fixed') ? 'selected' : ''; ?>>Fixed (BDT)</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="global_discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
+                <input type="number" step="0.01" id="global_discount_value" name="global_discount_value" 
+                       value="<?php echo e($settings['global_discount_value'] ?? '0'); ?>"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+            
+            <div class="flex items-center justify-center">
+                <div class="flex items-center mt-6">
+                    <input type="checkbox" id="global_discount_active" name="global_discount_active" value="1" 
+                           <?php echo (($settings['global_discount_active'] ?? '0') == '1') ? 'checked' : ''; ?>
+                           class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                    <label for="global_discount_active" class="ml-2 block text-sm font-medium text-gray-900">
+                        Enable Global Discount
+                    </label>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
     <!-- Submit Button -->
     <div class="flex justify-end">
         <button type="submit" class="px-8 py-3 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">

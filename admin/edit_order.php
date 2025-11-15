@@ -1,11 +1,12 @@
 <?php
 /*
- * admin/manual_order.php
- * KitchCo: Cloud Kitchen Manual Order Entry (POS)
- * Version 1.4 - (MODIFIED) Added Global Discount Logic
+ * admin/edit_order.php
+ * KitchCo: Cloud Kitchen Order Editor
+ * Version 1.2 - (FIXED) Reloads data after save, fixes new item option ID bug.
  *
- * This page allows logged-in staff to create orders on behalf of customers
- * (e.g., for phone orders).
+ * This page loads an existing order into the manual order interface
+ * and allows an admin to modify and re-save it.
+ * Based on admin/manual_order.php
  */
 
 // 1. HEADER
@@ -31,89 +32,116 @@ function calculate_discounted_price($original_price, $settings) {
     return ($new_price > 0) ? $new_price : 0;
 }
 
+
 // 2. PAGE VARIABLES & INITIALIZATION
-$page_title = 'Manual Order Entry';
+$page_title = 'Edit Order';
 $error_message = '';
 $success_message = '';
+$cart_for_js = []; // (NEW) To pre-populate the cart
 
-// 3. --- HANDLE POST REQUESTS (Submit the New Order) ---
+// (NEW) --- GET ORDER ID & CHECK ACCESS ---
+$order_id = $_GET['id'] ?? null;
+if (empty($order_id)) {
+    header('Location: manage_orders.php');
+    exit;
+}
+$order_id = (int)$order_id;
+$page_title = "Edit Order #PM-{$order_id}";
+
+
+// 3. --- HANDLE POST REQUEST (UPDATE the Order) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     
-    // (NEW) CSRF Token validation
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // --- A. GET CUSTOMER DATA ---
+        // --- A. GET ORDER ID FROM POST ---
+        $order_id_to_update = (int)$_POST['order_id'];
+        if (empty($order_id_to_update)) {
+            $error_message = 'Order ID missing. Cannot save changes.';
+        }
+        
+        // --- B. GET CUSTOMER DATA ---
         $customer_name = $_POST['customer_name'];
         $customer_phone = $_POST['customer_phone'];
         $customer_address = $_POST['customer_address'];
         $delivery_area_id = (int)$_POST['delivery_area_id'];
         
-        // (NEW) Get Manual Discount Data
+        // --- C. GET DISCOUNT DATA ---
         $discount_type = $_POST['discount_type'] ?? 'none';
         $discount_value = (float)($_POST['discount_value'] ?? 0);
         $final_discount_amount = 0;
         
-        $order_status = 'Preparing'; // Manual orders are usually accepted right away
-        
-        // --- B. GET CART DATA ---
+        // --- D. GET CART DATA ---
         $cart_json = $_POST['cart_data'];
         $cart_items = json_decode($cart_json, true);
         
-        // --- C. VALIDATION ---
+        // --- E. VALIDATION ---
         if (empty($customer_name) || empty($customer_phone) || empty($delivery_area_id)) {
             $error_message = 'Customer Name, Phone, and Delivery Area are required.';
         } elseif (empty($cart_items)) {
-            $error_message = 'Cannot submit an empty order. Please add items to the cart.';
+            $error_message = 'Cannot save an empty order. Please add items to the cart.';
         }
         
         if (empty($error_message)) {
-            // --- D. (MODIFIED) SERVER-SIDE PRICE RE-CALCULATION ---
-            
+            // --- F. SERVER-SIDE PRICE RE-CALCULATION ---
             $db->begin_transaction();
             
             try {
                 $subtotal = 0;
-                $verified_cart_for_db = []; // To hold our re-calculated data
+                $verified_cart_for_db = []; 
 
-                // Prepare statements outside the loop for efficiency
                 $stmt_item = $db->prepare("SELECT price FROM menu_items WHERE id = ?");
-                $stmt_option = $db->prepare("SELECT name, price_increase FROM item_options WHERE id = ?");
+                $stmt_option = $db->prepare("SELECT id, name, price_increase FROM item_options WHERE id = ?");
 
                 foreach ($cart_items as $item) {
                     $item_id = (int)$item['id'];
                     $quantity = (int)$item['quantity'];
 
-                    // 1. Get base item price from DB
+                    // 1. Get base item price (and apply global discount)
                     $stmt_item->bind_param('i', $item_id);
                     $stmt_item->execute();
                     $result_item = $stmt_item->get_result();
                     if ($result_item->num_rows == 0) throw new Exception("Item ID {$item_id} not found.");
                     $db_item = $result_item->fetch_assoc();
-                    
-                    // (MODIFIED) Apply global discount
                     $original_base_price = (float)$db_item['price'];
                     $base_price = calculate_discounted_price($original_base_price, $settings);
                     
-                    // 2. Get options prices from DB
+                    // 2. Get options prices
                     $options_price = 0;
                     $verified_options_list = [];
                     if (!empty($item['options'])) {
                         foreach ($item['options'] as $option) {
-                            $option_id = (int)$option['id']; // Get ID from fixed JS
+                            $option_id = (int)$option['id'];
+                            
+                            // (FIX) Handle items just added from the modal (ID is from item_options table)
+                            // vs. items loaded from DB (ID is from order_item_options table)
+                            // We will look up by *name* if the ID isn't in item_options
+                            
                             $stmt_option->bind_param('i', $option_id);
                             $stmt_option->execute();
                             $result_option = $stmt_option->get_result();
-                            if ($result_option->num_rows == 0) throw new Exception("Option ID {$option_id} not found.");
+
+                            if ($result_option->num_rows == 0) {
+                                // ID not found, try by name (for items loaded from DB)
+                                $stmt_opt_by_name = $db->prepare("SELECT id, name, price_increase FROM item_options WHERE name = ? LIMIT 1");
+                                $stmt_opt_by_name->bind_param('s', $option['name']);
+                                $stmt_opt_by_name->execute();
+                                $result_option = $stmt_opt_by_name->get_result();
+                            }
+
+                            if ($result_option->num_rows == 0) throw new Exception("Option {$option['name']} not found.");
                             
                             $db_option = $result_option->fetch_assoc();
                             $price_increase = (float)$db_option['price_increase'];
                             
                             $options_price += $price_increase;
                             $verified_options_list[] = [
-                                'name' => $db_option['name'], // Use verified name
-                                'price' => $price_increase   // Use verified price
+                                'name' => $db_option['name'],
+                                'price' => $price_increase
                             ];
+
+                            if (isset($stmt_opt_by_name)) $stmt_opt_by_name->close();
                         }
                     }
 
@@ -126,27 +154,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $verified_cart_for_db[] = [
                         'item_id' => $item_id,
                         'quantity' => $quantity,
-                        'base_price' => $base_price, // Save the discounted base price
+                        'base_price' => $base_price,
                         'total_price' => $total_item_price,
                         'options' => $verified_options_list
                     ];
                 }
 
-                // 5. (NEW) Calculate Manual Discount
+                // 5. Calculate Manual Discount
                 if ($discount_type == 'percentage' && $discount_value > 0) {
                     $final_discount_amount = $subtotal * ($discount_value / 100);
                 } elseif ($discount_type == 'fixed' && $discount_value > 0) {
                     $final_discount_amount = $discount_value;
                 }
-                
-                // Ensure discount doesn't exceed subtotal
-                if ($final_discount_amount > $subtotal) {
-                    $final_discount_amount = $subtotal;
-                }
+                if ($final_discount_amount > $subtotal) $final_discount_amount = $subtotal;
                 $final_discount_amount = (float)number_format($final_discount_amount, 2, '.', '');
 
-
-                // 6. Calculate Delivery Fee (re-using logic from submit_order.php)
+                // 6. Calculate Delivery Fee
                 $stmt_area = $db->prepare("SELECT base_charge FROM delivery_areas WHERE id = ? AND is_active = 1");
                 $stmt_area->bind_param('i', $delivery_area_id);
                 $stmt_area->execute();
@@ -158,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
                 
                 if ($surcharge > 0) {
+                    // ... (surcharge logic as before) ...
                     $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
                     $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
                     $current_hour = (int)date('G');
@@ -166,40 +190,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                         $surcharge_amount = $surcharge;
                     }
                 }
-                
                 $total_delivery_fee = $base_charge + $surcharge_amount;
                 
-                // 7. (NEW) Calculate Final Total
+                // 7. Calculate Final Total
                 $total_amount = ($subtotal - $final_discount_amount) + $total_delivery_fee;
 
-                // --- E. SAVE TO DATABASE ---
+                // --- G. UPDATE DATABASE (THE NEW LOGIC) ---
                 
-                // 1. Insert into `orders` table
-                $sql_order = "INSERT INTO orders (customer_name, customer_phone, customer_address, delivery_area_id, 
-                                      subtotal, delivery_fee, total_amount, order_status, 
-                                      discount_type, discount_amount, order_time) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-                $stmt_order = $db->prepare($sql_order);
-                $stmt_order->bind_param('sssidddssd', 
-                    $customer_name, $customer_phone, $customer_address, $delivery_area_id, 
-                    $subtotal, $total_delivery_fee, $total_amount, $order_status,
-                    $discount_type, $final_discount_amount
-                );
-                $stmt_order->execute();
-                $order_id = $db->insert_id; // Get the new order ID
-                
-                if ($order_id <= 0) throw new Exception("Failed to create order header.");
+                // 1. Delete all old items for this order
+                $stmt_delete_items = $db->prepare("DELETE FROM order_items WHERE order_id = ?");
+                $stmt_delete_items->bind_param('i', $order_id_to_update);
+                $stmt_delete_items->execute();
 
-                // 2. Prepare statements for items and options
+                // 2. Update the main `orders` table
+                $sql_update_order = "UPDATE orders SET 
+                                        customer_name = ?, customer_phone = ?, customer_address = ?, 
+                                        delivery_area_id = ?, subtotal = ?, delivery_fee = ?, 
+                                        total_amount = ?, discount_type = ?, discount_amount = ?,
+                                        coupon_id = NULL 
+                                    WHERE id = ?";
+                $stmt_update_order = $db->prepare($sql_update_order);
+                
+                // (FIX) Corrected the type string from 'sssidddssdi' (11 chars) to 'sssidddsdi' (10 chars)
+                $stmt_update_order->bind_param('sssidddsdi', 
+                    $customer_name, $customer_phone, $customer_address, 
+                    $delivery_area_id, $subtotal, $total_delivery_fee, 
+                    $total_amount, $discount_type, $final_discount_amount,
+                    $order_id_to_update
+                ); // This was line 197
+                
+                $stmt_update_order->execute();
+
+                // 3. Re-insert all items and options (same as manual_order.php)
                 $sql_item = "INSERT INTO order_items (order_id, menu_item_id, quantity, base_price, total_price) VALUES (?, ?, ?, ?, ?)";
                 $stmt_item_db = $db->prepare($sql_item);
                 
                 $sql_option_db = "INSERT INTO order_item_options (order_item_id, option_name, option_price) VALUES (?, ?, ?)";
                 $stmt_option_db = $db->prepare($sql_option_db);
                 
-                // 3. Loop through our VERIFIED cart and insert
                 foreach ($verified_cart_for_db as $item) {
-                    $stmt_item_db->bind_param('iiidd', $order_id, $item['item_id'], $item['quantity'], $item['base_price'], $item['total_price']);
+                    $stmt_item_db->bind_param('iiidd', $order_id_to_update, $item['item_id'], $item['quantity'], $item['base_price'], $item['total_price']);
                     $stmt_item_db->execute();
                     $order_item_id = $db->insert_id;
                     
@@ -214,19 +244,155 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 // 4. Commit the transaction
                 $db->commit();
                 
-                $success_message = "Order #PM-{$order_id} created successfully!";
+                $success_message = "Order #PM-{$order_id_to_update} updated successfully!";
+                
+                // (!!!) NEW FIX: Re-load all data from DB to show the updated order
+                // This is the same logic from the GET request block
+                
+                $stmt_order = $db->prepare("SELECT * FROM orders WHERE id = ?");
+                $stmt_order->bind_param('i', $order_id_to_update); // Use the ID we just updated
+                $stmt_order->execute();
+                $result_order = $stmt_order->get_result();
+                $order = $result_order->fetch_assoc();
+                
+                // Re-populate all page variables
+                $customer_name = $order['customer_name'];
+                $customer_phone = $order['customer_phone'];
+                $customer_address = $order['customer_address'];
+                $delivery_area_id = $order['delivery_area_id'];
+                $discount_type = $order['discount_type'];
+                $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount'];
+                if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
+                     $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+                }
+            
+                // Re-load items and build the JS cart
+                $cart_for_js = []; // Clear the old JS cart
+                $sql_items = "SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.base_price, oi.total_price 
+                              FROM order_items oi
+                              LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
+                              WHERE oi.order_id = ?";
+                $stmt_items = $db->prepare($sql_items);
+                $stmt_items->bind_param('i', $order_id_to_update);
+                $stmt_items->execute();
+                $result_items = $stmt_items->get_result();
+            
+                while ($item = $result_items->fetch_assoc()) {
+                    $order_item_id = $item['id'];
+                    $item_options = [];
+                    
+                    // (FIX) We need the ID from item_options, not order_item_options, for the JS
+                    $sql_options = "SELECT oio.option_name, oio.option_price, io.id 
+                                    FROM order_item_options oio
+                                    LEFT JOIN item_options io ON oio.option_name = io.name
+                                    WHERE oio.order_item_id = ?";
+                    $stmt_options = $db->prepare($sql_options);
+                    $stmt_options->bind_param('i', $order_item_id);
+                    $stmt_options->execute();
+                    $result_options = $stmt_options->get_result();
+                    
+                    while ($option = $result_options->fetch_assoc()) {
+                        $item_options[] = [
+                            'id' => $option['id'] ?? 0, // Use the ID from item_options
+                            'name' => $option['option_name'],
+                            'price' => (float)$option['option_price']
+                        ];
+                    }
+            
+                    $cart_for_js[] = [
+                        'id' => $item['menu_item_id'],
+                        'name' => $item['name'] ?? '[Deleted Item]',
+                        'basePrice' => (float)$item['base_price'],
+                        'quantity' => (int)$item['quantity'],
+                        'options' => $item_options,
+                        'totalPrice' => (float)$item['total_price']
+                    ];
+                }
+                // (END OF NEW FIX)
                 
             } catch (Exception $e) {
                 // Something went wrong, roll back
                 $db->rollback();
-                $error_message = 'Failed to create order: ' . $e->getMessage();
+                $error_message = 'Failed to update order: ' . $e->getMessage();
             }
         }
     }
 }
+// 4. --- (MODIFIED) LOAD EXISTING ORDER DATA (GET REQUEST) ---
+else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
+    $stmt_order = $db->prepare("SELECT * FROM orders WHERE id = ?");
+    $stmt_order->bind_param('i', $order_id);
+    $stmt_order->execute();
+    $result_order = $stmt_order->get_result();
+
+    if ($result_order->num_rows == 0) {
+        $_SESSION['error_message'] = "Order #{$order_id} not found.";
+        header('Location: manage_orders.php');
+        exit;
+    }
+    
+    $order = $result_order->fetch_assoc();
+    
+    // Pre-populate customer fields
+    $customer_name = $order['customer_name'];
+    $customer_phone = $order['customer_phone'];
+    $customer_address = $order['customer_address'];
+    $delivery_area_id = $order['delivery_area_id'];
+    
+    // Pre-populate discount fields
+    $discount_type = $order['discount_type'];
+    $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount']; // approximation
+    if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
+         $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+    }
+
+    // Load items and build the JS cart
+    $sql_items = "SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.base_price, oi.total_price 
+                  FROM order_items oi
+                  LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
+                  WHERE oi.order_id = ?";
+    $stmt_items = $db->prepare($sql_items);
+    $stmt_items->bind_param('i', $order_id);
+    $stmt_items->execute();
+    $result_items = $stmt_items->get_result();
+
+    while ($item = $result_items->fetch_assoc()) {
+        $order_item_id = $item['id'];
+        $item_options = [];
+        
+        // (FIX) We need the ID from item_options, not order_item_options, for the JS
+        $sql_options = "SELECT oio.option_name, oio.option_price, io.id 
+                        FROM order_item_options oio
+                        LEFT JOIN item_options io ON oio.option_name = io.name
+                        WHERE oio.order_item_id = ?";
+        $stmt_options = $db->prepare($sql_options);
+        $stmt_options->bind_param('i', $order_item_id);
+        $stmt_options->execute();
+        $result_options = $stmt_options->get_result();
+        
+        while ($option = $result_options->fetch_assoc()) {
+            // (FIX) Pass the *actual option ID* from item_options to the JS cart
+            $item_options[] = [
+                'id' => $option['id'] ?? 0, // Use the ID from item_options
+                'name' => $option['option_name'],
+                'price' => (float)$option['option_price']
+            ];
+        }
+
+        // Rebuild cart item structure for JS
+        $cart_for_js[] = [
+            'id' => $item['menu_item_id'],
+            'name' => $item['name'] ?? '[Deleted Item]',
+            'basePrice' => (float)$item['base_price'],
+            'quantity' => (int)$item['quantity'],
+            'options' => $item_options,
+            'totalPrice' => (float)$item['total_price']
+        ];
+    }
+}
 
 
-// 4. --- LOAD DATA FOR DISPLAY ---
+// 5. --- LOAD DATA FOR DISPLAY ---
 // Load Delivery Areas for the dropdown
 $delivery_areas = [];
 $result = $db->query("SELECT * FROM delivery_areas WHERE is_active = 1 ORDER BY area_name ASC");
@@ -270,18 +436,14 @@ while ($row = $result->fetch_assoc()) {
     </div>
 <?php endif; ?>
 
-<!-- 
-This is a complex page. We use a single <form> for the final submission.
-The cart is managed by JavaScript and its data is stored in a hidden input.
--->
-<form action="manual_order.php" method="POST" id="manual-order-form">
-    <!-- (NEW) CSRF Token -->
+
+<form action="edit_order.php?id=<?php echo e($order_id); ?>" method="POST" id="manual-order-form">
     <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+    <input type="hidden" name="order_id" value="<?php echo e($order_id); ?>">
     
     <!-- This hidden input will hold the JSON string of our cart -->
     <input type="hidden" name="cart_data" id="cart-data-input">
     
-    <!-- (MODIFIED) These are now only for JS display, not for POST -->
     <input type="hidden" id="js-subtotal" value="0">
     <input type="hidden" id="js-delivery-fee" value="0">
     <input type="hidden" id="js-discount" value="0">
@@ -299,17 +461,19 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                     <div>
                         <label for="customer_name" class="block text-sm font-medium text-gray-700">Customer Name *</label>
                         <input type="text" id="customer_name" name="customer_name" required
+                               value="<?php echo e($customer_name); ?>"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
                         <label for="customer_phone" class="block text-sm font-medium text-gray-700">Customer Phone *</label>
                         <input type="tel" id="customer_phone" name="customer_phone" required
+                               value="<?php echo e($customer_phone); ?>"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div class="md:col-span-2">
                         <label for="customer_address" class="block text-sm font-medium text-gray-700">Customer Address</label>
                         <textarea id="customer_address" name="customer_address" rows="2"
-                                  class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                                  class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($customer_address); ?></textarea>
                     </div>
                     <div>
                         <label for="delivery_area_id" class="block text-sm font-medium text-gray-700">Delivery Area *</label>
@@ -317,7 +481,9 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                             <option value="">-- Select Area --</option>
                             <?php foreach ($delivery_areas as $area): ?>
-                                <option value="<?php echo e($area['id']); ?>" data-charge="<?php echo e($area['base_charge']); ?>">
+                                <option value="<?php echo e($area['id']); ?>" 
+                                        data-charge="<?php echo e($area['base_charge']); ?>"
+                                        <?php echo ($area['id'] == $delivery_area_id) ? 'selected' : ''; ?>>
                                     <?php echo e($area['area_name']); ?> (<?php echo e($area['base_charge']); ?> BDT)
                                 </option>
                             <?php endforeach; ?>
@@ -326,21 +492,21 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                 </div>
             </div>
 
-            <!-- (NEW) Manual Discount -->
+            <!-- Manual Discount -->
             <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-xl font-bold text-gray-900 mb-4">2. Manual Discount (Optional)</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="discount_type" class="block text-sm font-medium text-gray-700">Discount Type</label>
                         <select id="discount_type" name="discount_type" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option value="none">None</option>
-                            <option value="fixed">Fixed (BDT)</option>
-                            <option value="percentage">Percentage (%)</option>
+                            <option value="none" <?php echo ($discount_type == 'none') ? 'selected' : ''; ?>>None</option>
+                            <option value="fixed" <?php echo ($discount_type == 'fixed') ? 'selected' : ''; ?>>Fixed (BDT)</option>
+                            <option value="percentage" <?php echo ($discount_type == 'percentage') ? 'selected' : ''; ?>>Percentage (%)</option>
                         </select>
                     </div>
                     <div>
                         <label for="discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
-                        <input type="number" step="0.01" id="discount_value" name="discount_value" value="0"
+                        <input type="number" step="0.01" id="discount_value" name="discount_value" value="<?php echo e(number_format($discount_value, 2, '.', '')); ?>"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
@@ -348,7 +514,7 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
 
             <!-- Menu Search -->
             <div class="bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">3. Add Items to Order</h2>
+                <h2 class="text-xl font-bold text-gray-900 mb-4">3. Add/Remove Items</h2>
                 <div>
                     <label for="item-search" class="block text-sm font-medium text-gray-700">Search Menu Items</label>
                     <input type="text" id="item-search" placeholder="Type to search for 'Biryani' or 'Burger'..."
@@ -398,8 +564,11 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                 <!-- Submit Button -->
                 <button type="submit" name="submit_order" 
                         class="mt-6 w-full py-3 px-4 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                    Create Order
+                    Save Changes to Order
                 </button>
+                <a href="order_details.php?id=<?php echo e($order_id); ?>" class="mt-2 w-full block text-center py-3 px-4 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-md hover:bg-gray-300">
+                    Cancel Edit
+                </a>
             </div>
         </div>
 
@@ -440,17 +609,15 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
 =====================================================
     JAVASCRIPT LOGIC
 =====================================================
-This is the "brain" of the manual order page.
 -->
 <script>
     // 1. --- FULL MENU DATA ---
-    // (MODIFIED) This now contains discounted prices
     const fullMenu = <?php echo json_encode($menu_items); ?>;
 
-    // 2. --- GLOBAL STATE ---
-    // This is our JavaScript "cart"
-    let cart = []; 
-    let currentModalItem = {}; // Holds the item being configured in the modal
+    // 2. --- (MODIFIED) GLOBAL STATE ---
+    // Pre-populate cart from PHP
+    let cart = <?php echo json_encode($cart_for_js); ?>; 
+    let currentModalItem = {};
     
     // 3. --- DOM ELEMENT REFERENCES ---
     const searchInput = document.getElementById('item-search');
@@ -460,11 +627,10 @@ This is the "brain" of the manual order page.
     const cartEmptyMsg = document.getElementById('cart-empty-msg');
     const cartSubtotalEl = document.getElementById('cart-subtotal');
     const cartDeliveryFeeEl = document.getElementById('cart-delivery-fee');
-    const cartDiscountEl = document.getElementById('cart-discount'); // (NEW)
+    const cartDiscountEl = document.getElementById('cart-discount');
     const cartTotalEl = document.getElementById('cart-total');
     
     const deliveryAreaSelect = document.getElementById('delivery_area_id');
-    // (NEW) Discount fields
     const discountTypeSelect = document.getElementById('discount_type');
     const discountValueInput = document.getElementById('discount_value');
     
@@ -479,14 +645,13 @@ This is the "brain" of the manual order page.
     const form = document.getElementById('manual-order-form');
     const cartDataInput = document.getElementById('cart-data-input');
     
-    // (MODIFIED) References to JS-only hidden inputs
     const jsSubtotalInput = document.getElementById('js-subtotal');
     const jsDeliveryFeeInput = document.getElementById('js-delivery-fee');
-    const jsDiscountInput = document.getElementById('js-discount'); // (NEW)
+    const jsDiscountInput = document.getElementById('js-discount');
     const jsTotalInput = document.getElementById('js-total');
     
     
-    // 4. --- CORE FUNCTIONS ---
+    // 4. --- CORE FUNCTIONS --- (Identical to manual_order.php)
 
     /**
      * Renders the menu items in the search results list
@@ -499,7 +664,6 @@ This is the "brain" of the manual order page.
         }
         
         itemsToRender.forEach(item => {
-            // (NEW) Show discounted price
             let priceHtml = '';
             if (item.has_discount) {
                 priceHtml = `${parseFloat(item.price).toFixed(2)} BDT <span class="text-gray-400 line-through ml-1">${parseFloat(item.original_price).toFixed(2)}</span>`;
@@ -527,22 +691,24 @@ This is the "brain" of the manual order page.
     function renderCart() {
         if (cart.length === 0) {
             cartEmptyMsg.style.display = 'block';
-            cartItemsList.innerHTML = ''; // Clear items, but not the msg
+            cartItemsList.innerHTML = ''; 
         } else {
             cartEmptyMsg.style.display = 'none';
-            cartItemsList.innerHTML = ''; // Clear
+            cartItemsList.innerHTML = '';
             
             cart.forEach((item, index) => {
                 let optionsHtml = '<ul class="text-xs text-gray-500 list-disc list-inside pl-1">';
-                item.options.forEach(opt => {
-                    optionsHtml += `<li>${opt.name} (+${opt.price.toFixed(2)})</li>`;
-                });
+                if (item.options) {
+                    item.options.forEach(opt => {
+                        optionsHtml += `<li>${e(opt.name)} (+${parseFloat(opt.price).toFixed(2)})</li>`;
+                    });
+                }
                 optionsHtml += '</ul>';
 
                 cartItemsList.innerHTML += `
                     <div class="border-b pb-2">
                         <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">${item.quantity}x ${item.name}</span>
+                            <span class="font-medium text-gray-800">${item.quantity}x ${e(item.name)}</span>
                             <span class="font-medium">${item.totalPrice.toFixed(2)}</span>
                         </div>
                         ${optionsHtml}
@@ -562,7 +728,6 @@ This is the "brain" of the manual order page.
     function updateTotals() {
         const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
         
-        // (NEW) Calculate Manual Discount
         const discountType = discountTypeSelect.value;
         const discountValue = parseFloat(discountValueInput.value) || 0;
         let discountAmount = 0;
@@ -582,11 +747,10 @@ This is the "brain" of the manual order page.
         if (selectedArea && selectedArea.dataset.charge) {
             deliveryFee = parseFloat(selectedArea.dataset.charge);
             
-            // --- NIGHT SURCHARGE LOGIC ---
             const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
             const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
             const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
-            const currentHour = new Date().getHours(); // Get current hour (0-23)
+            const currentHour = new Date().getHours();
             
             if (surchargeStart > surchargeEnd) {
                 if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
@@ -601,15 +765,13 @@ This is the "brain" of the manual order page.
         
         const total = (subtotal - discountAmount) + deliveryFee;
         
-        // Update the display
         cartSubtotalEl.textContent = `${subtotal.toFixed(2)} BDT`;
-        cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`; // (NEW)
+        cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`;
         cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
         cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
         
-        // (MODIFIED) Update the JS-only hidden inputs
         jsSubtotalInput.value = subtotal.toFixed(2);
-        jsDiscountInput.value = discountAmount.toFixed(2); // (NEW)
+        jsDiscountInput.value = discountAmount.toFixed(2);
         jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
         jsTotalInput.value = total.toFixed(2);
     }
@@ -618,32 +780,27 @@ This is the "brain" of the manual order page.
      * Opens the modal to configure an item's options
      */
     async function openItemModal(itemId) {
-        // Find the base item data
         const baseItem = fullMenu.find(item => item.id == itemId);
         if (!baseItem) return;
 
-        // Reset and show modal
         modal.style.display = 'flex';
         modalItemName.textContent = baseItem.name;
         modalOptionsContent.innerHTML = '<p class="text-gray-500">Loading options...</p>';
         modalQuantity.value = 1;
 
-        // Store item data for later
         currentModalItem = {
             id: baseItem.id,
             name: baseItem.name,
-            basePrice: parseFloat(baseItem.price) // (MODIFIED) This is now the discounted price
+            basePrice: parseFloat(baseItem.price)
         };
 
         try {
-            // Fetch the item's options from our new AJAX file
             const response = await fetch(`ajax_get_item_details.php?id=${itemId}`);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             const data = await response.json();
             
-            // Build the HTML for the options
             let optionsHtml = '';
             if (data.option_groups && data.option_groups.length > 0) {
                 data.option_groups.forEach(group => {
@@ -654,7 +811,7 @@ This is the "brain" of the manual order page.
                         optionsHtml += `
                             <div class="flex items-center justify-between">
                                 <label for="option-${option.id}" class="text-sm text-gray-700">
-                                    ${option.name}
+                                    ${e(option.name)}
                                 </label>
                                 <div>
                                     <span class="text-sm text-gray-600">+${parseFloat(option.price_increase).toFixed(2)} BDT</span>
@@ -663,7 +820,7 @@ This is the "brain" of the manual order page.
                                         id="option-${option.id}" 
                                         name="group-${group.id}" 
                                         value="${option.id}"
-                                        data-name="${option.name}"
+                                        data-name="${e(option.name)}"
                                         data-price="${option.price_increase}"
                                         class="h-4 w-4 ml-3 text-orange-600 border-gray-300 focus:ring-orange-500"
                                         onchange="updateModalPrice()"
@@ -679,7 +836,7 @@ This is the "brain" of the manual order page.
             }
             
             modalOptionsContent.innerHTML = optionsHtml;
-            updateModalPrice(); // Set initial price
+            updateModalPrice(); 
 
         } catch (error) {
             modalOptionsContent.innerHTML = `<p class="text-red-500">Error loading options: ${error.message}</p>`;
@@ -722,7 +879,6 @@ This is the "brain" of the manual order page.
         selectedElements.forEach(opt => {
             const price = parseFloat(opt.dataset.price);
             selectedOptions.push({
-                // (MODIFIED) Add the option ID for server-side verification
                 id: opt.value, 
                 name: opt.dataset.name,
                 price: price
@@ -754,12 +910,25 @@ This is the "brain" of the manual order page.
         cart.splice(index, 1);
         renderCart();
     }
+    
+    // Helper to escape HTML in JS
+    function e(str) {
+        if (!str) return '';
+        return str.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     // 5. --- EVENT LISTENERS ---
     
-    // Initial render of the full menu
+    // (MODIFIED) Initial render on page load
     document.addEventListener('DOMContentLoaded', () => {
         renderMenu(fullMenu);
+        renderCart(); // This will render the pre-populated cart
+        updateTotals(); // This will calculate totals based on pre-populated data
     });
     
     // Search input filtering

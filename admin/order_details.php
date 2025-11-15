@@ -2,12 +2,14 @@
 /*
  * admin/order_details.php
  * KitchCo: Cloud Kitchen Order Details Page
- * Version 1.8 - (NEW) Added Admin-only delete functionality
+ * Version 2.0 - (MODIFIED) Added Order Note
  *
  * This page:
  * 1. Loads a single order and all its items/options.
  * 2. Allows staff to update the order status.
  * 3. Allows staff to assign a rider.
+ * 4. Allows admin to edit a pending/preparing/ready order.
+ * 5. (NEW) Displays the customer's order note.
  */
 
 // 1. HEADER
@@ -139,6 +141,10 @@ $stmt_items->close();
 if ($stmt_options !== null) {
     $stmt_options->close();
 }
+
+// (NEW) Check if order is editable
+$is_editable = in_array($order['order_status'], ['Pending', 'Preparing', 'Ready']);
+
 ?>
 
 <!-- Page Header -->
@@ -150,6 +156,13 @@ if ($stmt_options !== null) {
         </p>
     </div>
     <div class="flex space-x-2 mt-4 sm:mt-0">
+        <!-- (NEW) Edit Order Button -->
+        <?php if ($is_editable): ?>
+            <a href="edit_order.php?id=<?php echo e($order_id); ?>"
+               class="px-5 py-2 bg-yellow-500 text-white font-medium rounded-lg shadow-md hover:bg-yellow-600">
+                Edit This Order
+            </a>
+        <?php endif; ?>
         <a href="print_receipt.php?id=<?php echo e($order_id); ?>&copy=customer" target="_blank"
            class="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700">
             Print Customer Copy
@@ -172,6 +185,15 @@ if ($stmt_options !== null) {
         <?php echo e($error_message); ?>
     </div>
 <?php endif; ?>
+
+<!-- (NEW) Customer Note Display -->
+<?php if (!empty($order['order_note'])): ?>
+<div class="mb-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg">
+    <h3 class="font-bold text-lg">Customer Note:</h3>
+    <p class="mt-1"><?php echo nl2br(e($order['order_note'])); ?></p>
+</div>
+<?php endif; ?>
+
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -222,6 +244,24 @@ if ($stmt_options !== null) {
                     <span class="text-gray-700">Subtotal</span>
                     <span class="font-medium text-gray-900"><?php echo e(number_format($order['subtotal'], 2)); ?></span>
                 </div>
+                
+                <!-- (NEW) Discount Display -->
+                <?php if ($order['discount_amount'] > 0): ?>
+                <div class="flex justify-between text-lg text-red-600">
+                    <span class="text-red-600">
+                        Discount 
+                        <?php if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0): ?>
+                            (<?php echo e(round($order['discount_amount'] / $order['subtotal'] * 100, 0)); ?>%)
+                        <?php elseif ($order['coupon_id']): ?>
+                            (Coupon)
+                        <?php else: ?>
+                            (Manual)
+                        <?php endif; ?>
+                    </span>
+                    <span class="font-medium text-red-600">-<?php echo e(number_format($order['discount_amount'], 2)); ?></span>
+                </div>
+                <?php endif; ?>
+
                 <div class="flex justify-between text-lg">
                     <span class="text-gray-700">Delivery Fee</span>
                     <span class="font-medium text-gray-900"><?php echo e(number_format($order['delivery_fee'], 2)); ?></span>

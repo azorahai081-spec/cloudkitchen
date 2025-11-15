@@ -2,7 +2,8 @@
 /*
  * index.php
  * KitchCo: Cloud Kitchen Homepage
- * Version 2.0 - "Pizza Mania" (Bright) Theme
+ * Version 2.3 - "Pizza Mania" (Bright) Theme
+ * (FIXED) Category links now point to menu.php sections
  *
  * This is the main customer-facing homepage.
  * It pulls all its content from the CMS tables:
@@ -19,6 +20,27 @@ $meta_description = strip_tags($settings['hero_subtitle'] ?? 'Order the best piz
 // This will include config.php, session_start(), db connection, and the nav bar
 require_once('includes/header.php');
 
+// (NEW) Helper function to apply global discount
+function calculate_discounted_price($original_price, $settings) {
+    if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
+        return $original_price;
+    }
+
+    $discount_type = $settings['global_discount_type'];
+    $discount_value = (float)$settings['global_discount_value'];
+    $new_price = $original_price;
+
+    if ($discount_type == 'percentage') {
+        $new_price = $original_price - ($original_price * ($discount_value / 100));
+    } elseif ($discount_type == 'fixed') {
+        $new_price = $original_price - $discount_value;
+    }
+    
+    // Don't let price go below 0
+    return ($new_price > 0) ? $new_price : 0;
+}
+
+
 // 3. --- LOAD PAGE DATA ---
 
 // --- A. Load Featured Items ---
@@ -33,6 +55,14 @@ $sql_featured = "SELECT m.id, m.name, m.price, m.image, m.description, c.name as
 $result_featured = $db->query($sql_featured);
 if ($result_featured) {
     while ($row = $result_featured->fetch_assoc()) {
+        // (NEW) Apply global discount logic
+        $original_price = (float)$row['price'];
+        $discounted_price = calculate_discounted_price($original_price, $settings);
+        
+        $row['original_price'] = $original_price;
+        $row['price'] = $discounted_price; // Overwrite with new price
+        $row['has_discount'] = ($discounted_price < $original_price);
+
         $featured_items[] = $row;
     }
 }
@@ -106,7 +136,7 @@ $schema_restaurant = [
                 ); ?>
             </div>
             <div class="mt-10">
-                <a href="<?php echo BASE_URL; ?>/menu" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
+                <a href="<?php echo BASE_URL; ?>/menu.php" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
                     Order Now
                 </a>
             </div>
@@ -132,7 +162,8 @@ $schema_restaurant = [
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
             <!-- This loop pulls from "Homepage Section Manager" in Admin Panel -->
             <?php foreach ($homepage_categories as $category): ?>
-                <a href="<?php echo BASE_URL; ?>/menu/category/<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
+                <!-- (FIX) Changed to query string URL to avoid .htaccess issues -->
+                <a href="<?php echo BASE_URL; ?>/menu.php#category-<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
                     <div class="flex items-center justify-center w-16 h-16 bg-brand-red rounded-full text-white mx-auto">
                         <!-- Generic Icon: You can replace this with unique icons if you add an 'icon' field to your categories table -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
@@ -158,7 +189,7 @@ $schema_restaurant = [
             <!-- This loop pulls from "Featured Items" in Admin Panel -->
             <?php foreach ($featured_items as $item): ?>
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl hover:-translate-y-1">
-                    <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="block">
+                    <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>" class="block">
                         <img 
                             src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image')); ?>" 
                             alt="<?php echo e($item['name']); ?>" 
@@ -169,9 +200,18 @@ $schema_restaurant = [
                         <h3 class="text-xl font-bold text-gray-900 truncate"><?php echo e($item['name']); ?></h3>
                         <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden"><?php echo e($item['description']); ?></p>
                         <div class="flex justify-between items-center mt-4">
-                            <p class="text-2xl font-bold text-gray-900"><?php echo e(number_format($item['price'], 2)); ?> <span class="text-sm font-normal">BDT</span></p>
-                            <!-- This link goes to the menu page and highlights the item -->
-                            <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="px-4 py-2 bg-brand-yellow text-gray-900 font-bold rounded-lg hover:bg-yellow-500 transition-colors">
+                            <!-- (NEW) Price display logic -->
+                            <p class="text-2xl font-bold text-gray-900">
+                                <?php if ($item['has_discount']): ?>
+                                    <?php echo e(number_format($item['price'], 2)); ?>
+                                    <span class="text-sm font-normal text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 2)); ?></span>
+                                <?php else: ?>
+                                    <?php echo e(number_format($item['price'], 2)); ?>
+                                <?php endif; ?>
+                                <span class="text-sm font-normal">BDT</span>
+                            </p>
+                            <!-- (FIX) This link goes to the menu page (with query string) and highlights the item -->
+                            <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>" class="px-4 py-2 bg-brand-yellow text-gray-900 font-bold rounded-lg hover:bg-yellow-500 transition-colors">
                                 Add
                             </a>
                         </div>
