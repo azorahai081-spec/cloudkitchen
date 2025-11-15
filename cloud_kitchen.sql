@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 14, 2025 at 03:47 PM
+-- Generation Time: Nov 15, 2025 at 10:43 AM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -36,14 +36,15 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `admin_users`
 --
 
 INSERT INTO `admin_users` (`id`, `username`, `password`, `role`, `created_at`) VALUES
-(1, 'admin', '$2y$10$8K8zPgN/YKDYfsOGuACun.GUolvvAT0KCnE8PJtAotena6EiVh6oe', 'admin', '2025-11-14 14:43:44');
+(1, 'admin', '$2y$10$8K8zPgN/YKDYfsOGuACun.GUolvvAT0KCnE8PJtAotena6EiVh6oe', 'admin', '2025-11-14 14:43:44'),
+(2, 'manager123', '$2y$10$Os9ruT7H39sxLXym40XKreF8ltrkXTnMJQxGaeKbdjCv3IXL2vOKm', 'manager', '2025-11-15 08:32:20');
 
 -- --------------------------------------------------------
 
@@ -59,15 +60,18 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `categories`
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `image`, `is_visible`) VALUES
-(1, 'SMASHER Burgers', '', '', 1),
-(2, 'Combos', '', '', 1);
+(3, 'SMASHER Burgers', '', '', 1),
+(4, 'APPETIZERS', '', '', 1),
+(5, 'MEAT BOX', '', '', 1),
+(6, 'RICE BOWL & BIRYANI', '', '', 1),
+(7, 'PIZZA', '', '', 1);
 
 -- --------------------------------------------------------
 
@@ -105,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `homepage_sections` (
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -123,14 +127,6 @@ CREATE TABLE IF NOT EXISTS `item_options` (
   KEY `group_id` (`group_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `item_options`
---
-
-INSERT INTO `item_options` (`id`, `group_id`, `name`, `price_increase`) VALUES
-(1, 1, 'Coke', '30.00'),
-(2, 1, 'Sprite', '30.00');
-
 -- --------------------------------------------------------
 
 --
@@ -143,14 +139,14 @@ CREATE TABLE IF NOT EXISTS `item_options_groups` (
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` enum('radio','checkbox') COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `item_options_groups`
 --
 
 INSERT INTO `item_options_groups` (`id`, `name`, `type`) VALUES
-(1, 'Drink', 'radio');
+(5, 'Size', 'radio');
 
 -- --------------------------------------------------------
 
@@ -170,16 +166,17 @@ CREATE TABLE IF NOT EXISTS `menu_items` (
   `is_featured` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `menu_items`
 --
 
 INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `image`, `is_available`, `is_featured`) VALUES
-(1, 1, 'Truffle Smasher (Single Patty)', '', '395.00', '0', 1, 0),
-(2, 1, 'Truffle Smasher (Double Patty)', '', '590.00', '0', 1, 1),
-(3, 2, 'Burger Combo', '', '500.00', '0', 1, 0);
+(4, 4, 'CRISPY WINGS-6PCS', '', '190.00', '0', 1, 0),
+(5, 4, 'PERI PERI WINGS-6PCS', '', '220.00', '0', 1, 0),
+(6, 4, 'BUFFALO WINGS-6PCS', '', '230.00', '0', 1, 0),
+(7, 4, 'BBQ WINGS-6PCS', '', '200.00', '0', 1, 0);
 
 -- --------------------------------------------------------
 
@@ -194,13 +191,6 @@ CREATE TABLE IF NOT EXISTS `menu_item_options_groups` (
   PRIMARY KEY (`menu_item_id`,`option_group_id`),
   KEY `fk_group_id` (`option_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `menu_item_options_groups`
---
-
-INSERT INTO `menu_item_options_groups` (`menu_item_id`, `option_group_id`) VALUES
-(3, 1);
 
 -- --------------------------------------------------------
 
@@ -223,16 +213,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `rider_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `orders`
---
-
-INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address`, `delivery_area_id`, `subtotal`, `delivery_fee`, `total_amount`, `order_status`, `order_time`, `rider_name`) VALUES
-(1, 'Arif', '01820336015', 'sadasdd', 1, '395.00', '20.00', '415.00', 'Pending', '2025-11-14 15:01:06', NULL),
-(2, 'Nazrul Islam', '01820336015', 'asd', 1, '590.00', '20.00', '610.00', 'Pending', '2025-11-14 15:06:34', NULL),
-(3, 'Arif', 'ads', 'asdasd', 1, '530.00', '20.00', '550.00', 'Pending', '2025-11-14 15:39:48', NULL);
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -251,16 +232,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `order_items`
---
-
-INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_price`, `total_price`) VALUES
-(1, 1, 1, 1, '395.00', '395.00'),
-(2, 2, 2, 1, '590.00', '590.00'),
-(3, 3, 3, 1, '500.00', '530.00');
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -276,14 +248,7 @@ CREATE TABLE IF NOT EXISTS `order_item_options` (
   `option_price` decimal(10,2) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `order_item_id` (`order_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `order_item_options`
---
-
-INSERT INTO `order_item_options` (`id`, `order_item_id`, `option_name`, `option_price`) VALUES
-(1, 3, 'Sprite', '30.00');
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -307,12 +272,12 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('capi_token', ''),
 ('fb_pixel_id', ''),
 ('gtm_id', ''),
-('hero_image_url', '/uploads/default-banner.jpg'),
-('hero_subtitle', 'Hot, fresh food delivered fast.'),
-('hero_title', 'Welcome to Our Kitchen'),
-('night_surcharge_amount', '30'),
-('night_surcharge_end_hour', '6'),
-('night_surcharge_start_hour', '0'),
+('hero_image_url', '/uploads/banners/hero_banner_1763200038_468943792_122143674482332422_8657173118974339025_n.jpg'),
+('hero_subtitle', '<h2><strong>hero_subtitle</strong></h2><h2>&nbsp;</h2><p><i><strong>sdasd</strong></i></p>'),
+('hero_title', 'hero_title'),
+('night_surcharge_amount', '10'),
+('night_surcharge_end_hour', '17'),
+('night_surcharge_start_hour', '15'),
 ('store_is_open', '1'),
 ('timezone', 'Asia/Dhaka');
 

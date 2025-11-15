@@ -2,7 +2,7 @@
 /*
  * includes/header.php
  * KitchCo: Cloud Kitchen Public Header
- * Version 1.3 - Added Track Order link
+ * Version 1.4 - Re-branded for Pizza Mania
  *
  * This file is included at the top of ALL public-facing pages.
  * It handles:
@@ -41,10 +41,10 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Dynamic Title (will be set by each page) -->
-    <title><?php echo e($page_title ?? 'KitchCo - Delicious Food Delivered'); ?></title>
+    <title><?php echo e($page_title ?? 'Pizza Mania - Hot & Fresh'); ?></title>
     
     <!-- Meta Description (for SEO) -->
-    <meta name="description" content="<?php echo e($meta_description ?? 'Order your favorite meals from KitchCo, delivered fast and fresh.'); ?>">
+    <meta name="description" content="<?php echo e($meta_description ?? 'Order your favorite meals from Pizza Mania, delivered fast and fresh.'); ?>">
     
     <!-- 1. Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,7 +52,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
     <!-- 2. Load Google Font (Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- 3. Configure Tailwind -->
     <script>
@@ -63,7 +63,9 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                         sans: ['Inter', 'sans-serif'],
                     },
                     colors: {
-                        'brand-orange': '#ea580c', // orange-600
+                        // (MODIFIED) Brand colors for "Pizza Mania"
+                        'brand-red': '#dc2626', // red-600
+                        'brand-yellow': '#facc15', // yellow-400
                     }
                 },
             },
@@ -85,7 +87,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
     <?php endif; ?>
     
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="bg-gray-50 font-sans antialiased">
 
     <!-- (NEW) Google Tag Manager (Body) -->
     <?php if (!empty($gtm_id)): ?>
@@ -95,7 +97,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
 
     <!-- Store Closed Banner -->
     <?php if ($store_is_open == '0'): ?>
-    <div class="bg-red-600 text-white text-center p-3 font-medium">
+    <div class="bg-brand-red text-white text-center p-3 font-medium">
         We are currently closed and not accepting new orders. Please check back later!
     </div>
     <?php endif; ?>
@@ -106,20 +108,24 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
-                    <!-- (MODIFIED) Clean URL for homepage -->
-                    <a href="<?php echo BASE_URL; ?>/" class="text-2xl font-bold text-brand-orange">
-                        KitchCo
+                    <!-- (MODIFIED) Clean URL for homepage & New Name -->
+                    <a href="<?php echo BASE_URL; ?>/" class="text-2xl font-extrabold text-brand-red">
+                        Pizza Mania
                     </a>
                 </div>
                 
                 <!-- Desktop Nav -->
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <!-- (MODIFIED) Clean URL for homepage -->
-                    <a href="<?php echo BASE_URL; ?>/" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Homepage</a>
-                    <!-- (MODIFIED) Clean URL for menu -->
-                    <a href="<?php echo BASE_URL; ?>/menu" class="inline-flex items-center px-1 pt-1 border-b-2 border-brand-orange text-sm font-medium text-gray-900">Full Menu</a>
-                    <!-- (NEW) Clean URL for track-order -->
-                    <a href="<?php echo BASE_URL; ?>/track-order" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Track Order</a>
+                    <?php
+                        // Helper to get the current page name
+                        $current_page = basename($_SERVER['SCRIPT_NAME']);
+                    ?>
+                    <!-- (MODIFIED) Clean URL for homepage & Active State -->
+                    <a href="<?php echo BASE_URL; ?>/" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'index.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Homepage</a>
+                    <!-- (MODIFIED) Clean URL for menu & Active State -->
+                    <a href="<?php echo BASE_URL; ?>/menu" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'menu.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Full Menu</a>
+                    <!-- (NEW) Clean URL for track-order & Active State -->
+                    <a href="<?php echo BASE_URL; ?>/track-order" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'track_order.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Track Order</a>
                 </div>
                 
                 <!-- Right Side (Cart & Mobile) -->
@@ -130,7 +136,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                         </svg>
-                        <span id="cart-count-bubble" class="absolute -top-1 -right-1 bg-brand-orange text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        <span id="cart-count-bubble" class="absolute -top-1 -right-1 bg-brand-red text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                             <?php echo e($cart_count); ?>
                         </span>
                     </a>
@@ -151,7 +157,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                 <!-- (MODIFIED) Clean URL for homepage -->
                 <a href="<?php echo BASE_URL; ?>/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Homepage</a>
                 <!-- (MODIFIED) Clean URL for menu -->
-                <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-md text-base font-medium text-gray-900 bg-gray-100">Full Menu</a>
+                <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Full Menu</a>
                 <!-- (NEW) Clean URL for track-order -->
                 <a href="<?php echo BASE_URL; ?>/track-order" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Track Order</a>
             </div>

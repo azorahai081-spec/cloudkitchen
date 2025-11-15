@@ -2,7 +2,7 @@
 /*
  * order_success.php
  * KitchCo: Cloud Kitchen Order Success ("Thank You") Page
- * Version 1.3 - Changed Order ID prefix to PM-
+ * Version 1.4 - (MODIFIED) Redesigned buttons
  *
  * This page:
  * 1. Confirms the order was placed.
@@ -87,7 +87,8 @@ unset($_SESSION['last_order_id']);
             </div>
             <div class="flex justify-between text-lg font-bold">
                 <span class="text-gray-900">Total Amount:</span>
-                <span class="text-brand-orange"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
+                <span class="text-brand-red"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
             </div>
         </div>
         
@@ -98,7 +99,8 @@ unset($_SESSION['last_order_id']);
     </div>
     
     <!-- (MODIFIED) Clean URL -->
-    <a href="<?php echo BASE_URL; ?>/" class="mt-8 inline-block px-6 py-3 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
+    <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
+    <a href="<?php echo BASE_URL; ?>/" class="mt-8 inline-block px-6 py-3 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700">
         &larr; Back to Homepage
     </a>
 </div>

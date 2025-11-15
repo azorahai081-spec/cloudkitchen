@@ -2,7 +2,7 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.1 - Fixed "Headers Already Sent" bug
+ * Version 1.2 - (MODIFIED) Redesigned buttons
  *
  * This page:
  * 1. Requires a non-empty cart to view.
@@ -83,21 +83,21 @@ foreach ($cart as $item) {
                 <div>
                     <label for="customer_name" class="block text-sm font-medium text-gray-700">Full Name *</label>
                     <input type="text" id="customer_name" name="customer_name" required
-                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-orange">
+                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
                 </div>
                 
                 <!-- Customer Phone -->
                 <div>
                     <label for="customer_phone" class="block text-sm font-medium text-gray-700">Phone Number *</label>
                     <input type="tel" id="customer_phone" name="customer_phone" required
-                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-orange">
+                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
                 </div>
                 
                 <!-- Delivery Area -->
                 <div class="md:col-span-2">
                     <label for="delivery_area_id" class="block text-sm font-medium text-gray-700">Delivery Area *</label>
                     <select id="delivery_area_id" name="delivery_area_id" required
-                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-orange">
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
                         <option value="">-- Select Your Area --</option>
                         <?php foreach ($delivery_areas as $area): ?>
                             <option value="<?php echo e($area['id']); ?>" data-charge="<?php echo e($area['base_charge']); ?>">
@@ -111,13 +111,13 @@ foreach ($cart as $item) {
                 <div class="md:col-span-2">
                     <label for="customer_address" class="block text-sm font-medium text-gray-700">Full Address (House, Road, Block) *</label>
                     <textarea id="customer_address" name="customer_address" rows="3" required
-                              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-orange"></textarea>
+                              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
                 </div>
             </div>
             
             <h2 class="text-xl font-bold text-gray-900 mt-8 mb-6 border-b pb-3">2. Payment Method</h2>
             <div class="p-4 border border-gray-300 rounded-lg bg-gray-50">
-                <input type="radio" id="payment_cod" name="payment_method" value="cod" checked class="h-4 w-4 text-brand-orange focus:ring-brand-orange">
+                <input type="radio" id="payment_cod" name="payment_method" value="cod" checked class="h-4 w-4 text-brand-red focus:ring-brand-red">
                 <label for="payment_cod" class="ml-3 text-base font-medium text-gray-900">
                     Cash on Delivery (COD)
                 </label>
@@ -176,8 +176,9 @@ foreach ($cart as $item) {
                 <input type="hidden" name="final_delivery_fee" id="final-delivery-fee" value="0">
                 <input type="hidden" name="final_total" id="final-total" value="0">
 
+                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
                 <button type="submit" id="submit-order-btn" disabled
-                        class="mt-6 w-full py-3 px-4 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700 transition-colors
+                        class="mt-6 w-full py-3 px-4 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-colors
                                disabled:bg-gray-400 disabled:cursor-not-allowed">
                     Place Order
                 </button>

@@ -2,7 +2,7 @@
 /*
  * admin/manage_item_options.php
  * KitchCo: Cloud Kitchen Item Options Manager
- * Version 1.1 - Added CSRF Protection
+ * Version 1.2 - (FIXED) Added error handling for deletes
  *
  * This page handles full CRUD for:
  * 1. `item_options_groups` (e.g., "Size", "Toppings")
@@ -14,7 +14,7 @@ require_once('header.php');
 
 // 2. PAGE VARIABLES & INITIALIZATION
 $action = $_GET['action'] ?? 'list_groups'; // Default action
-$group_id = $_GET['group_id'] ?? null;
+$group_id = $_GET['group_id'] ?? $_GET['id'] ?? null;
 $option_id = $_GET['option_id'] ?? null;
 $page_title = 'Manage Item Options';
 
@@ -136,16 +136,26 @@ if ($action === 'delete_group' && $group_id) {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // Deleting a group will cascade and delete all its options (due to DB constraint)
-        $sql = "DELETE FROM item_options_groups WHERE id = ?";
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param('i', $group_id);
-        if ($stmt->execute()) {
-            $success_message = 'Group and all its options deleted successfully!';
-        } else {
-            $error_message = 'Failed to delete group. It might be linked to a menu item.';
+        
+        // (MODIFIED) Wrap database action in try...catch
+        // This prevents a fatal error (blank page) if a foreign key constraint fails
+        try {
+            $sql = "DELETE FROM item_options_groups WHERE id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->bind_param('i', $group_id);
+            
+            if ($stmt->execute()) {
+                $success_message = 'Group and all its options deleted successfully!';
+            } else {
+                // This will now be shown instead of a blank page
+                $error_message = 'Failed to delete group. It is likely linked to a menu item.';
+            }
+            $stmt->close();
+            
+        } catch (mysqli_sql_exception $e) {
+            // Catch the database-level error
+            $error_message = 'Failed to delete group. It is linked to a menu item. Please remove it from all menu items first.';
         }
-        $stmt->close();
     }
     $action = 'list_groups';
 }
@@ -174,15 +184,20 @@ if ($action === 'delete_option' && $group_id && $option_id) {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        $sql = "DELETE FROM item_options WHERE id = ? AND group_id = ?";
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param('ii', $option_id, $group_id);
-        if ($stmt->execute()) {
-            $success_message = 'Option deleted successfully!';
-        } else {
-            $error_message = 'Failed to delete option.';
+        // (MODIFIED) Wrap database action in try...catch
+        try {
+            $sql = "DELETE FROM item_options WHERE id = ? AND group_id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->bind_param('ii', $option_id, $group_id);
+            if ($stmt->execute()) {
+                $success_message = 'Option deleted successfully!';
+            } else {
+                $error_message = 'Failed to delete option.';
+            }
+            $stmt->close();
+        } catch (mysqli_sql_exception $e) {
+             $error_message = 'Failed to delete option. (Error: ' . $e->getMessage() . ')';
         }
-        $stmt->close();
     }
     $action = 'manage_options';
 }

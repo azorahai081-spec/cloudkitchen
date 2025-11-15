@@ -2,7 +2,7 @@
 /*
  * track_order.php
  * KitchCo: Cloud Kitchen Customer Order Tracking
- * Version 1.1 - Changed Order ID prefix to PM-
+ * Version 1.2 - (MODIFIED) Redesigned buttons and status colors
  *
  * This page allows a customer to check their order status
  * by entering their Order ID.
@@ -72,7 +72,7 @@ function getStatusDetails($status) {
         case 'Ready':
             return [
                 'icon' => 'M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.263-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z', // Bag icon
-                'color' => 'text-orange-500',
+                'color' => 'text-brand-yellow', // (MODIFIED) Changed from orange-500
                 'message' => 'Your order is ready and waiting for a rider to pick it up.'
             ];
         case 'Delivered':
@@ -105,11 +105,12 @@ function getStatusDetails($status) {
                 value="<?php echo e($order_id_raw); ?>"
                 placeholder="Enter your Order ID (e.g., PM-123)"
                 required
-                class="flex-grow mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                class="flex-grow mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
             >
+            <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
             <button 
                 type="submit"
-                class="mt-1 px-6 py-3 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700"
+                class="mt-1 px-6 py-3 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700"
             >
                 Track
             </button>
@@ -155,6 +156,13 @@ function getStatusDetails($status) {
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
+    <div class="text-center">
+        <a href="<?php echo BASE_URL; ?>/" class="mt-8 inline-block px-6 py-3 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700">
+            &larr; Back to Homepage
+        </a>
+    </div>
     
 </div>
 

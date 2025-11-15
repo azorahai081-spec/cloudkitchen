@@ -2,7 +2,7 @@
 /*
  * admin/order_details.php
  * KitchCo: Cloud Kitchen Order Details Page
- * Version 1.5 - Fixed 'assigned_rider_name' vs 'rider_name' bug
+ * Version 1.8 - (NEW) Added Admin-only delete functionality
  *
  * This page:
  * 1. Loads a single order and all its items/options.
@@ -20,7 +20,8 @@ if (empty($order_id)) {
     exit;
 }
 $order_id = (int)$order_id;
-$page_title = "Order Details #{$order_id}";
+// (MODIFIED) Changed prefix
+$page_title = "Order Details #PM-{$order_id}";
 
 // 3. --- HANDLE POST ACTIONS (Update Status / Assign Rider) ---
 $error_message = '';
@@ -96,10 +97,12 @@ $order = $result_order->fetch_assoc();
 
 // B. Load Order Items
 $order_items = [];
-// (CORRECT) This query is correct, as order_items.order_id links to orders.id
+// (MODIFIED) Initialize $stmt_options to null to prevent crash
+$stmt_options = null; 
+// (MODIFIED) Changed to LEFT JOIN to handle deleted menu items
 $sql_items = "SELECT oi.*, mi.name as item_name
               FROM order_items oi
-              JOIN menu_items mi ON oi.menu_item_id = mi.id
+              LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
               WHERE oi.order_id = ?";
 $stmt_items = $db->prepare($sql_items);
 $stmt_items->bind_param('i', $order_id);
@@ -107,6 +110,9 @@ $stmt_items->execute();
 $result_items = $stmt_items->get_result();
 
 while ($item_row = $result_items->fetch_assoc()) {
+    // (MODIFIED) Check if item was deleted
+    $item_row['item_name'] = $item_row['item_name'] ?? '[Deleted Item]';
+    
     // (FIXED) The primary key of the order_items table is 'id', not 'order_item_id'
     $order_item_id = $item_row['id']; 
     $item_row['options'] = [];
@@ -114,7 +120,8 @@ while ($item_row = $result_items->fetch_assoc()) {
     // C. Load Options for this item
     // (FIXED) This links to order_items.id
     $sql_options = "SELECT * FROM order_item_options WHERE order_item_id = ?";
-    $stmt_options = $db->prepare($sql_options);
+    // (MODIFIED) This variable is now initialized
+    $stmt_options = $db->prepare($sql_options); 
     $stmt_options->bind_param('i', $order_item_id);
     $stmt_options->execute();
     $result_options = $stmt_options->get_result();
@@ -126,7 +133,12 @@ while ($item_row = $result_items->fetch_assoc()) {
 }
 $stmt_order->close();
 $stmt_items->close();
-$stmt_options->close();
+
+// (MODIFIED) Only close $stmt_options if it was actually initialized
+// This fixes the fatal crash on orders with no items.
+if ($stmt_options !== null) {
+    $stmt_options->close();
+}
 ?>
 
 <!-- Page Header -->
@@ -169,35 +181,39 @@ $stmt_options->close();
         <div class="bg-white p-6 rounded-2xl shadow-lg">
             <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-3">Order Items</h2>
             <div class="space-y-4">
-                <?php foreach ($order_items as $item): ?>
-                <div class="flex justify-between items-start border-b pb-4">
-                    <div class="flex-1">
-                        <p class="text-lg font-bold text-gray-800">
-                            <?php echo e($item['quantity']); ?>x <?php echo e($item['item_name']); ?>
+                <?php if (empty($order_items)): ?>
+                    <p class="text-gray-500">No items were found for this order. (This may have been a test order with no items.)</p>
+                <?php else: ?>
+                    <?php foreach ($order_items as $item): ?>
+                    <div class="flex justify-between items-start border-b pb-4">
+                        <div class="flex-1">
+                            <p class="text-lg font-bold text-gray-800">
+                                <?php echo e($item['quantity']); ?>x <?php echo e($item['item_name']); ?>
 
-                        </p>
-                        <!-- Options -->
-                        <?php if (!empty($item['options'])): ?>
-                        <ul class="text-sm text-gray-600 list-disc list-inside pl-4 mt-1">
-                            <?php foreach ($item['options'] as $option): ?>
-                            <li>
-                                <?php echo e($option['option_name']); ?> 
-                                (+<?php echo e(number_format($option['option_price'], 2)); ?>)
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
-                        <?php endif; ?>
+                            </p>
+                            <!-- Options -->
+                            <?php if (!empty($item['options'])): ?>
+                            <ul class="text-sm text-gray-600 list-disc list-inside pl-4 mt-1">
+                                <?php foreach ($item['options'] as $option): ?>
+                                <li>
+                                    <?php echo e($option['option_name']); ?> 
+                                    (+<?php echo e(number_format($option['option_price'], 2)); ?>)
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-gray-900">
+                                <?php echo e(number_format($item['total_price'], 2)); ?>
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                (<?php echo e(number_format($item['base_price'], 2)); ?> base)
+                            </p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-lg font-bold text-gray-900">
-                            <?php echo e(number_format($item['total_price'], 2)); ?>
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            (<?php echo e(number_format($item['base_price'], 2)); ?> base)
-                        </p>
-                    </div>
-                </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
             
             <!-- Totals -->
@@ -257,6 +273,21 @@ $stmt_options->close();
                     Assign Rider
                 </button>
             </form>
+
+            <!-- (NEW) Admin-only Delete Section -->
+            <?php if (hasAdminAccess()): ?>
+                <hr class="my-6 border-red-300">
+                <div>
+                    <label class="block text-sm font-medium text-red-700">Danger Zone</label>
+                    <p class="text-xs text-gray-500 mb-2">This action is permanent and cannot be undone.</p>
+                    <a href="manage_orders.php?action=delete&id=<?php echo e($order_id); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                       class="w-full flex justify-center py-3 px-4 bg-red-600 text-white font-medium rounded-lg shadow-md hover:bg-red-700"
+                       onclick="return confirm('WARNING: This will permanently delete order #PM-<?php echo e($order_id); ?> and all its items. This action cannot be undone. Are you sure?');">
+                        Permanently Delete This Order
+                    </a>
+                </div>
+            <?php endif; ?>
+
         </div>
     </div>
 

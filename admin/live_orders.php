@@ -2,7 +2,7 @@
 /*
  * admin/live_orders.php
  * KitchCo: Cloud Kitchen Live Order Dashboard
- * Version 2.1 - (MODIFIED) Fixed store status toggle UI
+ * Version 2.2 - Restored missing header and title
  *
  * This is the main dashboard page. It's the "mission control" for the kitchen.
  */
@@ -85,6 +85,16 @@ if ($res_ready) {
 This file uses the header.php file, which sets the <title>.
 We can set a more specific title by echoing it in the <head>
 but for now, we'll just set it in PHP.
+-->
+<?php $page_title = 'Live Order Dashboard'; ?>
+
+<!-- (NEW) Main Header - This was missing -->
+<header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">Live Dashboard</h1>
+        <p class="text-gray-600 mt-1">Welcome back, <?php echo $username; ?>. Here's what's happening.</p>
+    </div>
+    
     <!-- (MODIFIED) Store Open/Closed Toggle -->
     <!-- This now uses Tailwind's "peer" system to style itself -->
     <div class="flex items-center space-x-3 mt-4 sm:mt-0">

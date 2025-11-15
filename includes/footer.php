@@ -2,7 +2,7 @@
 /*
  * includes/footer.php
  * KitchCo: Cloud Kitchen Public Footer
- * Version 1.1 - Updated links for Clean URLs
+ * Version 1.2 - Re-branded for Pizza Mania
  *
  * This file is included at the bottom of ALL public-facing pages.
  * It handles:
@@ -14,14 +14,14 @@
     </main> <!-- Closes the main content wrapper from header.php -->
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-gray-300 mt-12">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <footer class="bg-gray-900 text-gray-400 mt-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- About -->
                 <div>
-                    <h3 class="text-xl font-bold text-white mb-2">KitchCo</h3>
+                    <h3 class="text-xl font-bold text-white mb-2">Pizza Mania</h3>
                     <p class="text-sm">
-                        Bringing delicious, home-style meals right to your doorstep.
+                        Hot, fresh pizza delivered to your doorstep.
                         Order online and taste the difference.
                     </p>
                 </div>
@@ -35,6 +35,7 @@
                         <li><a href="<?php echo BASE_URL; ?>/menu" class="hover:text-white">Full Menu</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/cart" class="hover:text-white">My Cart</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/checkout" class="hover:text-white">Checkout</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/track-order" class="hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
                 
@@ -44,13 +45,13 @@
                     <ul class="space-y-1 text-sm">
                         <li>Phone: 01234-567890</li>
                         <li>Address: Gulshan, Dhaka</li>
-                        <li>Email: orders@kitchco.demo</li>
+                        <li>Email: orders@pizzamania.demo</li>
                     </ul>
                 </div>
             </div>
             
-            <div class="mt-8 border-t border-gray-700 pt-4 text-center text-sm">
-                &copy; <?php echo date('Y'); ?> KitchCo. All rights reserved.
+            <div class="mt-8 border-t border-gray-700 pt-6 text-center text-sm">
+                &copy; <?php echo date('Y'); ?> Pizza Mania. All rights reserved.
             </div>
         </div>
     </footer>

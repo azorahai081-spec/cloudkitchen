@@ -2,7 +2,7 @@
 /*
  * menu.php
  * KitchCo: Cloud Kitchen Full Menu Page
- * Version 1.2 - Updated links for Clean URLs
+ * Version 1.3 - (MODIFIED) Redesigned buttons
  *
  * This page:
  * 1. Loads all visible categories for filtering.
@@ -108,14 +108,14 @@ $schema_menu = [
             <ul class="space-y-2">
                 <li>
                     <!-- (MODIFIED) Clean URL -->
-                    <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-lg font-medium <?php echo !$filter_category_id ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <a href="<?php echo BASE_URL; ?>/menu" class="block px-3 py-2 rounded-lg font-medium <?php echo !$filter_category_id ? 'bg-orange-100 text-brand-red' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         All Categories
                     </a>
                 </li>
                 <?php foreach ($categories as $category): ?>
                 <li>
                     <!-- (MODIFIED) Clean URL for categories -->
-                    <a href="<?php echo BASE_URL; ?>/menu/category/<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium <?php echo ($filter_category_id == $category['id']) ? 'bg-orange-100 text-brand-orange' : 'text-gray-700 hover:bg-gray-100'; ?>">
+                    <a href="<?php echo BASE_URL; ?>/menu/category/<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium <?php echo ($filter_category_id == $category['id']) ? 'bg-orange-100 text-brand-red' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         <?php echo e($category['name']); ?>
                     </a>
                 </li>
@@ -137,7 +137,7 @@ $schema_menu = [
                     <?php endif; ?>
                 </p>
                 <!-- (MODIFIED) Clean URL -->
-                <a href="<?php echo BASE_URL; ?>/menu" class="mt-4 inline-block px-5 py-2 bg-brand-orange text-white font-medium rounded-lg">
+                <a href="<?php echo BASE_URL; ?>/menu" class="mt-4 inline-block px-5 py-2 bg-brand-red text-white font-medium rounded-lg">
                     View All Categories
                 </a>
             </div>
@@ -145,7 +145,7 @@ $schema_menu = [
             <!-- Loop through each Category -->
             <?php foreach ($menu as $category_name => $items): ?>
                 <section id="category-<?php echo e($items[0]['category_id']); ?>">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-orange">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-red">
                         <?php echo e($category_name); ?>
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,10 +164,11 @@ $schema_menu = [
                                         <p class="text-sm text-gray-600 mt-1"><?php echo e($item['item_description']); ?></p>
                                     </div>
                                     <div class="flex justify-between items-center mt-4">
-                                        <span class="text-xl font-bold text-brand-orange"><?php echo e(number_format($item['item_price'], 2)); ?> BDT</span>
+                                        <span class="text-xl font-bold text-brand-red"><?php echo e(number_format($item['item_price'], 2)); ?> BDT</span>
+                                        <!-- (MODIFIED) Button styling updated -->
                                         <button 
                                             onclick="openItemModal(<?php echo e($item['item_id']); ?>, '<?php echo e(addslashes($item['item_name'])); ?>', <?php echo e($item['item_price']); ?>)"
-                                            class="px-4 py-2 bg-orange-100 text-brand-orange font-medium rounded-lg hover:bg-brand-orange hover:text-white transition-colors <?php echo ($store_is_open == '0') ? 'hidden' : ''; ?>">
+                                            class="px-4 py-2 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-all transform hover:scale-105 <?php echo ($store_is_open == '0') ? 'hidden' : ''; ?>">
                                             Add
                                         </button>
                                     </div>
@@ -212,9 +213,10 @@ $schema_menu = [
                 <div class="flex items-center space-x-2">
                     <span class="text-sm font-medium text-gray-700">Quantity:</span>
                     <input id="modal-quantity" type="number" value="1" min="1"
-                           class="w-20 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange">
+                           class="w-20 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                 </div>
-                <button id="modal-add-to-cart-btn" type="submit" class="w-full sm:w-auto px-6 py-3 bg-brand-orange text-white font-bold rounded-lg shadow-md hover:bg-orange-700 transition-colors">
+                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red and added disabled state -->
+                <button id="modal-add-to-cart-btn" type="submit" class="w-full sm:w-auto px-6 py-3 bg-brand-red text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors disabled:bg-gray-400">
                     Add to Cart (Total: <span id="modal-total-price">0.00</span>)
                 </button>
             </div>
@@ -324,7 +326,7 @@ $schema_menu = [
                                         name="option_group[${group.id}][]" 
                                         value="${option.id}"
                                         data-price="${option.price_increase}"
-                                        class="h-4 w-4 text-brand-orange border-gray-300 focus:ring-brand-orange"
+                                        class="h-4 w-4 text-brand-red border-gray-300 focus:ring-brand-red"
                                         onchange="updateModalPrice()"
                                         ${inputType === 'radio' ? 'required' : ''}
                                     >

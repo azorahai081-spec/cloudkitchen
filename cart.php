@@ -2,7 +2,7 @@
 /*
  * cart.php
  * KitchCo: Cloud Kitchen View Cart Page
- * Version 1.3 - Updated links for Clean URLs
+ * Version 1.4 - (MODIFIED) Redesigned buttons
  *
  * This page:
  * 1. Displays all items in the session cart.
@@ -40,7 +40,7 @@ foreach ($cart as $item) {
                 <h2 class="mt-4 text-xl font-bold text-gray-900">Your cart is empty</h2>
                 <p class="mt-2 text-gray-600">Looks like you haven't added any items yet.</p>
                 <!-- (MODIFIED) Clean URL -->
-                <a href="<?php echo BASE_URL; ?>/menu" class="mt-6 inline-block px-6 py-3 bg-brand-orange text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
+                <a href="<?php echo BASE_URL; ?>/menu" class="mt-6 inline-block px-6 py-3 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700">
                     Browse Our Menu
                 </a>
             </div>
@@ -78,8 +78,9 @@ foreach ($cart as $item) {
                                         <!-- (NEW) CSRF Token -->
                                         <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                                         <label for="quantity-<?php echo e($cart_key); ?>" class="mr-2 text-gray-700">Qty:</label>
-                                        <input type="number" id="quantity-<?php echo e($cart_key); ?>" name="quantity" value="<?php echo e($item['quantity']); ?>" min="0" class="w-16 px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange">
-                                        <button type="submit" class="ml-2 text-xs text-brand-orange font-medium hover:text-orange-700">Update</button>
+                                        <input type="number" id="quantity-<?php echo e($cart_key); ?>" name="quantity" value="<?php echo e($item['quantity']); ?>" min="0" class="w-16 px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+                                        <!-- (MODIFIED) Button styling updated -->
+                                        <button type="submit" class="ml-2 px-3 py-1 bg-brand-yellow text-gray-900 font-semibold rounded-lg shadow-sm hover:bg-yellow-500 transition-colors text-xs">Update</button>
                                     </form>
 
                                     <!-- Remove Button -->
@@ -91,8 +92,9 @@ foreach ($cart as $item) {
                                             <input type="hidden" name="cart_key" value="<?php echo e($cart_key); ?>">
                                             <!-- (NEW) CSRF Token -->
                                             <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                                            <!-- (MODIFIED) Button styling updated -->
                                             <button type="submit" 
-                                                    class="font-medium text-red-600 hover:text-red-500"
+                                                    class="font-medium text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
                                                     onclick="return confirm('Are you sure you want to remove this item?');">
                                                 Remove
                                             </button>
@@ -122,14 +124,16 @@ foreach ($cart as $item) {
                 </p>
                 <div class="mt-6">
                     <!-- (MODIFIED) Clean URL -->
-                    <a href="<?php echo BASE_URL; ?>/checkout" class="flex w-full items-center justify-center rounded-lg border border-transparent bg-brand-orange px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-orange-700 <?php echo ($store_is_open == '0') ? 'opacity-50 cursor-not-allowed' : ''; ?>"
+                    <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
+                    <a href="<?php echo BASE_URL; ?>/checkout" class="flex w-full items-center justify-center rounded-lg border border-transparent bg-brand-red px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 <?php echo ($store_is_open == '0') ? 'opacity-50 cursor-not-allowed' : ''; ?>"
                        <?php echo ($store_is_open == '0') ? 'onclick="event.preventDefault(); alert(\'The store is currently closed.\');"' : ''; ?>>
                         Proceed to Checkout
                     </a>
                 </div>
                 <div class="mt-4 text-center text-sm">
                     <!-- (MODIFIED) Clean URL -->
-                    <a href="<?php echo BASE_URL; ?>/menu" class="font-medium text-brand-orange hover:text-orange-700">
+                    <!-- (MODIFIED) Link styling updated from brand-orange to brand-red -->
+                    <a href="<?php echo BASE_URL; ?>/menu" class="font-medium text-brand-red hover:text-red-700">
                         or Continue Shopping &rarr;
                     </a>
                 </div>
