@@ -1,0 +1,124 @@
+[
+{"type":"header","version":"5.2.0","comment":"Export to JSON plugin for PHPMyAdmin"},
+{"type":"database","name":"cloud_kitchen"},
+{"type":"table","name":"admin_users","database":"cloud_kitchen","data":
+[
+{"id":"1","username":"admin","password":"$2y$10$8K8zPgN\/YKDYfsOGuACun.GUolvvAT0KCnE8PJtAotena6EiVh6oe","role":"admin","created_at":"2025-11-14 20:43:44"},
+{"id":"2","username":"manager123","password":"$2y$10$Os9ruT7H39sxLXym40XKreF8ltrkXTnMJQxGaeKbdjCv3IXL2vOKm","role":"manager","created_at":"2025-11-15 14:32:20"}
+]
+}
+,{"type":"table","name":"categories","database":"cloud_kitchen","data":
+[
+{"id":"4","name":"APPETIZERS","description":"","image":"","is_visible":"1"},
+{"id":"5","name":"MEAT BOX","description":"","image":"","is_visible":"1"},
+{"id":"6","name":"RICE BOWL & BIRYANI","description":"","image":"","is_visible":"1"},
+{"id":"7","name":"PIZZA","description":"","image":"","is_visible":"1"},
+{"id":"8","name":"PASTA","description":"","image":"","is_visible":"1"}
+]
+}
+,{"type":"table","name":"coupons","database":"cloud_kitchen","data":
+[
+{"id":"1","code":"EID50","description":"","type":"percentage","value":"50.00","min_order_amount":"0.00","start_date":"2025-11-15 19:44:00","end_date":"2025-12-15 19:44:00","max_uses":"1","current_uses":"1","is_active":"1"}
+]
+}
+,{"type":"table","name":"delivery_areas","database":"cloud_kitchen","data":
+[
+{"id":"1","area_name":"Chwakbazar","base_charge":"20.00","is_active":"1"},
+{"id":"2","area_name":"Agrabad","base_charge":"120.00","is_active":"1"}
+]
+}
+,{"type":"table","name":"homepage_sections","database":"cloud_kitchen","data":
+[
+{"id":"4","category_id":"8","display_order":"2","is_visible":"1"},
+{"id":"5","category_id":"4","display_order":"1","is_visible":"1"},
+{"id":"6","category_id":"5","display_order":"3","is_visible":"1"},
+{"id":"7","category_id":"7","display_order":"4","is_visible":"1"},
+{"id":"8","category_id":"6","display_order":"5","is_visible":"1"}
+]
+}
+,{"type":"table","name":"item_options","database":"cloud_kitchen","data":
+[
+
+]
+}
+,{"type":"table","name":"item_options_groups","database":"cloud_kitchen","data":
+[
+{"id":"6","name":"Toppings","type":"checkbox"}
+]
+}
+,{"type":"table","name":"menu_items","database":"cloud_kitchen","data":
+[
+{"id":"4","category_id":"4","name":"CRISPY WINGS-6PCS","description":"","price":"190.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"5","category_id":"4","name":"PERI PERI WINGS-6PCS","description":"","price":"220.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"6","category_id":"4","name":"BUFFALO WINGS-6PCS","description":"","price":"230.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"7","category_id":"4","name":"BBQ WINGS-6PCS","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"8","category_id":"5","name":"REGULAR MEAT BOX","description":"","price":"180.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"9","category_id":"5","name":"BBQ MEAT BOX","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"10","category_id":"5","name":"NAGA MEAT BOX","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"11","category_id":"5","name":"CHEESY MEAT BOX","description":"","price":"230.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"12","category_id":"5","name":"MEAT BOX WITH DUMSTRIC (LARGE SIZE)","description":"","price":"358.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"13","category_id":"8","name":"OVEN BAKED PASTA","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"14","category_id":"8","name":"MASALA PASTA","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"15","category_id":"8","name":"GREEN SAUCE PASTA","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"16","category_id":"8","name":"WHITE SAUCE PASTA","description":"","price":"230.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"17","category_id":"8","name":"SPICY CREAMY PASTA","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"18","category_id":"6","name":"CHICKEN RICE BOWL (FRIED RICE)","description":"","price":"200.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"19","category_id":"6","name":"SAUSAGE RICE BOWL (FRIED RICE)","description":"","price":"180.00","image":"0","is_available":"1","is_featured":"1"},
+{"id":"20","category_id":"6","name":"CHICKEN DUM BIRYANI","description":"","price":"128.00","image":"0","is_available":"1","is_featured":"0"},
+{"id":"21","category_id":"7","name":"Margherita","description":"A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese","price":"348.00","image":"0","is_available":"1","is_featured":"1"}
+]
+}
+,{"type":"table","name":"menu_item_options_groups","database":"cloud_kitchen","data":
+[
+
+]
+}
+,{"type":"table","name":"orders","database":"cloud_kitchen","data":
+[
+{"id":"10","customer_name":"Arif","customer_phone":"01820331015","customer_address":"adasd","order_note":null,"delivery_area_id":"1","subtotal":"800.00","delivery_fee":"30.00","total_amount":"707.00","order_status":"Preparing","order_time":"2025-11-15 16:48:20","rider_name":"ikram","coupon_id":null,"discount_type":"fixed","discount_amount":"123.00"},
+{"id":"11","customer_name":"Nazrul Islam","customer_phone":"01420332015","customer_address":"asdasd","order_note":null,"delivery_area_id":"1","subtotal":"1950.00","delivery_fee":"30.00","total_amount":"1005.00","order_status":"Preparing","order_time":"2025-11-15 17:00:35","rider_name":null,"coupon_id":null,"discount_type":"percentage","discount_amount":"975.00"},
+{"id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","customer_address":"sdasdsa","order_note":null,"delivery_area_id":"1","subtotal":"200.00","delivery_fee":"20.00","total_amount":"220.00","order_status":"Delivered","order_time":"2025-11-15 17:01:49","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
+{"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620.00","delivery_fee":"30.00","total_amount":"340.00","order_status":"Ready","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310.00"},
+{"id":"14","customer_name":"Shahadat Hossain","customer_phone":"0000","customer_address":"abasb","order_note":null,"delivery_area_id":"2","subtotal":"720.00","delivery_fee":"130.00","total_amount":"490.00","order_status":"Pending","order_time":"2025-11-15 19:45:40","rider_name":null,"coupon_id":"1","discount_type":"percentage","discount_amount":"360.00"},
+{"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"180.00","delivery_fee":"120.00","total_amount":"300.00","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"}
+]
+}
+,{"type":"table","name":"order_items","database":"cloud_kitchen","data":
+[
+{"id":"13","order_id":"12","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
+{"id":"29","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
+{"id":"30","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
+{"id":"31","order_id":"13","menu_item_id":"5","quantity":"1","base_price":"220.00","total_price":"220.00"},
+{"id":"32","order_id":"10","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
+{"id":"33","order_id":"10","menu_item_id":"7","quantity":"3","base_price":"200.00","total_price":"600.00"},
+{"id":"36","order_id":"11","menu_item_id":"7","quantity":"4","base_price":"200.00","total_price":"800.00"},
+{"id":"37","order_id":"11","menu_item_id":"6","quantity":"5","base_price":"230.00","total_price":"1150.00"},
+{"id":"38","order_id":"14","menu_item_id":"7","quantity":"4","base_price":"180.00","total_price":"720.00"},
+{"id":"39","order_id":"15","menu_item_id":"7","quantity":"1","base_price":"180.00","total_price":"180.00"}
+]
+}
+,{"type":"table","name":"order_item_options","database":"cloud_kitchen","data":
+[
+
+]
+}
+,{"type":"table","name":"site_settings","database":"cloud_kitchen","data":
+[
+{"setting_key":"capi_pixel_id","setting_value":""},
+{"setting_key":"capi_token","setting_value":""},
+{"setting_key":"fb_pixel_id","setting_value":""},
+{"setting_key":"global_discount_active","setting_value":"1"},
+{"setting_key":"global_discount_type","setting_value":"percentage"},
+{"setting_key":"global_discount_value","setting_value":"10"},
+{"setting_key":"gtm_id","setting_value":""},
+{"setting_key":"hero_image_url","setting_value":"\/uploads\/banners\/hero_banner_1763200038_468943792_122143674482332422_8657173118974339025_n.jpg"},
+{"setting_key":"hero_subtitle","setting_value":"<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?<\/strong><\/p>"},
+{"setting_key":"hero_title","setting_value":"The Best Pizza in Town"},
+{"setting_key":"night_surcharge_amount","setting_value":"10"},
+{"setting_key":"night_surcharge_end_hour","setting_value":"20"},
+{"setting_key":"night_surcharge_start_hour","setting_value":"15"},
+{"setting_key":"store_is_open","setting_value":"1"},
+{"setting_key":"timezone","setting_value":"Asia\/Dhaka"}
+]
+}
+]

@@ -2,7 +2,7 @@
 /*
  * admin/manage_menu_items.php
  * KitchCo: Cloud Kitchen Menu Item Manager
- * Version 1.3 - (FIXED) Image paths and sort order
+ * Version 1.6 - (FINAL FIX) Corrected bind_param type mismatch.
  *
  * This is the most complex CRUD page. It handles:
  * 1. CRUD for menu_items (name, price, image, etc.)
@@ -51,7 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selected_option_groups = $_POST['option_groups'] ?? []; 
         
         // --- START IMAGE UPLOAD LOGIC ---
-        $image_path = $current_image; // Default to current
+        // (FIX) Default to current image, but clear it if it's the invalid '0'
+        $image_path = $current_image;
+        if ($image_path === '0') {
+            $image_path = ''; // Start with an empty path if current image is '0'
+        }
         
         if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ERR_OK) {
             $upload_dir = '../uploads/menu_items/'; // New folder for item images
@@ -70,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
                     // (FIX) Store path relative to the /uploads/ folder
                     $image_path = '/uploads/menu_items/' . $file_name;
-                    if (!empty($current_image) && file_exists('..' . $current_image)) {
+                    
+                    // (FIX) Only unlink if current_image is a valid, existing file
+                    if (!empty($current_image) && $current_image !== '0' && file_exists('..' . $current_image)) {
                         unlink('..' . $current_image);
                     }
                 } else {
@@ -94,10 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $item_id = $_POST['item_id'];
                 $sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_available = ?, is_featured = ? WHERE id = ?";
                 $stmt = $db->prepare($sql);
-                $stmt->bind_param('ssdsisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
+                // (FIX) Corrected type string from 'ssdsisii' to 'ssdisiii'
+                // s = name, s = description, d = price, i = category_id, s = image, i = is_available, i = is_featured, i = id
+                $stmt->bind_param('ssdisiii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
                 
                 if ($stmt->execute()) {
                     $success_message = 'Menu item updated successfully!';
+                    // (FIX) After a successful save, update the local PHP variable
+                    // so the form re-renders with the new image path.
+                    $item_image = $image_path; 
                 } else {
                     $error_message = 'Failed to update menu item.';
                 }
@@ -107,11 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // --- CREATE new item ---
                 $sql = "INSERT INTO menu_items (name, description, price, category_id, image, is_available, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $db->prepare($sql);
-                $stmt->bind_param('ssdsisi', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
+                // (FIX) Corrected type string from 'ssdsisi' to 'ssdisii'
+                // s = name, s = description, d = price, i = category_id, s = image, i = is_available, i = is_featured
+                $stmt->bind_param('ssdisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
                 
                 if ($stmt->execute()) {
                     $item_id = $db->insert_id; // Get the ID of the new item
                     $success_message = 'Menu item created successfully!';
+                    // (FIX) After a successful save, update the local PHP variable
+                    $item_image = $image_path;
                 } else {
                     $error_message = 'Failed to create menu item.';
                 }
@@ -146,6 +161,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $item_name = ''; $item_description = ''; $item_price = ''; 
                 $item_category_id = ''; $item_image = ''; $is_available = 1;
                 $is_featured = 0; $selected_option_groups = [];
+            } else if (empty($error_message) && isset($_POST['item_id'])) {
+                // (FIX) If updating, we need to re-load the selected option groups
+                // because the page is re-rendering with POST data.
+                $selected_option_groups = $_POST['option_groups'] ?? [];
             }
         }
     }
@@ -216,8 +235,8 @@ if ($action === 'delete' && $item_id) {
         
         if ($stmt->execute()) {
             $success_message = 'Menu item deleted successfully!';
-            // (FIX) Use '..' to go up one directory to the project root
-            if (!empty($image_to_delete) && file_exists('..' . $image_to_delete)) {
+            // (FIX) Use '..' to go up one directory and check for '0'
+            if (!empty($image_to_delete) && $image_to_delete !== '0' && file_exists('..' . $image_to_delete)) {
                 unlink('..' . $image_to_delete);
             }
         } else {
@@ -302,10 +321,17 @@ while ($row = $item_result->fetch_assoc()) {
                     <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No menu items found.</td></tr>
                 <?php else: ?>
                     <?php foreach ($menu_items as $item): ?>
+                        <?php
+                            // (FIX) Add PHP logic to determine the correct image source
+                            $image_src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'; // Default placeholder
+                            if (!empty($item['image']) && $item['image'] !== '0') {
+                                $image_src = BASE_URL . $item['image'];
+                            }
+                        ?>
                         <tr>
                             <td class="px-6 py-4">
-                                <!-- (FIX) Use BASE_URL for the image path -->
-                                <img src="<?php echo e(BASE_URL); ?><?php echo e($item['image']); ?>" 
+                                <!-- (FIX) Use the pre-calculated $image_src. Keep onerror as a backup. -->
+                                <img src="<?php echo e($image_src); ?>" 
                                      alt="<?php echo e($item['name']); ?>" 
                                      class="w-12 h-12 object-cover rounded-lg" 
                                      onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'">
@@ -342,8 +368,9 @@ while ($row = $item_result->fetch_assoc()) {
     <h2 class="text-2xl font-bold text-gray-900 mb-6">
         <?php echo ($action === 'edit') ? 'Edit Menu Item' : 'Add New Menu Item'; ?>
     </h2>
-
-    <form action="manage_menu_items.php" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- (FIX) The form action must contain the query parameters to stay on the add/edit page -->
+    <form action="manage_menu_items.php?action=<?php echo e($action); ?><?php echo $item_id ? '&id=' . e($item_id) : ''; ?>" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Column 1: Main Details -->
         <div class="lg:col-span-2 space-y-6">
@@ -353,6 +380,7 @@ while ($row = $item_result->fetch_assoc()) {
             <?php if ($action === 'edit' && $item_id): ?>
                 <input type="hidden" name="item_id" value="<?php echo e($item_id); ?>">
             <?php endif; ?>
+            <!-- (FIX) Pass the item_image to the hidden field -->
             <input type="hidden" name="current_image" value="<?php echo e($item_image); ?>">
 
             <div>
@@ -408,14 +436,25 @@ while ($row = $item_result->fetch_assoc()) {
                 <label class="block text-sm font-medium text-gray-700">Item Image</label>
                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
                     <div class="space-y-1 text-center">
-                        <?php if ($action === 'edit' && !empty($item_image)): ?>
-                            <!-- (FIX) Use BASE_URL for the image path -->
-                            <img src="<?php echo e(BASE_URL); ?><?php echo e($item_image); ?>" 
+                        <?php
+                            // (FIX) Add PHP logic to determine the correct image source for the edit form
+                            $edit_image_src = '';
+                            if ($action === 'edit' && !empty($item_image) && $item_image !== '0') {
+                                $edit_image_src = BASE_URL . $item_image;
+                            }
+                        ?>
+                        <?php if (!empty($edit_image_src)): ?>
+                            <!-- (FIX) Use the pre-calculated $edit_image_src -->
+                            <img id="image-preview" src="<?php echo e($edit_image_src); ?>" 
                                  alt="Current Image" 
                                  class="w-40 h-40 mx-auto object-cover rounded-lg mb-4"
-                                 onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'">
+                                 onerror="this.style.display='none'; document.getElementById('image-placeholder-svg').style.display='block';">
+                            <!-- (FIX) Show SVG by default if no image -->
+                            <svg id="image-placeholder-svg" class="mx-auto h-12 w-12 text-gray-400" style="display:none;" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                         <?php else: ?>
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                            <svg id="image-placeholder-svg" class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                            <!-- (FIX) Add hidden img tag for onerror logic to work -->
+                            <img id="image-preview" src="" alt="Current Image" class="w-40 h-40 mx-auto object-cover rounded-lg mb-4" style="display: none;">
                         <?php endif; ?>
                         <div class="flex text-sm text-gray-600">
                             <label for="item_image" class="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none">
@@ -472,3 +511,29 @@ while ($row = $item_result->fetch_assoc()) {
 // 6. FOOTER
 require_once('footer.php');
 ?>
+<script>
+// (NEW) Simple script to show image preview on the edit form
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('item_image');
+    const imagePreview = document.getElementById('image-preview');
+    const imagePlaceholder = document.getElementById('image-placeholder-svg');
+
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    if (imagePreview) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                    }
+                    if (imagePlaceholder) {
+                        imagePlaceholder.style.display = 'none';
+                    }
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+    }
+});
+</script>
