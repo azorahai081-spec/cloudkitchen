@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 15, 2025 at 08:39 PM
+-- Generation Time: Nov 16, 2025 at 06:42 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -20,6 +20,60 @@ SET time_zone = "+00:00";
 --
 -- Database: `cloud_kitchen`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_ledger`
+--
+
+DROP TABLE IF EXISTS `admin_ledger`;
+CREATE TABLE IF NOT EXISTS `admin_ledger` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type` enum('deposit','withdrawal') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entry_date` date NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_saving_date` (`entry_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_ledger`
+--
+
+INSERT INTO `admin_ledger` (`id`, `type`, `entry_date`, `amount`, `description`, `created_at`) VALUES
+(3, 'deposit', '2025-10-01', '1000.00', '', '2025-11-16 16:42:56'),
+(4, 'deposit', '2025-10-02', '10000.00', '', '2025-11-16 16:48:18'),
+(5, 'deposit', '2025-11-01', '5000.00', '', '2025-11-16 16:48:43'),
+(6, 'withdrawal', '2025-11-16', '20000.00', '', '2025-11-16 17:16:09'),
+(7, 'deposit', '2025-11-16', '30000.00', '', '2025-11-16 17:16:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_reviews`
+--
+
+DROP TABLE IF EXISTS `admin_reviews`;
+CREATE TABLE IF NOT EXISTS `admin_reviews` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `customer_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rating` int NOT NULL DEFAULT '5',
+  `review_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_reviews`
+--
+
+INSERT INTO `admin_reviews` (`id`, `customer_name`, `rating`, `review_text`, `is_visible`) VALUES
+(1, 'Rakib Islam', 5, 'Great pizza, fast delivery! The crust was perfect and the toppings were fresh. Will be ordering again!', 1),
+(2, 'Sanjida Ahmed', 5, 'The BBQ Meat Box was amazing. So much food for the price, and everything was delicious. Highly recommend', 1),
+(3, 'Fahmida Rahman', 5, 'Best pizza in Dhaka, hands down. We tried the Margherita and it was just perfect. Simple and tasty', 1);
 
 -- --------------------------------------------------------
 
@@ -44,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
 
 INSERT INTO `admin_users` (`id`, `username`, `password`, `role`, `created_at`) VALUES
 (1, 'admin', '$2y$10$8K8zPgN/YKDYfsOGuACun.GUolvvAT0KCnE8PJtAotena6EiVh6oe', 'admin', '2025-11-14 14:43:44'),
-(2, 'manager123', '$2y$10$Os9ruT7H39sxLXym40XKreF8ltrkXTnMJQxGaeKbdjCv3IXL2vOKm', 'manager', '2025-11-15 08:32:20');
+(2, 'manager123', '$2y$10$ywL2LF3ZkDEy65.llCNV7OIwJybJ77RMYrf8Bn1bq.lSZUSldv4pK', 'manager', '2025-11-15 08:32:20');
 
 -- --------------------------------------------------------
 
@@ -58,20 +112,22 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text COLLATE utf8mb4_unicode_ci,
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `svg_icon` text COLLATE utf8mb4_unicode_ci,
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `categories`
 --
 
-INSERT INTO `categories` (`id`, `name`, `description`, `image`, `is_visible`) VALUES
-(4, 'APPETIZERS', '', '', 1),
-(5, 'MEAT BOX', '', '', 1),
-(6, 'RICE BOWL & BIRYANI', '', '', 1),
-(7, 'PIZZA', '', '', 1),
-(8, 'PASTA', '', '', 1);
+INSERT INTO `categories` (`id`, `name`, `description`, `image`, `svg_icon`, `is_visible`) VALUES
+(4, 'APPETIZERS', '', '', '', 1),
+(5, 'MEAT BOX', '', '', '', 1),
+(6, 'RICE BOWL & BIRYANI', '', '', '', 1),
+(7, 'PIZZA', '', '', '', 1),
+(8, 'PASTA', '', '', '', 1),
+(9, 'Beverage', '', '', '', 1);
 
 -- --------------------------------------------------------
 
@@ -94,14 +150,15 @@ CREATE TABLE IF NOT EXISTS `coupons` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `coupons`
 --
 
 INSERT INTO `coupons` (`id`, `code`, `description`, `type`, `value`, `min_order_amount`, `start_date`, `end_date`, `max_uses`, `current_uses`, `is_active`) VALUES
-(1, 'EID50', '', 'percentage', '50.00', '0.00', '2025-11-15 19:44:00', '2025-12-15 19:44:00', 1, 1, 1);
+(1, 'EID50', '', 'percentage', '50.00', '0.00', '2025-11-15 19:44:00', '2025-12-15 19:44:00', 1, 1, 1),
+(2, 'EID501', '', 'percentage', '50.00', '0.00', '2025-11-16 11:50:00', '2025-12-16 11:50:00', 1, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -116,7 +173,7 @@ CREATE TABLE IF NOT EXISTS `delivery_areas` (
   `base_charge` decimal(10,2) NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `delivery_areas`
@@ -124,7 +181,8 @@ CREATE TABLE IF NOT EXISTS `delivery_areas` (
 
 INSERT INTO `delivery_areas` (`id`, `area_name`, `base_charge`, `is_active`) VALUES
 (1, 'Chwakbazar', '20.00', 1),
-(2, 'Agrabad', '120.00', 1);
+(2, 'Agrabad', '120.00', 1),
+(3, 'PICKUP POINT', '0.00', 1);
 
 -- --------------------------------------------------------
 
@@ -140,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `homepage_sections` (
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `homepage_sections`
@@ -151,7 +209,8 @@ INSERT INTO `homepage_sections` (`id`, `category_id`, `display_order`, `is_visib
 (5, 4, 1, 1),
 (6, 5, 3, 1),
 (7, 7, 4, 1),
-(8, 6, 5, 1);
+(8, 6, 5, 1),
+(9, 9, 6, 1);
 
 -- --------------------------------------------------------
 
@@ -208,31 +267,34 @@ CREATE TABLE IF NOT EXISTS `menu_items` (
   `is_featured` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `menu_items`
 --
 
 INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `image`, `is_available`, `is_featured`) VALUES
-(4, 4, 'CRISPY WINGS-6PCS', '', '190.00', '0', 1, 0),
-(5, 4, 'PERI PERI WINGS-6PCS', '', '220.00', '0', 1, 0),
-(6, 4, 'BUFFALO WINGS-6PCS', '', '230.00', '0', 1, 1),
-(7, 4, 'BBQ WINGS-6PCS', '', '200.00', '0', 1, 1),
-(8, 5, 'REGULAR MEAT BOX', '', '180.00', '0', 1, 0),
-(9, 5, 'BBQ MEAT BOX', '', '200.00', '0', 1, 1),
-(10, 5, 'NAGA MEAT BOX', '', '200.00', '0', 1, 0),
-(11, 5, 'CHEESY MEAT BOX', '', '230.00', '0', 1, 0),
-(12, 5, 'MEAT BOX WITH DUMSTRIC (LARGE SIZE)', '', '358.00', '0', 1, 1),
-(13, 8, 'OVEN BAKED PASTA', '', '200.00', '0', 1, 0),
-(14, 8, 'MASALA PASTA', '', '200.00', '0', 1, 0),
-(15, 8, 'GREEN SAUCE PASTA', '', '200.00', '0', 1, 0),
-(16, 8, 'WHITE SAUCE PASTA', '', '230.00', '0', 1, 1),
-(17, 8, 'SPICY CREAMY PASTA', '', '200.00', '0', 1, 0),
-(18, 6, 'CHICKEN RICE BOWL (FRIED RICE)', '', '200.00', '0', 1, 0),
-(19, 6, 'SAUSAGE RICE BOWL (FRIED RICE)', '', '180.00', '0', 1, 1),
-(20, 6, 'CHICKEN DUM BIRYANI', '', '128.00', '0', 1, 0),
-(21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348.00', '0', 1, 1);
+(4, 4, 'CRISPY WINGS-6PCS', 'Golden, crunchy chicken wings seasoned to perfection.', '190.00', '/uploads/menu_items/1763281022_CRISPYWINGs.jpeg', 1, 0),
+(5, 4, 'PERI PERI WINGS-6PCS', 'Zesty peri peri wings bursting with spicy, citrusy flavours.', '220.00', '/uploads/menu_items/1763281010_PERIPERIWINGs.jpeg', 1, 0),
+(6, 4, 'BUFFALO WINGS-6PCS', 'Tangy and spicy Buffalo-style wings with a bold kick.', '230.00', '/uploads/menu_items/1763280989_BUFFALOWINGs.jpeg', 1, 1),
+(7, 4, 'BBQ WINGS-6PCS', 'Crispy chicken wings coated in sweet and smoky BBQ sauce.', '200.00', '/uploads/menu_items/1763280977_BBQWINGSs.jpeg', 1, 1),
+(8, 5, 'REGULAR MEAT BOX', 'A classic meat box with perfectly seasoned chicken and a balanced flavour profile.', '180.00', '/uploads/menu_items/1763280964_REGULARMEATBOx.jpeg', 1, 0),
+(9, 5, 'BBQ MEAT BOX', 'Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.', '200.00', '/uploads/menu_items/1763280951_BBQMEAt.jpeg', 1, 1),
+(10, 5, 'NAGA MEAT BOX', 'A spicy meat box infused with bold Naga chilli flavour for heat lovers.', '200.00', '/uploads/menu_items/1763280935_nagameatbox.jpeg', 1, 0),
+(11, 5, 'CHEESY MEAT BOX', 'A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.', '230.00', '/uploads/menu_items/1763280918_cheesymeat.png', 1, 0),
+(12, 5, 'MEAT BOX WITH DUMSTRIC (LARGE SIZE)', 'A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.', '358.00', '/uploads/menu_items/1763280673_MEATBOXWITHDUMSTRIC.png', 1, 1),
+(13, 8, 'OVEN BAKED PASTA', 'Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.', '200.00', '/uploads/menu_items/1763280577_ovenbaked.png', 1, 0),
+(14, 8, 'MASALA PASTA', 'A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.', '200.00', '/uploads/menu_items/1763280509_MASALAPASTA.png', 1, 0),
+(15, 8, 'GREEN SAUCE PASTA', 'Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.', '200.00', '/uploads/menu_items/1763280463_GREENSAUCEPASTA.png', 1, 0),
+(16, 8, 'WHITE SAUCE PASTA', 'Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.', '230.00', '/uploads/menu_items/1763280427_WHITESAUCEPASTA.png', 1, 1),
+(17, 8, 'SPICY CREAMY PASTA', 'A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.', '200.00', '/uploads/menu_items/1763280352_SPICYCREAMYPASTA.png', 1, 0),
+(18, 6, 'CHICKEN RICE BOWL (FRIED RICE)', 'Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.', '200.00', '/uploads/menu_items/1763280300_CHICKENRICEBOWL.png', 1, 0),
+(19, 6, 'SAUSAGE RICE BOWL (FRIED RICE)', 'Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.', '180.00', '/uploads/menu_items/1763280225_SAUSAGERICEBOWL.png', 1, 1),
+(20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128.00', '/uploads/menu_items/1763280186_chickendum.png', 1, 1),
+(21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348.00', '/uploads/menu_items/1763242197_1.webp', 1, 1),
+(22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398.00', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1),
+(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 1, 0),
+(24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90.00', '/uploads/menu_items/1763286952_images1.jfif', 1, 0);
 
 -- --------------------------------------------------------
 
@@ -274,7 +336,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
@@ -286,7 +348,10 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
 (13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Ready', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
 (14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Pending', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
-(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00');
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
+(16, 'Race Condition', '01820336015', 'asd', 'sad', 2, '313.20', '120.00', '433.20', 'Pending', '2025-11-16 08:22:01', NULL, NULL, 'none', '0.00'),
+(17, 'Nazrul Islam', '01820331015', 'SAdas', 'Spicy Please', 2, '230.00', '120.00', '350.00', 'Pending', '2025-11-16 05:48:33', NULL, NULL, 'none', '0.00'),
+(18, 'Newaz', '01820336015', '2no Road', 'Less Spicy', 2, '490.00', '120.00', '365.00', 'Pending', '2025-11-16 05:51:25', NULL, 2, 'percentage', '245.00');
 
 -- --------------------------------------------------------
 
@@ -305,7 +370,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -321,7 +386,12 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (36, 11, 7, 4, '200.00', '800.00'),
 (37, 11, 6, 5, '230.00', '1150.00'),
 (38, 14, 7, 4, '180.00', '720.00'),
-(39, 15, 7, 1, '180.00', '180.00');
+(39, 15, 7, 1, '180.00', '180.00'),
+(40, 16, 21, 1, '313.20', '313.20'),
+(41, 17, 6, 1, '230.00', '230.00'),
+(42, 18, 7, 1, '200.00', '200.00'),
+(43, 18, 24, 1, '90.00', '90.00'),
+(44, 18, 15, 1, '200.00', '200.00');
 
 -- --------------------------------------------------------
 
@@ -360,17 +430,23 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('capi_pixel_id', ''),
 ('capi_token', ''),
 ('fb_pixel_id', ''),
-('global_discount_active', '1'),
+('global_discount_active', '0'),
 ('global_discount_type', 'percentage'),
 ('global_discount_value', '10'),
 ('gtm_id', ''),
-('hero_image_url', '/uploads/banners/hero_banner_1763200038_468943792_122143674482332422_8657173118974339025_n.jpg'),
+('hero_image_card_color', '#FFFFFF'),
+('hero_image_style', 'tilt-no-shadow'),
+('hero_image_url', '/uploads/banners/hero_banner_1763283791_1.png'),
 ('hero_subtitle', '<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</strong></p>'),
 ('hero_title', 'The Best Pizza in Town'),
 ('night_surcharge_amount', '10'),
 ('night_surcharge_end_hour', '20'),
 ('night_surcharge_start_hour', '15'),
+('offer_is_active', '1'),
+('offer_text', 'Get 20% off all Pizza orders. Use code: PIZZA20'),
+('offer_title', 'Weekend\'s Special'),
 ('store_is_open', '1'),
+('store_name', 'Pizza Mania'),
 ('timezone', 'Asia/Dhaka');
 
 --

@@ -2,11 +2,10 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.7 - (MODIFIED) Added Global Discount Settings
+ * Version 1.8 - (MODIFIED) Added Offer Banner Settings
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
- * This includes homepage content, store status, and surcharge logic.
  */
 
 // 1. HEADER
@@ -28,28 +27,26 @@ $success_message = '';
 // 4. --- HANDLE POST REQUESTS (Update Settings) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // (NEW) CSRF Token validation
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // Get all the new settings from the form
-        // We use an array to hold them, then loop to update the DB
         $new_settings = [
             'store_name' => $_POST['store_name'],
             'hero_title' => $_POST['hero_title'],
-            'hero_subtitle' => $_POST['hero_subtitle'], // CKEditor will POST valid HTML
-            // --- 'store_is_open' field intentionally removed from this form ---
+            'hero_subtitle' => $_POST['hero_subtitle'],
             'night_surcharge_amount' => $_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
             'timezone' => $_POST['timezone'],
-            // (NEW) Add global discount fields
             'global_discount_type' => $_POST['global_discount_type'],
             'global_discount_value' => $_POST['global_discount_value'] ?? 0,
             'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0',
-            // (NEW) Add hero image style fields
             'hero_image_style' => $_POST['hero_image_style'],
-            'hero_image_card_color' => $_POST['hero_image_card_color']
+            'hero_image_card_color' => $_POST['hero_image_card_color'],
+            // (NEW) Add Offer Banner fields
+            'offer_is_active' => isset($_POST['offer_is_active']) ? '1' : '0',
+            'offer_title' => $_POST['offer_title'],
+            'offer_text' => $_POST['offer_text']
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -57,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $image_path = $current_image; // Default to current
 
         if (isset($_FILES['hero_image_url']) && $_FILES['hero_image_url']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = '../uploads/banners/'; // New folder for banners
+            $upload_dir = '../uploads/banners/';
             
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
@@ -71,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (in_array($file['type'], $allowed_types)) {
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
                     $image_path = '/uploads/banners/' . $file_name;
-                    // Delete old banner if it's not the default
                     if (!empty($current_image) && $current_image != '/uploads/default-banner.jpg' && file_exists('..' . $current_image)) {
                         unlink('..' . $current_image);
                     }
@@ -82,13 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_message = 'Invalid file type for banner. Please upload a JPG, PNG, GIF, or WebP.';
             }
         }
-        // Add the new image path to our settings array
         $new_settings['hero_image_url'] = $image_path;
         // --- END IMAGE UPLOAD LOGIC ---
         
         
         // --- DATABASE UPDATE ---
-        // Prepare the update statement. We will re-use this.
         $sql = "UPDATE site_settings SET setting_value = ? WHERE setting_key = ?";
         $stmt = $db->prepare($sql);
         
@@ -96,14 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Error preparing statement: " . $db->error;
         } else {
             foreach ($new_settings as $key => $value) {
-                // (MODIFIED) Check if key exists, otherwise INSERT it
                 if (array_key_exists($key, $settings)) {
                     $stmt->bind_param('ss', $value, $key);
                     if (!$stmt->execute()) {
                          $error_message = "Error updating setting: $key";
                     }
                 } else {
-                    // This handles the new discount settings on first save
+                    // This handles new settings on first save
                     $insert_sql = "INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)";
                     $insert_stmt = $db->prepare($insert_sql);
                     $insert_stmt->bind_param('ss', $key, $value);
@@ -116,8 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($error_message)) {
             $success_message = 'Settings updated successfully!';
-            // IMPORTANT: Reload settings from DB into our $settings array
-            // so the page shows the new values instantly.
+            // IMPORTANT: Reload settings from DB
             $settings_query = $db->query("SELECT setting_key, setting_value FROM site_settings");
             if ($settings_query) {
                 while ($row = $settings_query->fetch_assoc()) {
@@ -129,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 5. --- LOAD TIMEZONES FOR DROPDOWN ---
-// Helper to get a list of timezones for the dropdown
 $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
 ?>
@@ -149,9 +140,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
     </div>
 <?php endif; ?>
 
-<!-- Settings are all in one form -->
 <form action="site_settings.php" method="POST" enctype="multipart/form-data" class="space-y-12">
-    <!-- (NEW) CSRF Token -->
     <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
 
     <!-- Section 1: Homepage Content -->
@@ -178,8 +167,6 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 <label for="hero_subtitle" class="block text-sm font-medium text-gray-700">
                     Homepage Welcome Text / Subtitle
                 </label>
-                <!-- (MODIFIED) This textarea will be converted into a rich text editor by the script below -->
-                <!-- (FIXED) Moved the echo statement *inside* the textarea tags -->
                 <textarea id="hero_subtitle" name="hero_subtitle" rows="6"
                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 ><?php echo htmlspecialchars($settings['hero_subtitle'] ?? ''); ?></textarea>
@@ -193,14 +180,12 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 
                 <?php if (!empty($settings['hero_image_url'])): ?>
                     <div class="mt-4">
-                        <!-- (REVERTED) Removed bg-white from the class -->
                         <img src="<?php echo e(BASE_URL . $settings['hero_image_url']); ?>" alt="Current Banner" class="w-auto h-32 object-cover rounded-lg shadow-md">
                         <p class="text-xs text-gray-500 mt-1">Current banner. Uploading a new one will replace it.</p>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <!-- (NEW) Image Style Options -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
                 <div>
                     <label for="hero_image_style" class="block text-sm font-medium text-gray-700">Banner Image Style</label>
@@ -220,6 +205,35 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                     <p class="text-xs text-gray-500 mt-1">Use a hex code (e.g., #FFFFFF for white).</p>
                 </div>
             </div>
+
+            <!-- (NEW) Offer Banner Settings -->
+            <div class="pt-6 border-t">
+                <h3 class="text-lg font-bold text-gray-900">Offer Banner</h3>
+                <p class="text-sm text-gray-500 mb-4">This will show a banner on the homepage, under the categories.</p>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="offer_is_active" name="offer_is_active" value="1" 
+                           <?php echo (($settings['offer_is_active'] ?? '0') == '1') ? 'checked' : ''; ?>
+                           class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                    <label for="offer_is_active" class="ml-2 block text-sm font-medium text-gray-900">
+                        Enable Offer Banner
+                    </label>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="offer_title" class="block text-sm font-medium text-gray-700">Offer Title</label>
+                        <input type="text" id="offer_title" name="offer_title" 
+                               value="<?php echo e($settings['offer_title'] ?? ''); ?>"
+                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label for="offer_text" class="block text-sm font-medium text-gray-700">Offer Text (Short)</label>
+                        <input type="text" id="offer_text" name="offer_text" 
+                               value="<?php echo e($settings['offer_text'] ?? ''); ?>"
+                               placeholder="e.g., Get 20% off all Pizza. Use code: PIZZA20"
+                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                </div>
+            </div>
             
         </div>
     </div>
@@ -231,7 +245,6 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <!-- Night Surcharge -->
             <div>
                 <label for="night_surcharge_amount" class="block text-sm font-medium text-gray-700">Night Surcharge Amount (BDT)</label>
                 <input type="number" step="0.01" id="night_surcharge_amount" name="night_surcharge_amount" 
@@ -239,7 +252,6 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             </div>
             
-            <!-- Timezone -->
             <div>
                 <label for="timezone" class="block text-sm font-medium text-gray-700">Store Timezone</label>
                 <select id="timezone" name="timezone" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -251,17 +263,14 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 </select>
             </div>
             
-            <!-- Surcharge Start -->
             <div>
                 <label for="night_surcharge_start_hour" class="block text-sm font-medium text-gray-700">Surcharge Start (Hour 0-23)</label>
-
                 <input type="number" min="0" max="23" id="night_surcharge_start_hour" name="night_surcharge_start_hour" 
                        value="<?php echo e($settings['night_surcharge_start_hour'] ?? '0'); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 <p class="text-xs text-gray-500 mt-1">e.g., '0' for Midnight</p>
             </div>
             
-            <!-- Surcharge End -->
             <div>
                 <label for="night_surcharge_end_hour" class="block text-sm font-medium text-gray-700">Surcharge End (Hour 0-23)</label>
                 <input type="number" min="0" max="23" id="night_surcharge_end_hour" name="night_surcharge_end_hour" 
@@ -273,7 +282,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         </div>
     </div>
     
-    <!-- (NEW) Section 3: Global Discount Settings -->
+    <!-- Section 3: Global Discount Settings -->
     <div class="bg-white p-8 rounded-2xl shadow-lg">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Global Store Discount</h2>
         <p class="text-sm text-gray-500 mb-6">Apply a discount to ALL menu items. This is calculated *before* cart-level coupons.</p>
@@ -319,11 +328,9 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
     
 </form>
 
-<!-- (NEW) CKEditor 5 Scripts -->
-<!-- We load the editor from a CDN, just like Tailwind -->
+<!-- CKEditor 5 Scripts -->
 <script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
 <script>
-    // Find the <textarea> with id 'hero_subtitle' and replace it with CKEditor
     ClassicEditor
         .create(document.querySelector('#hero_subtitle'), {
             toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo' ]
