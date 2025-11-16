@@ -13,7 +13,7 @@
  */
 
 // 1. PAGE SETUP
-$page_title = 'Full Menu - KitchCo';
+$page_title = 'Full Menu - ' . ($settings['store_name'] ?? 'Pizza Mania');
 $meta_description = 'Browse our full menu of delicious, fresh meals.';
 
 // 2. HEADER
@@ -109,7 +109,7 @@ foreach ($menu as $category => $items) {
 $schema_menu = [
     '@context' => 'https://schema.org',
     '@type' => 'Menu',
-    'name' => 'Pizza Mania Full Menu', // (MODIFIED)
+    'name' => $settings['store_name'] ?? 'Pizza Mania' . ' Full Menu',
     'hasMenuItem' => $schema_menu_items
 ];
 ?>

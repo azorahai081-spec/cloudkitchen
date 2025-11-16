@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 16, 2025 at 07:25 PM
+-- Generation Time: Nov 16, 2025 at 07:59 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -376,7 +376,7 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950.00', '30.00', '1005.00', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975.00'),
 (12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
 (13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
-(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Pending', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
+(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
 (15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
 (16, 'Race Condition', '01820336015', 'asd', 'sad', 2, '313.20', '120.00', '433.20', 'Pending', '2025-11-16 08:22:01', NULL, NULL, 'none', '0.00'),
 (17, 'Nazrul Islam', '01820331015', 'SAdas', 'Spicy Please', 2, '230.00', '120.00', '350.00', 'Pending', '2025-11-16 05:48:33', NULL, NULL, 'none', '0.00'),
@@ -474,7 +474,7 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('night_surcharge_amount', '10'),
 ('night_surcharge_end_hour', '20'),
 ('night_surcharge_start_hour', '15'),
-('offer_is_active', '0'),
+('offer_is_active', '1'),
 ('offer_text', 'Get 20% off all Pizza orders. Use code: PIZZA20'),
 ('offer_title', 'Weekend\'s Special'),
 ('store_is_open', '1'),

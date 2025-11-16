@@ -163,7 +163,8 @@ $schema_restaurant = [
             </div>
 
             <div class="order-5 mt-10">
-                <a href="<?php echo BASE_URL; ?>/menu.php" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
+                <!-- (FIXED) Clean URL -->
+                <a href="<?php echo BASE_URL; ?>/menu" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
                     Order Now
                 </a>
             </div>
@@ -200,7 +201,8 @@ $schema_restaurant = [
         
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-<?php echo count($homepage_categories); ?> gap-6">
             <?php foreach ($homepage_categories as $category): ?>
-                <a href="<?php echo BASE_URL; ?>/menu.php#category-<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
+                <!-- (FIXED) Clean URL -->
+                <a href="<?php echo BASE_URL; ?>/menu#category-<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
                     <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full text-brand-red mx-auto">
                         
                         <?php if (!empty($category['svg_icon'])): ?>
@@ -237,7 +239,8 @@ NEW OFFER SECTION (IDEA 1)
             </p>
         </div>
         <div class="flex-shrink-0">
-            <a href="<?php echo BASE_URL; ?>/menu.php" class="px-8 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors">
+            <!-- (FIXED) Clean URL -->
+            <a href="<?php echo BASE_URL; ?>/menu" class="px-8 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors">
                 Order Now
             </a>
         </div>
@@ -256,7 +259,8 @@ NEW OFFER SECTION (IDEA 1)
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <?php foreach ($featured_items as $item): ?>
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl hover:-translate-y-1">
-                    <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>" class="block">
+                    <!-- (FIXED) Clean URL -->
+                    <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="block">
                         <img 
                             src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image')); ?>" 
                             alt="<?php echo e($item['name']); ?>" 
@@ -276,7 +280,8 @@ NEW OFFER SECTION (IDEA 1)
                                 <?php endif; ?>
                                 <span class="text-sm font-normal">BDT</span>
                             </p>
-                            <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>"
+                            <!-- (FIXED) Clean URL -->
+                            <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>"
                                class="px-4 py-2 bg-brand-red text-white font-bold rounded-lg transition-all duration-200 hover:bg-red-700">
                                 Add
                             </a>
@@ -324,7 +329,8 @@ NEW REVIEW SECTION (IDEA 2)
 
     <!-- "See All Reviews" Button -->
     <div class="text-center mt-12">
-        <a href="<?php echo BASE_URL; ?>/reviews.php" class="px-8 py-3 bg-white text-brand-red font-semibold rounded-lg shadow-md hover:bg-gray-50 border border-gray-200 transition-colors">
+        <!-- (FIXED) Clean URL for reviews page -->
+        <a href="<?php echo BASE_URL; ?>/reviews" class="px-8 py-3 bg-white text-brand-red font-semibold rounded-lg shadow-md hover:bg-gray-50 border border-gray-200 transition-colors">
             See All Reviews
         </a>
     </div>

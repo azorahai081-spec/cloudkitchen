@@ -2,7 +2,7 @@
 /*
  * includes/footer.php
  * KitchCo: Cloud Kitchen Public Footer
- * Version 1.3 - (MODIFIED) Added Complain link
+ * Version 1.4 - (MODIFIED) Changed all links to clean URLs
  *
  * This file is included at the bottom of ALL public-facing pages.
  * It handles:
@@ -30,12 +30,12 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-2">Quick Links</h3>
                     <ul class="space-y-1">
+                        <!-- (FIXED) Clean URLs -->
                         <li><a href="<?php echo BASE_URL; ?>/" class="hover:text-white">Home</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/menu" class="hover:text-white">Full Menu</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/cart" class="hover:text-white">My Cart</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/checkout" class="hover:text-white">Checkout</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/track-order" class="hover:text-white">Track Order</a></li>
-                        <!-- (NEW) Complain Link -->
                         <li><a href="<?php echo BASE_URL; ?>/complain" class="hover:text-white">File a Complaint</a></li>
                     </ul>
                 </div>
@@ -44,9 +44,9 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-2">Contact Us</h3>
                     <ul class="space-y-1 text-sm">
-                        <li>Phone: 01234-567890</li>
-                        <li>Address: Gulshan, Dhaka</li>
-                        <li>Email: orders@pizzamania.demo</li>
+                        <li>Phone: 01886-600861</li>
+                        <li>Address: Chawkbazer,Chattogram 4203 Chittagong, Bangladesh</li>
+                        <li>Email: pizzamania861@gmail.com</li>
                     </ul>
                 </div>
             </div>

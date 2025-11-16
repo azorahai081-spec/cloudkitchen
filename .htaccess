@@ -37,8 +37,11 @@ RewriteRule ^order-success/?$ order_success.php [L,NC]
 # 10. Rule for: /track-order
 RewriteRule ^track-order/?$ track_order.php [L,NC,QSA]
 
-# (NEW) 11. Rule for: /complain
+# 11. Rule for: /complain
 RewriteRule ^complain/?$ complain.php [L,NC]
 
-# 12. Rule for homepage (root /)
+# (NEW) 12. Rule for: /reviews
+RewriteRule ^reviews/?$ reviews.php [L,NC]
+
+# 13. Rule for homepage (root /)
 RewriteRule ^/?$ index.php [L]
