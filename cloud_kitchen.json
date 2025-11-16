@@ -33,6 +33,13 @@
 {"id":"9","name":"Beverage","description":"","image":"","svg_icon":"","is_visible":"1"}
 ]
 }
+,{"type":"table","name":"complaints","database":"cloud_kitchen","data":
+[
+{"id":"1","order_id":"18","customer_name":"Newaz","customer_phone":"01820336015","complaint_type":"Food Quality (e.g., cold, not tasty)","complaint_text":"Should Improve","status":"Resolved","created_at":"2025-11-17 01:11:42"},
+{"id":"2","order_id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","complaint_type":"Food Quality (e.g., cold, not tasty)","complaint_text":"asdsad","status":"Submitted","created_at":"2025-11-17 01:14:57"},
+{"id":"3","order_id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","complaint_type":"Missing Item(s)","complaint_text":"avsva","status":"Submitted","created_at":"2025-11-17 01:19:34"}
+]
+}
 ,{"type":"table","name":"coupons","database":"cloud_kitchen","data":
 [
 {"id":"1","code":"EID50","description":"","type":"percentage","value":"50.00","min_order_amount":"0.00","start_date":"2025-11-15 19:44:00","end_date":"2025-12-15 19:44:00","max_uses":"1","current_uses":"1","is_active":"1"},
@@ -101,12 +108,13 @@
 {"id":"10","customer_name":"Arif","customer_phone":"01820331015","customer_address":"adasd","order_note":null,"delivery_area_id":"1","subtotal":"800.00","delivery_fee":"30.00","total_amount":"707.00","order_status":"Preparing","order_time":"2025-11-15 16:48:20","rider_name":"ikram","coupon_id":null,"discount_type":"fixed","discount_amount":"123.00"},
 {"id":"11","customer_name":"Nazrul Islam","customer_phone":"01420332015","customer_address":"asdasd","order_note":null,"delivery_area_id":"1","subtotal":"1950.00","delivery_fee":"30.00","total_amount":"1005.00","order_status":"Preparing","order_time":"2025-11-15 17:00:35","rider_name":null,"coupon_id":null,"discount_type":"percentage","discount_amount":"975.00"},
 {"id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","customer_address":"sdasdsa","order_note":null,"delivery_area_id":"1","subtotal":"200.00","delivery_fee":"20.00","total_amount":"220.00","order_status":"Delivered","order_time":"2025-11-15 17:01:49","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620.00","delivery_fee":"30.00","total_amount":"340.00","order_status":"Ready","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310.00"},
+{"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620.00","delivery_fee":"30.00","total_amount":"340.00","order_status":"Delivered","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310.00"},
 {"id":"14","customer_name":"Shahadat Hossain","customer_phone":"0000","customer_address":"abasb","order_note":null,"delivery_area_id":"2","subtotal":"720.00","delivery_fee":"130.00","total_amount":"490.00","order_status":"Pending","order_time":"2025-11-15 19:45:40","rider_name":null,"coupon_id":"1","discount_type":"percentage","discount_amount":"360.00"},
 {"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"180.00","delivery_fee":"120.00","total_amount":"300.00","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
 {"id":"16","customer_name":"Race Condition","customer_phone":"01820336015","customer_address":"asd","order_note":"sad","delivery_area_id":"2","subtotal":"313.20","delivery_fee":"120.00","total_amount":"433.20","order_status":"Pending","order_time":"2025-11-16 14:22:01","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
 {"id":"17","customer_name":"Nazrul Islam","customer_phone":"01820331015","customer_address":"SAdas","order_note":"Spicy Please","delivery_area_id":"2","subtotal":"230.00","delivery_fee":"120.00","total_amount":"350.00","order_status":"Pending","order_time":"2025-11-16 11:48:33","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"18","customer_name":"Newaz","customer_phone":"01820336015","customer_address":"2no Road","order_note":"Less Spicy","delivery_area_id":"2","subtotal":"490.00","delivery_fee":"120.00","total_amount":"365.00","order_status":"Pending","order_time":"2025-11-16 11:51:25","rider_name":null,"coupon_id":"2","discount_type":"percentage","discount_amount":"245.00"}
+{"id":"18","customer_name":"Newaz","customer_phone":"01820336015","customer_address":"2no Road","order_note":"Less Spicy","delivery_area_id":"2","subtotal":"490.00","delivery_fee":"120.00","total_amount":"365.00","order_status":"Delivered","order_time":"2025-11-16 11:51:25","rider_name":null,"coupon_id":"2","discount_type":"percentage","discount_amount":"245.00"},
+{"id":"19","customer_name":"Shahin","customer_phone":"01420332015","customer_address":"casd","order_note":"asdasdasdsdasd","delivery_area_id":"3","subtotal":"800.00","delivery_fee":"0.00","total_amount":"800.00","order_status":"Pending","order_time":"2025-11-17 01:18:46","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"}
 ]
 }
 ,{"type":"table","name":"order_items","database":"cloud_kitchen","data":
@@ -125,7 +133,9 @@
 {"id":"41","order_id":"17","menu_item_id":"6","quantity":"1","base_price":"230.00","total_price":"230.00"},
 {"id":"42","order_id":"18","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
 {"id":"43","order_id":"18","menu_item_id":"24","quantity":"1","base_price":"90.00","total_price":"90.00"},
-{"id":"44","order_id":"18","menu_item_id":"15","quantity":"1","base_price":"200.00","total_price":"200.00"}
+{"id":"44","order_id":"18","menu_item_id":"15","quantity":"1","base_price":"200.00","total_price":"200.00"},
+{"id":"45","order_id":"19","menu_item_id":"15","quantity":"2","base_price":"200.00","total_price":"400.00"},
+{"id":"46","order_id":"19","menu_item_id":"14","quantity":"2","base_price":"200.00","total_price":"400.00"}
 ]
 }
 ,{"type":"table","name":"order_item_options","database":"cloud_kitchen","data":
@@ -150,7 +160,7 @@
 {"setting_key":"night_surcharge_amount","setting_value":"10"},
 {"setting_key":"night_surcharge_end_hour","setting_value":"20"},
 {"setting_key":"night_surcharge_start_hour","setting_value":"15"},
-{"setting_key":"offer_is_active","setting_value":"1"},
+{"setting_key":"offer_is_active","setting_value":"0"},
 {"setting_key":"offer_text","setting_value":"Get 20% off all Pizza orders. Use code: PIZZA20"},
 {"setting_key":"offer_title","setting_value":"Weekend's Special"},
 {"setting_key":"store_is_open","setting_value":"1"},

@@ -2,7 +2,7 @@
 /*
  * admin/header.php
  * KitchCo: Cloud Kitchen Master Admin Header
- * Version 1.7 - (MODIFIED) Added Manage Reviews Link
+ * Version 1.8 - (MODIFIED) Added Manage Complaints Link
  *
  * This file is included at the top of ALL protected admin pages.
  */
@@ -30,7 +30,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PizzaMania Admin</title>
+    <title><?php echo e($page_title ?? 'PizzaMania Admin'); ?></title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,7 +80,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
 
             <!-- Navigation -->
             <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                <a href="live_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default nav-link-active">
+                <a href="live_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span class="font-medium">Live Orders</span>
                 </a>
@@ -122,12 +122,19 @@ $user_initial = strtoupper(substr($username, 0, 1));
                         <span class="font-medium">Personal Ledger</span>
                     </a>
                     
-                    <!-- (NEW) Manage Reviews Link -->
                     <a href="manage_reviews.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.31h5.364c.518 0 .73.684.348 1.01l-4.338 3.165a.563.563 0 00-.18.518l1.636 4.993c.19.581-.42 1.05-1.002.64l-4.337-3.165a.563.563 0 00-.65 0L3.102 19.24c-.58.41-1.19-.06-1.002-.64l1.636-4.993a.563.563 0 00-.18-.518L.217 10.08c-.38-.278-.17-.1.348-1.01h5.364a.563.563 0 00.475-.31l2.125-5.111z" />
                         </svg>
                         <span class="font-medium">Manage Reviews</span>
+                    </a>
+
+                    <!-- (NEW) Manage Complaints Link -->
+                    <a href="manage_complaints.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <span class="font-medium">Manage Complaints</span>
                     </a>
 
                     <a href="manage_delivery_areas.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">

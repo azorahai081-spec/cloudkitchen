@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 16, 2025 at 06:42 PM
+-- Generation Time: Nov 16, 2025 at 07:25 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -128,6 +128,35 @@ INSERT INTO `categories` (`id`, `name`, `description`, `image`, `svg_icon`, `is_
 (7, 'PIZZA', '', '', '', 1),
 (8, 'PASTA', '', '', '', 1),
 (9, 'Beverage', '', '', '', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `complaints`
+--
+
+DROP TABLE IF EXISTS `complaints`;
+CREATE TABLE IF NOT EXISTS `complaints` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `customer_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_phone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `complaint_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `complaint_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('Submitted','In Review','Resolved') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Submitted',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `order_id` (`order_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `complaints`
+--
+
+INSERT INTO `complaints` (`id`, `order_id`, `customer_name`, `customer_phone`, `complaint_type`, `complaint_text`, `status`, `created_at`) VALUES
+(1, 18, 'Newaz', '01820336015', 'Food Quality (e.g., cold, not tasty)', 'Should Improve', 'Resolved', '2025-11-16 19:11:42'),
+(2, 12, 'Ziaul Hoque', '01420336015', 'Food Quality (e.g., cold, not tasty)', 'asdsad', 'Submitted', '2025-11-16 19:14:57'),
+(3, 13, 'Shahidul islam', '01820336015', 'Missing Item(s)', 'avsva', 'Submitted', '2025-11-16 19:19:34');
 
 -- --------------------------------------------------------
 
@@ -336,7 +365,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
@@ -346,12 +375,13 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (10, 'Arif', '01820331015', 'adasd', NULL, 1, '800.00', '30.00', '707.00', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123.00'),
 (11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950.00', '30.00', '1005.00', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975.00'),
 (12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
-(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Ready', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
+(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
 (14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Pending', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
 (15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
 (16, 'Race Condition', '01820336015', 'asd', 'sad', 2, '313.20', '120.00', '433.20', 'Pending', '2025-11-16 08:22:01', NULL, NULL, 'none', '0.00'),
 (17, 'Nazrul Islam', '01820331015', 'SAdas', 'Spicy Please', 2, '230.00', '120.00', '350.00', 'Pending', '2025-11-16 05:48:33', NULL, NULL, 'none', '0.00'),
-(18, 'Newaz', '01820336015', '2no Road', 'Less Spicy', 2, '490.00', '120.00', '365.00', 'Pending', '2025-11-16 05:51:25', NULL, 2, 'percentage', '245.00');
+(18, 'Newaz', '01820336015', '2no Road', 'Less Spicy', 2, '490.00', '120.00', '365.00', 'Delivered', '2025-11-16 05:51:25', NULL, 2, 'percentage', '245.00'),
+(19, 'Shahin', '01420332015', 'casd', 'asdasdasdsdasd', 3, '800.00', '0.00', '800.00', 'Pending', '2025-11-16 19:18:46', NULL, NULL, 'none', '0.00');
 
 -- --------------------------------------------------------
 
@@ -370,7 +400,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -391,7 +421,9 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (41, 17, 6, 1, '230.00', '230.00'),
 (42, 18, 7, 1, '200.00', '200.00'),
 (43, 18, 24, 1, '90.00', '90.00'),
-(44, 18, 15, 1, '200.00', '200.00');
+(44, 18, 15, 1, '200.00', '200.00'),
+(45, 19, 15, 2, '200.00', '400.00'),
+(46, 19, 14, 2, '200.00', '400.00');
 
 -- --------------------------------------------------------
 
@@ -442,7 +474,7 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('night_surcharge_amount', '10'),
 ('night_surcharge_end_hour', '20'),
 ('night_surcharge_start_hour', '15'),
-('offer_is_active', '1'),
+('offer_is_active', '0'),
 ('offer_text', 'Get 20% off all Pizza orders. Use code: PIZZA20'),
 ('offer_title', 'Weekend\'s Special'),
 ('store_is_open', '1'),
@@ -452,6 +484,12 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `complaints`
+--
+ALTER TABLE `complaints`
+  ADD CONSTRAINT `fk_complaint_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `homepage_sections`

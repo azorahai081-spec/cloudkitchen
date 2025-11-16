@@ -426,7 +426,7 @@ $chart_withdrawals_json = json_encode($chart_withdrawals_data);
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Deposited</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Withdrawn</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net Change</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net Income</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
