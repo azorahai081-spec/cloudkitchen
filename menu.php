@@ -239,7 +239,7 @@ $schema_menu = [
                     <input id="modal-quantity" type="number" value="1" min="1"
                            class="w-20 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                 </div>
-                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red and added disabled state -->
+                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red and added disabled state. (FIXED) Added closing parenthesis -->
                 <button id="modal-add-to-cart-btn" type="submit" class="w-full sm:w-auto px-6 py-3 bg-brand-red text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors disabled:bg-gray-400">
                     Add to Cart (Total: <span id="modal-total-price">0.00</span>)
                 </button>
@@ -286,7 +286,6 @@ $schema_menu = [
     const modalItemId = document.getElementById('modal-item-id');
     const modalBasePrice = document.getElementById('modal-base-price');
     const modalQuantity = document.getElementById('modal-quantity');
-    const modalTotalPrice = document.getElementById('modal-total-price');
     const modalAddToCartBtn = document.getElementById('modal-add-to-cart-btn');
     // (NEW) Get CSRF token from config.php (via header.php)
     const csrfToken = '<?php echo e(get_csrf_token()); ?>';
@@ -303,6 +302,13 @@ $schema_menu = [
         modalItemId.value = itemId;
         // (MODIFIED) This basePrice is now the *discounted* price
         modalBasePrice.value = basePrice;
+        
+        // --- (NEW) EXPLICITLY RESET BUTTON STATE ---
+        // This fixes the "Adding..." bug when opening a new modal
+        modalAddToCartBtn.disabled = false;
+        // This rebuilds the button's inner HTML, restoring the span
+        modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0.00</span>)';
+        // --- END OF NEW CODE ---
         
         // Modal animations
         setTimeout(() => {
@@ -390,6 +396,8 @@ $schema_menu = [
      */
     function updateModalPrice() {
         let optionsPrice = 0;
+        // (MODIFIED) Re-find the span element, as it might have been recreated
+        const modalTotalPriceSpan = document.getElementById('modal-total-price');
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
         
         selectedOptions.forEach(opt => {
@@ -401,7 +409,10 @@ $schema_menu = [
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (basePrice + optionsPrice) * quantity;
         
-        modalTotalPrice.textContent = total.toFixed(2);
+        // (MODIFIED) Update the span only if it was found
+        if (modalTotalPriceSpan) {
+            modalTotalPriceSpan.textContent = total.toFixed(2);
+        }
     }
     
     /**
@@ -420,7 +431,14 @@ $schema_menu = [
         });
         
         modalAddToCartBtn.disabled = true;
-        modalAddToCartBtn.innerHTML = 'Adding...';
+        // (MODIFIED) Only change the button's primary text node
+        // This preserves the <span> inside
+        for (let node of modalAddToCartBtn.childNodes) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                node.textContent = 'Adding... '; // Set text to Adding...
+                break;
+            }
+        }
 
         try {
             const formData = new FormData();
@@ -469,7 +487,9 @@ $schema_menu = [
             alert('Error: ' + error.message);
         } finally {
             modalAddToCartBtn.disabled = false;
-            updateModalPrice(); // Re-renders the button text
+            // (MODIFIED) Restore the button text with the span
+            modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0.00</span>)';
+            updateModalPrice(); // Re-renders the price
         }
     }
 

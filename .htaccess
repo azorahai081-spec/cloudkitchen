@@ -7,6 +7,10 @@ Options -Indexes
 # 2. Turn on the URL rewriting engine
 RewriteEngine On
 
+# --- (NEW) Custom 404 Error Page ---
+# This tells Apache to use your new 404.php file instead of its default page
+ErrorDocument 404 /cloud/404.php
+
 # 3. Set the base directory (important!)
 # (MODIFIED) This now correctly matches your WAMP folder "cloud"
 RewriteBase /cloud/
@@ -23,7 +27,9 @@ RewriteRule ^ - [L]
 RewriteRule ^menu/?$ menu.php [L,NC]
 
 # 6. Rule for: /menu/category/1
-RewriteRule ^menu/category/([0-9]+)/?$ menu.php?category=$1 [L,NC,QSA]
+# (FIXED) This rule conflicts with the new single-page menu.
+# We comment it out so all /menu links go to menu.php
+# RewriteRule ^menu/category/([0-9]+)/?$ menu.php?category=$1 [L,NC,QSA]
 
 # 7. Rule for: /cart
 RewriteRule ^cart/?$ cart.php [L,NC]

@@ -2,11 +2,11 @@
 /*
  * ajax_calculate_fee.php
  * KitchCo: Cloud Kitchen Fee Calculator AJAX Helper
- * Version 1.0
+ * Version 1.1 - (MODIFIED) Added delivery promotion logic
  *
  * This file is called by checkout.php.
  * It takes a delivery_area_id, checks for night surcharges,
- * and returns the final delivery fee as JSON.
+ * applies promotions, and returns the final delivery fee.
  */
 
 // 1. CONFIGURATION
@@ -38,7 +38,7 @@ try {
 
     // 4. --- CALCULATE NIGHT SURCHARGE ---
     // Settings are loaded from config.php
-    $enable_surcharge = true; // You could add a 'enable_surcharge' setting
+    $enable_surcharge = true; 
     $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
     
     if ($enable_surcharge && $surcharge > 0) {
@@ -68,6 +68,32 @@ try {
     
     // 5. --- PREPARE RESPONSE ---
     $total_delivery_fee = $base_charge + $surcharge_amount;
+
+    // --- (NEW) DELIVERY PROMOTION LOGIC ---
+    
+    // First, check for global "Free Delivery" (overrides everything)
+    if (!empty($settings['free_delivery_active']) && $settings['free_delivery_active'] == '1') {
+        $total_delivery_fee = 0;
+        $surcharge_amount = 0; // Free means free, so surcharge is also 0
+    } 
+    // ELSE, check for a percentage discount
+    else if (!empty($settings['delivery_discount_active']) && $settings['delivery_discount_active'] == '1') {
+        $discount_value = (float)($settings['delivery_discount_percentage'] ?? 0);
+        
+        // Check for a valid percentage (1% to 100%)
+        if ($discount_value > 0 && $discount_value <= 100) { 
+            $discount_amount = $total_delivery_fee * ($discount_value / 100);
+            $total_delivery_fee = $total_delivery_fee - $discount_amount;
+            
+            // Note: This discounts the total fee (base + surcharge).
+            // We keep the surcharge_amount variable as-is to show the user
+            // "Night Surcharge: 10.00" but the total will be less.
+            // For simplicity, let's just show the final discounted fee
+            // and hide the surcharge if a discount is active.
+            // A better way is to just discount the total.
+        }
+    }
+    // --- END OF NEW LOGIC ---
     
     echo json_encode([
         'success' => true,

@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.8 - (MODIFIED) Added Offer Banner Settings
+ * Version 1.9 - (MODIFIED) Added Delivery Promotion Settings
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -43,10 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0',
             'hero_image_style' => $_POST['hero_image_style'],
             'hero_image_card_color' => $_POST['hero_image_card_color'],
-            // (NEW) Add Offer Banner fields
             'offer_is_active' => isset($_POST['offer_is_active']) ? '1' : '0',
             'offer_title' => $_POST['offer_title'],
-            'offer_text' => $_POST['offer_text']
+            'offer_text' => $_POST['offer_text'],
+            
+            // --- (NEW) Delivery Promotion Settings ---
+            'free_delivery_active' => isset($_POST['free_delivery_active']) ? '1' : '0',
+            'delivery_discount_active' => isset($_POST['delivery_discount_active']) ? '1' : '0',
+            'delivery_discount_percentage' => $_POST['delivery_discount_percentage'] ?? '0'
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -90,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Error preparing statement: " . $db->error;
         } else {
             foreach ($new_settings as $key => $value) {
-                if (array_key_exists($key, $settings)) {
+                if (array_key_exists($key, $settings) || isset($settings[$key])) { // Check if key exists
                     $stmt->bind_param('ss', $value, $key);
                     if (!$stmt->execute()) {
                          $error_message = "Error updating setting: $key";
@@ -206,7 +210,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 </div>
             </div>
 
-            <!-- (NEW) Offer Banner Settings -->
+            <!-- Offer Banner Settings -->
             <div class="pt-6 border-t">
                 <h3 class="text-lg font-bold text-gray-900">Offer Banner</h3>
                 <p class="text-sm text-gray-500 mb-4">This will show a banner on the homepage, under the categories.</p>
@@ -256,7 +260,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 <label for="timezone" class="block text-sm font-medium text-gray-700">Store Timezone</label>
                 <select id="timezone" name="timezone" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <?php foreach ($timezone_identifiers as $tz): ?>
-                        <option value="<?php echo e($tz); ?>" <?php echo ($settings['timezone'] == $tz) ? 'selected' : ''; ?>>
+                        <option value="<?php echo e($tz); ?>" <?php echo (($settings['timezone'] ?? 'UTC') == $tz) ? 'selected' : ''; ?>>
                             <?php echo e($tz); ?>
                         </option>
                     <?php endforeach; ?>
@@ -284,9 +288,12 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
     
     <!-- Section 3: Global Discount Settings -->
     <div class="bg-white p-8 rounded-2xl shadow-lg">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">Global Store Discount</h2>
-        <p class="text-sm text-gray-500 mb-6">Apply a discount to ALL menu items. This is calculated *before* cart-level coupons.</p>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Global Promotions</h2>
+        <p class="text-sm text-gray-500 mb-6">Apply store-wide discounts. These stack with coupons.</p>
 
+        <!-- Item Discount -->
+        <h3 class="text-lg font-bold text-gray-900">Item Discount</h3>
+        <p class="text-sm text-gray-500 mb-4">Apply a discount to ALL menu items. This is calculated *before* cart-level coupons.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <div>
@@ -311,12 +318,45 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                            <?php echo (($settings['global_discount_active'] ?? '0') == '1') ? 'checked' : ''; ?>
                            class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
                     <label for="global_discount_active" class="ml-2 block text-sm font-medium text-gray-900">
-                        Enable Global Discount
+                        Enable Item Discount
                     </label>
                 </div>
             </div>
-            
         </div>
+
+        <!-- (NEW) Delivery Discount -->
+        <div class="pt-6 border-t mt-6">
+            <h3 class="text-lg font-bold text-gray-900">Delivery Discount</h3>
+            <p class="text-sm text-gray-500 mb-4">Apply a discount to the delivery fee. "Free Delivery" will override the percentage discount.</p>
+            
+            <div class="flex items-center mt-2">
+                <input type="checkbox" id="free_delivery_active" name="free_delivery_active" value="1" 
+                       <?php echo (($settings['free_delivery_active'] ?? '0') == '1') ? 'checked' : ''; ?>
+                       class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                <label for="free_delivery_active" class="ml-2 block text-sm font-medium text-gray-900">
+                    Enable FREE DELIVERY for all orders
+                </label>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="flex items-center mt-2">
+                <input type="checkbox" id="delivery_discount_active" name="delivery_discount_active" value="1" 
+                       <?php echo (($settings['delivery_discount_active'] ?? '0') == '1') ? 'checked' : ''; ?>
+                       class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                <label for="delivery_discount_active" class="ml-2 block text-sm font-medium text-gray-900">
+                    Enable PERCENTAGE discount on delivery
+                </label>
+            </div>
+            <div class="mt-2 w-full md:w-1/3">
+                <label for="delivery_discount_percentage" class="block text-sm font-medium text-gray-700">Delivery Discount Percentage (%)</label>
+                <input type="number" step="1" min="0" max="100" id="delivery_discount_percentage" name="delivery_discount_percentage" 
+                       value="<?php echo e($settings['delivery_discount_percentage'] ?? '0'); ?>"
+                       placeholder="e.g., 50 for 50% off"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+        </div>
+        
     </div>
 
     <!-- Submit Button -->

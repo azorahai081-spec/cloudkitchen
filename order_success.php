@@ -2,7 +2,7 @@
 /*
  * order_success.php
  * KitchCo: Cloud Kitchen Order Success ("Thank You") Page
- * Version 1.4 - (MODIFIED) Redesigned buttons
+ * Version 1.5 - (FIXED) Moved security check before header output
  *
  * This page:
  * 1. Confirms the order was placed.
@@ -11,25 +11,29 @@
  * 4. (Phase 5) Fires the GTM 'purchase' event.
  */
 
-// 1. PAGE SETUP
-$page_title = 'Order Confirmed! - ' . ($settings['store_name'] ?? 'Pizza Mania');
-$meta_description = 'Thank you for your order.';
+// 1. CONFIGURATION (MUST be first)
+// This starts the session and loads $settings
+require_once('config.php'); 
 
-// 2. HEADER
-require_once('includes/header.php');
-
-// 3. --- SECURITY CHECK & LOAD DATA ---
+// 2. --- (MOVED) SECURITY CHECK ---
+// This check must happen *before* any HTML is sent (i.e., before header.php)
 if (!isset($_SESSION['last_order_id'])) {
     // If no order was just placed, redirect to homepage
-    // (MODIFIED) Clean URL
     header('Location: ' . BASE_URL . '/');
     exit;
 }
 
+// 3. PAGE SETUP (Now it's safe to set this)
+$page_title = 'Order Confirmed! - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'Thank you for your order.';
+
+// 4. HEADER (Now it's safe to send HTML)
+require_once('includes/header.php');
+
+// 5. --- LOAD DATA (We already know the ID exists) ---
 $order_id = $_SESSION['last_order_id'];
 
-// 4. --- FETCH ORDER DETAILS ---
-// (FIXED) Select 'id' not 'order_id'
+// 6. --- FETCH ORDER DETAILS ---
 $sql = "SELECT id, total_amount, customer_name FROM orders WHERE id = ?";
 $stmt = $db->prepare($sql);
 $stmt->bind_param('i', $order_id);
@@ -37,14 +41,13 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows == 0) {
-    // Can't find the order, something is wrong
-    // (MODIFIED) Clean URL
+    // This should almost never happen, but good to check
     header('Location: ' . BASE_URL . '/');
     exit;
 }
 $order = $result->fetch_assoc();
 
-// 5. --- (PHASE 5) GTM DATA LAYER ---
+// 7. --- (PHASE 5) GTM DATA LAYER ---
 // Check if the purchase data exists in the session
 if (isset($_SESSION['gtm_purchase_data'])) {
     $gtm_data = $_SESSION['gtm_purchase_data'];
@@ -57,7 +60,7 @@ if (isset($_SESSION['gtm_purchase_data'])) {
     </script>";
 }
 
-// 6. --- CLEANUP SESSION ---
+// 8. --- CLEANUP SESSION ---
 // Unset the last_order_id so this page can't be refreshed
 unset($_SESSION['last_order_id']);
 
@@ -106,6 +109,6 @@ unset($_SESSION['last_order_id']);
 </div>
 
 <?php
-// 7. FOOTER
+// 9. FOOTER
 require_once('includes/footer.php');
 ?>

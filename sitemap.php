@@ -2,7 +2,7 @@
 /*
  * sitemap.php
  * KitchCo: Cloud Kitchen Dynamic Sitemap Generator
- * Version 1.0
+ * Version 1.1 - (FIXED) Added all static pages
  *
  * This file queries the database and generates a sitemap.xml
  * for search engines.
@@ -47,6 +47,11 @@ echo create_url_entry(BASE_URL . '/', $today, 'daily', '1.0');
 echo create_url_entry(BASE_URL . '/menu', $today, 'daily', '0.9');
 echo create_url_entry(BASE_URL . '/cart', $today, 'monthly', '0.5');
 echo create_url_entry(BASE_URL . '/checkout', $today, 'monthly', '0.5');
+echo create_url_entry(BASE_URL . '/order-success', $today, 'monthly', '0.3');
+echo create_url_entry(BASE_URL . '/track-order', $today, 'monthly', '0.5');
+echo create_url_entry(BASE_URL . '/complain', $today, 'monthly', '0.4');
+echo create_url_entry(BASE_URL . '/reviews', $today, 'monthly', '0.5');
+
 
 // 5. ADD DYNAMIC CATEGORY PAGES
 $cat_sql = "SELECT id FROM categories WHERE is_visible = 1";
@@ -54,7 +59,7 @@ $cat_result = $db->query($cat_sql);
 if ($cat_result) {
     while ($row = $cat_result->fetch_assoc()) {
         // Use the new clean URL structure
-        echo create_url_entry(BASE_URL . '/menu/category/' . $row['id'], $today, 'weekly', '0.8');
+        echo create_url_entry(BASE_URL . '/menu#category-' . $row['id'], $today, 'weekly', '0.8');
     }
 }
 

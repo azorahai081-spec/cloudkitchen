@@ -2,13 +2,13 @@
 /*
  * cart.php
  * KitchCo: Cloud Kitchen View Cart Page
- * Version 1.5 - (MODIFIED) Added Coupon Field
+ * Version 1.6 - (MODIFIED) Added item images
  *
  * This page:
  * 1. Displays all items in the session cart.
  * 2. Allows users to update quantities or remove items.
  * 3. Shows the subtotal.
- * 4. (NEW) Allows applying a coupon code.
+ * 4. Allows applying a coupon code.
  * 5. Links to checkout.
  */
 
@@ -50,9 +50,14 @@ foreach ($cart as $item) {
                 <ul role="list" class="-my-6 divide-y divide-gray-200">
                     <?php foreach ($cart as $cart_key => $item): ?>
                         <li class="flex py-6">
-                            <!-- In a real app, you'd fetch the item image -->
+                            <!-- (MODIFIED) Show item image -->
                             <div class="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200">
-                                <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item" alt="<?php echo e($item['item_name']); ?>" class="h-full w-full object-cover object-center">
+                                <img 
+                                    src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item')); ?>" 
+                                    alt="<?php echo e($item['item_name']); ?>" 
+                                    class="h-full w-full object-cover object-center"
+                                    onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item'"
+                                >
                             </div>
 
                             <div class="ml-4 flex flex-1 flex-col">

@@ -2,7 +2,7 @@
 /*
  * cart_actions.php
  * KitchCo: Cloud Kitchen Cart AJAX Handler
- * Version 1.3 - (MODIFIED) Added Global Discount Logic
+ * Version 1.4 - (MODIFIED) Added item image to session
  *
  * This file handles all cart modifications (add, update, remove).
  * It is called via AJAX, validates data, updates the session,
@@ -72,8 +72,8 @@ try {
             }
 
             // --- SERVER-SIDE VALIDATION ---
-            // A. Get base item price
-            $stmt_item = $db->prepare("SELECT name, price FROM menu_items WHERE id = ? AND is_available = 1");
+            // A. Get base item price and image
+            $stmt_item = $db->prepare("SELECT name, price, image FROM menu_items WHERE id = ? AND is_available = 1");
             $stmt_item->bind_param('i', $item_id);
             $stmt_item->execute();
             $result_item = $stmt_item->get_result();
@@ -86,6 +86,7 @@ try {
             $original_base_price = (float)$item_data['price'];
             $base_price = calculate_discounted_price($original_base_price, $settings);
             $item_name = $item_data['name'];
+            $item_image = $item_data['image']; // (NEW) Get the image
 
             // B. Get options and their prices
             $options_price = 0;
@@ -127,6 +128,7 @@ try {
                 $_SESSION['cart'][$cart_key] = [
                     'item_id' => $item_id,
                     'item_name' => $item_name,
+                    'image' => $item_image, // --- (MODIFIED) SAVE IMAGE TO SESSION ---
                     'quantity' => (int)$quantity,
                     'base_price' => (float)$base_price, // (MODIFIED) This is now the discounted base price
                     'options' => $options_desc, // Store text description

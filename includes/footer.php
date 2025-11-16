@@ -43,9 +43,9 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-2">Contact Us</h3>
                     <ul class="space-y-1 text-sm">
-                        <li>Phone: 01234-567890</li>
-                        <li>Address: Gulshan, Dhaka</li>
-                        <li>Email: orders@pizzamania.demo</li>
+                        <li>Phone: 01886-600861</li>
+                        <li>Address: Chawkbazer,Chattogram, Chittagong, Bangladesh</li>
+                        <li>Email: pizzamania861@gmail.com</li>
                     </ul>
                 </div>
             </div>
