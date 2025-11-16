@@ -106,7 +106,8 @@ define('ASSETS_PATH', BASE_URL . '/assets/');
  * @return string The sanitized data.
  */
 function e($data) {
-    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+    // (FIX) Coalesce null to an empty string to prevent deprecation warning in PHP 8.1+
+    return htmlspecialchars($data ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 ?>

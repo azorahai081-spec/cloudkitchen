@@ -49,9 +49,10 @@ $order = $result_order->fetch_assoc();
 
 // B. Load Order Items & Options
 $order_items = [];
+// (MODIFIED) Changed to LEFT JOIN to handle deleted menu items
 $sql_items = "SELECT oi.*, mi.name as item_name
               FROM order_items oi
-              JOIN menu_items mi ON oi.menu_item_id = mi.id
+              LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
               WHERE oi.order_id = ?";
 $stmt_items = $db->prepare($sql_items);
 $stmt_items->bind_param('i', $order_id);
@@ -59,6 +60,8 @@ $stmt_items->execute();
 $result_items = $stmt_items->get_result();
 
 while ($item_row = $result_items->fetch_assoc()) {
+    // (MODIFIED) Handle deleted items
+    $item_row['item_name'] = $item_row['item_name'] ?? '[Deleted Item]';
     // (FIXED) Changed 'order_item_id' to 'id' to match DB table
     $order_item_id = $item_row['id']; 
     $item_row['options'] = [];
@@ -170,6 +173,15 @@ while ($item_row = $result_items->fetch_assoc()) {
             padding-left: 15px;
             font-size: 14px; /* Larger font */
         }
+        /* (NEW) Chef copy note */
+        .chef-note {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            border: 1px dashed #000;
+            padding: 4px;
+            margin-top: 5px;
+        }
         <?php endif; ?>
     </style>
 </head>
@@ -188,6 +200,13 @@ while ($item_row = $result_items->fetch_assoc()) {
                 <div><strong>Time:</strong> <?php echo e(date('h:i A', strtotime($order['order_time']))); ?></div>
             </div>
             
+            <!-- (NEW) Show order note for chef -->
+            <?php if (!empty($order['order_note'])): ?>
+            <div class="chef-note">
+                NOTE: <?php echo nl2br(e($order['order_note'])); ?>
+            </div>
+            <?php endif; ?>
+
             <div class="item-list">
                 <?php foreach ($order_items as $item): ?>
                 <div class="chef-item">
@@ -213,7 +232,8 @@ while ($item_row = $result_items->fetch_assoc()) {
             ========================
             -->
             <div class="header">
-                <h1>KitchCo</h1>
+                <!-- (MODIFIED) Dynamic store name from site settings -->
+                <h1><?php echo e($settings['store_name'] ?? 'Pizza Mania'); ?></h1>
                 <p>Order #<?php echo e($order_id); ?></p>
                 <p><?php echo e(date('d M Y, h:i A', strtotime($order['order_time']))); ?></p>
             </div>
@@ -228,6 +248,8 @@ while ($item_row = $result_items->fetch_assoc()) {
                 <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
                 <div><strong>Rider:</strong> <?php echo e($order['rider_name'] ?? 'Not Assigned'); ?></div>
             </div>
+            
+            <!-- (REMOVED) Order note removed from customer copy -->
 
             <div class="item-list">
                 <?php foreach ($order_items as $item): ?>
@@ -255,6 +277,15 @@ while ($item_row = $result_items->fetch_assoc()) {
                     <span>Subtotal:</span>
                     <span><?php echo e(number_format($order['subtotal'], 2)); ?></span>
                 </div>
+                
+                <!-- (NEW) Show discount if it exists -->
+                <?php if ($order['discount_amount'] > 0): ?>
+                <div class="total-row">
+                    <span>Discount:</span>
+                    <span>-<?php echo e(number_format($order['discount_amount'], 2)); ?></span>
+                </div>
+                <?php endif; ?>
+
                 <div class="total-row">
                     <span>Delivery Fee:</span>
                     <span><?php echo e(number_format($order['delivery_fee'], 2)); ?></span>
@@ -267,6 +298,8 @@ while ($item_row = $result_items->fetch_assoc()) {
             
             <div class="footer">
                 <p style="margin-top: 10px;">Thank you for your order!</p>
+                <!-- (NEW) Added a placeholder phone number -->
+                <p>Call us: 01234-567890</p>
                 <p>Payment: Cash on Delivery</p>
             </div>
         

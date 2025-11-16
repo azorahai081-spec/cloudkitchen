@@ -9,8 +9,8 @@
  */
 
 // 1. PAGE SETUP
-$page_title = 'Track Your Order - KitchCo';
-$meta_description = 'Check the status of your KitchCo food order.';
+$page_title = 'Track Your Order - PizzaMania';
+$meta_description = 'Check the status of your PizzaMania food order.';
 
 // 2. HEADER
 require_once('includes/header.php');

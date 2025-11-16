@@ -12,7 +12,7 @@
  */
 
 // 1. PAGE SETUP
-$page_title = 'Order Confirmed! - KitchCo';
+$page_title = 'Order Confirmed! - ' . ($settings['store_name'] ?? 'Pizza Mania');
 $meta_description = 'Thank you for your order.';
 
 // 2. HEADER

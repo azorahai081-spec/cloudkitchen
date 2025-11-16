@@ -35,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Get all the new settings from the form
         // We use an array to hold them, then loop to update the DB
         $new_settings = [
+            'store_name' => $_POST['store_name'],
             'hero_title' => $_POST['hero_title'],
             'hero_subtitle' => $_POST['hero_subtitle'], // CKEditor will POST valid HTML
             // --- 'store_is_open' field intentionally removed from this form ---
@@ -45,7 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // (NEW) Add global discount fields
             'global_discount_type' => $_POST['global_discount_type'],
             'global_discount_value' => $_POST['global_discount_value'] ?? 0,
-            'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0'
+            'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0',
+            // (NEW) Add hero image style fields
+            'hero_image_style' => $_POST['hero_image_style'],
+            'hero_image_card_color' => $_POST['hero_image_card_color']
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -156,6 +160,14 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         <div class="space-y-6">
             
             <div>
+                <label for="store_name" class="block text-sm font-medium text-gray-700">Store Name (Brand)</label>
+                <input type="text" id="store_name" name="store_name" 
+                       value="<?php echo e($settings['store_name'] ?? 'Pizza Mania'); ?>"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <p class="text-xs text-gray-500 mt-1">This will appear on receipts and the site header.</p>
+            </div>
+
+            <div>
                 <label for="hero_title" class="block text-sm font-medium text-gray-700">Homepage Title</label>
                 <input type="text" id="hero_title" name="hero_title" 
                        value="<?php echo e($settings['hero_title'] ?? ''); ?>"
@@ -167,6 +179,7 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                     Homepage Welcome Text / Subtitle
                 </label>
                 <!-- (MODIFIED) This textarea will be converted into a rich text editor by the script below -->
+                <!-- (FIXED) Moved the echo statement *inside* the textarea tags -->
                 <textarea id="hero_subtitle" name="hero_subtitle" rows="6"
                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 ><?php echo htmlspecialchars($settings['hero_subtitle'] ?? ''); ?></textarea>
@@ -180,12 +193,32 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 
                 <?php if (!empty($settings['hero_image_url'])): ?>
                     <div class="mt-4">
-                        <!-- (VERIFIED) This line correctly uses the BASE_URL. -->
-                        <!-- With the config.php fix, this will now work. -->
+                        <!-- (REVERTED) Removed bg-white from the class -->
                         <img src="<?php echo e(BASE_URL . $settings['hero_image_url']); ?>" alt="Current Banner" class="w-auto h-32 object-cover rounded-lg shadow-md">
                         <p class="text-xs text-gray-500 mt-1">Current banner. Uploading a new one will replace it.</p>
                     </div>
                 <?php endif; ?>
+            </div>
+
+            <!-- (NEW) Image Style Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                <div>
+                    <label for="hero_image_style" class="block text-sm font-medium text-gray-700">Banner Image Style</label>
+                    <select id="hero_image_style" name="hero_image_style" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="shadow" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'shadow') ? 'selected' : ''; ?>>Shadow & Tilt (Default)</option>
+                        <option value="card" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'card') ? 'selected' : ''; ?>>Contained in Card</option>
+                        <option value="tilt-no-shadow" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'tilt-no-shadow') ? 'selected' : ''; ?>>Tilt (No Shadow)</option>
+                        <option value="none" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'none') ? 'selected' : ''; ?>>None (Simple Image)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">"Contained in Card" is best for transparent images.</p>
+                </div>
+                <div>
+                    <label for="hero_image_card_color" class="block text-sm font-medium text-gray-700">Card Color (if 'Card' style)</label>
+                    <input type="text" id="hero_image_card_color" name="hero_image_card_color" 
+                           value="<?php echo e($settings['hero_image_card_color'] ?? '#FFFFFF'); ?>"
+                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <p class="text-xs text-gray-500 mt-1">Use a hex code (e.g., #FFFFFF for white).</p>
+                </div>
             </div>
             
         </div>

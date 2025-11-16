@@ -70,7 +70,7 @@ if ($result_featured) {
 // --- B. Load Homepage Categories ---
 // This list is controlled from `homepage_manager.php` in the admin panel
 $homepage_categories = [];
-$sql_categories = "SELECT c.id, c.name, c.image, c.description
+$sql_categories = "SELECT c.id, c.name, c.image, c.description, c.svg_icon
                    FROM homepage_sections hs
                    JOIN categories c ON hs.category_id = c.id
                    WHERE hs.is_visible = 1 AND c.is_visible = 1
@@ -119,35 +119,105 @@ $schema_restaurant = [
 <!-- Note: The <main> tag is opened in header.php -->
 <section class="py-16 md:py-24 -mt-8">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        
         <!-- Left Column: Content -->
-        <div class="text-center lg:text-left">
-            <span class="inline-block px-4 py-1 bg-brand-red text-white text-sm font-semibold rounded-full uppercase tracking-wider">
-                Hot & Fresh
-            </span>
-            <h1 class="text-4xl lg:text-6xl font-extrabold text-gray-900 mt-4 leading-tight">
-                <!-- This pulls from Admin Panel -->
-                <?php echo e($settings['hero_title'] ?? 'The Best Pizza in Town'); ?>
-            </h1>
-            <div class="mt-6 text-lg text-gray-600">
-                <!-- This pulls from Admin Panel (CKEditor) -->
+        <!-- (FIX) This column is now a flex container to re-order children on mobile -->
+        <div class="flex flex-col text-center lg:text-left">
+
+            <!-- 1. "Hot & Fresh" Tag -->
+            <!-- On mobile: order-1 -->
+            <div class="order-1">
+                <span class="inline-block px-4 py-1 bg-brand-red text-white text-sm font-semibold rounded-full uppercase tracking-wider">
+                    Hot & Fresh
+                </span>
+            </div>
+
+            <!-- 2. Mobile-Only Image -->
+            <!-- (FIX) This is a duplicate of the main image, shown only on mobile -->
+            <!-- On mobile: order-2 -->
+            <div class="flex items-center justify-center order-2 lg:hidden mt-6">
+                <?php
+                // --- (NEW) Dynamic Image Styling ---
+                $style = $settings['hero_image_style'] ?? 'shadow';
+                $image_classes = 'transition-transform w-full h-auto object-cover'; // Base classes
+                $image_style = '';
+        
+                if ($style == 'shadow') {
+                    $image_classes .= ' rounded-3xl shadow-2xl transform'; // No rotate on mobile
+                } elseif ($style == 'card') {
+                    $image_classes .= ' rounded-3xl shadow-2xl p-4 md:p-6';
+                    $card_color = $settings['hero_image_card_color'] ?? '#FFFFFF';
+                    $image_style = 'background-color: ' . e($card_color) . ';';
+                } elseif ($style == 'tilt-no-shadow') {
+                    $image_classes .= ' rounded-3xl transform'; // No rotate on mobile
+                } else {
+                    $image_classes .= ' rounded-3xl';
+                }
+                ?>
+                <img 
+                    src="<?php echo e(BASE_URL . ($settings['hero_image_url'] ?? 'https://placehold.co/600x600/FFB000/000000?text=Pizza+Mania')); ?>"
+                    alt="Delicious Pizza"
+                    class="<?php echo $image_classes; ?>"
+                    style="<?php echo $image_style; ?>"
+                    onerror="this.src='https://placehold.co/600x600/EFEFEF/AAAAAA?text=Pizza+Image'">
+            </div>
+
+            <!-- 3. Main Title -->
+            <!-- On mobile: order-3 -->
+            <div class="order-3">
+                <h1 class="text-4xl lg:text-6xl font-extrabold text-gray-900 mt-4 leading-tight">
+                    <?php echo e($settings['hero_title'] ?? 'The Best Pizza in Town'); ?>
+                </h1>
+            </div>
+
+            <!-- 4. Subtitle -->
+            <!-- On mobile: order-4 -->
+            <div class="order-4 mt-6 text-lg text-gray-600">
                 <?php echo strip_tags(
                     $settings['hero_subtitle'] ?? '<p>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</p>',
-                    '<p><b><i><strong>' // Whitelist of safe tags
+                    '<p><b><i><strong>'
                 ); ?>
             </div>
-            <div class="mt-10">
+
+            <!-- 5. "Order Now" Button -->
+            <!-- On mobile: order-5 -->
+            <div class="order-5 mt-10">
                 <a href="<?php echo BASE_URL; ?>/menu.php" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
                     Order Now
                 </a>
             </div>
         </div>
         
-        <!-- Right Column: Image (From Admin Panel) -->
-        <div class="flex items-center justify-center">
+        <!-- Right Column: Image (Desktop-Only) -->
+        <!-- (FIX) This is now hidden on mobile and shown on desktop -->
+        <div class="hidden lg:flex items-center justify-center">
+            <?php
+                // --- (NEW) Dynamic Image Styling ---
+                $style = $settings['hero_image_style'] ?? 'shadow';
+                $image_classes = 'transition-transform w-full h-auto object-cover'; // Base classes
+                $image_style = '';
+        
+                if ($style == 'shadow') {
+                    // This is the default cool effect
+                    $image_classes .= ' rounded-3xl shadow-2xl transform lg:rotate-6 hover:rotate-0';
+                } elseif ($style == 'card') {
+                    // This is the "white card" effect for transparent images
+                    $image_classes .= ' rounded-3xl shadow-2xl p-4 md:p-6'; // Add padding for the card effect
+                    $card_color = $settings['hero_image_card_color'] ?? '#FFFFFF';
+                    $image_style = 'background-color: ' . e($card_color) . ';';
+                } elseif ($style == 'tilt-no-shadow') {
+                    // This is the new style: Tilt, no shadow, straighten on hover
+                    $image_classes .= ' rounded-3xl transform lg:rotate-6 hover:rotate-0';
+                } else {
+                    // 'none' style, just the image with a rounded corner
+                    $image_classes .= ' rounded-3xl';
+                }
+            ?>
             <img 
                 src="<?php echo e(BASE_URL . ($settings['hero_image_url'] ?? 'https://placehold.co/600x600/FFB000/000000?text=Pizza+Mania')); ?>"
                 alt="Delicious Pizza"
-                class="rounded-3xl shadow-2xl transform lg:rotate-6 transition-transform hover:rotate-0"
+                class="<?php echo $image_classes; ?>"
+                style="<?php echo $image_style; ?>"
                 onerror="this.src='https://placehold.co/600x600/EFEFEF/AAAAAA?text=Pizza+Image'">
         </div>
     </div>
@@ -165,11 +235,18 @@ $schema_restaurant = [
                 <!-- (FIX) Changed to query string URL to avoid .htaccess issues -->
                 <a href="<?php echo BASE_URL; ?>/menu.php#category-<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
                     <div class="flex items-center justify-center w-16 h-16 bg-brand-red rounded-full text-white mx-auto">
-                        <!-- Generic Icon: You can replace this with unique icons if you add an 'icon' field to your categories table -->
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
-                        </svg>
+                        
+                        <!-- (NEW) SVG Icon Logic -->
+                        <?php if (!empty($category['svg_icon'])): ?>
+                            <?php echo $category['svg_icon']; // Echo the raw SVG code ?>
+                        <?php else: ?>
+                            <!-- Fallback Generic Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
+                            </svg>
+                        <?php endif; ?>
+
                     </div>
                     <h3 class="mt-4 text-xl font-bold text-gray-900 text-center"><?php echo e($category['name']); ?></h3>
                 </a>
@@ -211,7 +288,11 @@ $schema_restaurant = [
                                 <span class="text-sm font-normal">BDT</span>
                             </p>
                             <!-- (FIX) This link goes to the menu page (with query string) and highlights the item -->
-                            <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>" class="px-4 py-2 bg-brand-yellow text-gray-900 font-bold rounded-lg hover:bg-yellow-500 transition-colors">
+                            <a href="<?php echo BASE_URL; ?>/menu.php#item-<?php echo e($item['id']); ?>"
+   class="px-4 py-2 bg-gradient-to-r from-red-500 to-red-700 text-white font-bold rounded-lg transition-all duration-200 hover:brightness-90">
+
+
+
                                 Add
                             </a>
                         </div>

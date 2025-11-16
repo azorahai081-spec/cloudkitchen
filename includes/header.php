@@ -117,7 +117,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                 <div class="flex-shrink-0 flex items-center">
                     <!-- (MODIFIED) Clean URL for homepage & New Name -->
                     <a href="<?php echo BASE_URL; ?>/" class="text-2xl font-extrabold text-brand-red">
-                        Pizza Mania
+                        <?php echo e($settings['store_name'] ?? 'Pizza Mania'); ?>
                     </a>
                 </div>
                 
@@ -128,7 +128,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                         $current_page = basename($_SERVER['SCRIPT_NAME']);
                     ?>
                     <!-- (MODIFIED) Clean URL for homepage & Active State -->
-                    <a href="<?php echo BASE_URL; ?>/" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'index.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Homepage</a>
+                    <a href="<?php echo BASE_URL; ?>/" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'index.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Home</a>
                     <!-- (MODIFIED) Clean URL for menu & Active State -->
                     <a href="<?php echo BASE_URL; ?>/menu.php" class="inline-flex items-center px-1 pt-1 border-b-2 <?php echo ($current_page == 'menu.php') ? 'border-brand-red text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300'; ?> text-sm font-medium">Full Menu</a>
                     <!-- (NEW) Clean URL for track-order & Active State -->
@@ -162,7 +162,7 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
         <div id="mobile-menu" class="sm:hidden hidden"">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <!-- (MODIFIED) Clean URL for homepage -->
-                <a href="<?php echo BASE_URL; ?>/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Homepage</a>
+                <a href="<?php echo BASE_URL; ?>/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Home</a>
                 <!-- (MODIFIED) Clean URL for menu -->
                 <a href="<?php echo BASE_URL; ?>/menu.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900">Full Menu</a>
                 <!-- (NEW) Clean URL for track-order -->

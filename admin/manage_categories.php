@@ -18,6 +18,7 @@ $page_title = 'Manage Categories';
 $category_name = '';
 $category_description = '';
 $category_image = '';
+$svg_icon = ''; // (NEW) Add variable for SVG
 $is_visible = 1;
 
 $error_message = '';
@@ -32,13 +33,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $category_name = $_POST['category_name'];
         $category_description = $_POST['category_description'];
+        $svg_icon = $_POST['svg_icon'] ?? null; // (NEW) Get SVG code from form
         $is_visible = isset($_POST['is_visible']) ? 1 : 0;
         $current_image = $_POST['current_image'] ?? '';
+        $remove_image = isset($_POST['remove_image']) ? 1 : 0; // (NEW) Check for remove image flag
         
         // --- START IMAGE UPLOAD LOGIC ---
-        $image_path = $current_image;
+        $image_path = $current_image; // Default: keep the old image
         
-        if (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
+        // (NEW) Check if user wants to remove the image
+        // *Only* remove if they didn't simultaneously upload a new one
+        if ($remove_image && !(isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK)) {
+            if (!empty($current_image) && file_exists('..' . $current_image)) {
+                unlink('..' . $current_image); // Delete the file
+            }
+            $image_path = NULL; // Set path to NULL for the database
+            $current_image = ''; // Clear this so it doesn't show up on re-render
+        
+        } elseif (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
             $upload_dir = '../uploads/categories/';
             
             if (!is_dir($upload_dir)) {
@@ -71,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($_POST['category_id']) && !empty($_POST['category_id'])) {
                 // --- UPDATE existing category ---
                 $cat_id = $_POST['category_id'];
-                $sql = "UPDATE categories SET name = ?, description = ?, image = ?, is_visible = ? WHERE id = ?";
+                $sql = "UPDATE categories SET name = ?, description = ?, image = ?, is_visible = ?, svg_icon = ? WHERE id = ?";
                 $stmt = $db->prepare($sql);
-                $stmt->bind_param('sssii', $category_name, $category_description, $image_path, $is_visible, $cat_id);
+                $stmt->bind_param('sssisi', $category_name, $category_description, $image_path, $is_visible, $svg_icon, $cat_id);
                 
                 if ($stmt->execute()) {
                     $success_message = 'Category updated successfully!';
@@ -84,15 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } else {
                 // --- CREATE new category ---
-                $sql = "INSERT INTO categories (name, description, is_visible, image) VALUES (?, ?, ?, ?)";
+                $sql = "INSERT INTO categories (name, description, is_visible, image, svg_icon) VALUES (?, ?, ?, ?, ?)";
                 $stmt = $db->prepare($sql);
-                $stmt->bind_param('ssis', $category_name, $category_description, $is_visible, $image_path);
+                $stmt->bind_param('ssiss', $category_name, $category_description, $is_visible, $image_path, $svg_icon);
                 
                 if ($stmt->execute()) {
                     $success_message = 'Category created successfully!';
                     $category_name = '';
                     $category_description = '';
                     $image_path = '';
+                    $svg_icon = ''; // (NEW) Clear SVG field
                 } else {
                     $error_message = 'Failed to create category.';
                 }
@@ -119,6 +132,7 @@ if ($action === 'edit' && $category_id) {
         $category_description = $category['description'];
         $is_visible = $category['is_visible'];
         $category_image = $category['image'];
+        $svg_icon = $category['svg_icon']; // (NEW) Load SVG code
     } else {
         $error_message = 'Category not found.';
         $action = 'list';
@@ -235,6 +249,21 @@ if ($result) {
                     ><?php echo e($category_description); ?></textarea>
                 </div>
                 
+                <!-- (NEW) SVG Icon -->
+                <div>
+                    <label for="svg_icon" class="block text-sm font-medium text-gray-700">
+                        SVG Icon Code (Optional)
+                    </label>
+                    <textarea 
+                        id="svg_icon" 
+                        name="svg_icon" 
+                        rows="5"
+                        class="mt-1 block w-full px-4 py-3 font-mono text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="<svg ...>...</svg>"
+                    ><?php echo e($svg_icon); // e() is safe here, it just populates the textarea ?></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Paste the full SVG code here. This will override the generic icon on the homepage.</p>
+                </div>
+
                 <!-- Image Upload -->
                 <div>
                     <label for="category_image" class="block text-sm font-medium text-gray-700">
@@ -248,9 +277,15 @@ if ($result) {
                         class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200"
                     >
                     <?php if ($action === 'edit' && !empty($category_image)): ?>
-                        <div class="mt-2">
+                        <div class="mt-2" id="image-preview-container">
                             <img src="<?php echo e(BASE_URL . $category_image); ?>" alt="Current Image" class="w-24 h-24 object-cover rounded-lg">
                             <p class="text-xs text-gray-500 mt-1">Current image. Uploading a new one will replace it.</p>
+                            
+                            <!-- (NEW) Remove Image Checkbox -->
+                            <div class="flex items-center mt-2">
+                                <input type="checkbox" name="remove_image" id="remove_image" value="1" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                                <label for="remove_image" class="ml-2 block text-sm font-medium text-red-700">Remove current image</label>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
