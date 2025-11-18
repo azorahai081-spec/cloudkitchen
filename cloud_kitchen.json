@@ -52,6 +52,13 @@
 {"id":"3","area_name":"PICKUP POINT","base_charge":"0.00","is_active":"1"}
 ]
 }
+,{"type":"table","name":"faq","database":"cloud_kitchen","data":
+[
+{"id":"1","question":"What are your delivery hours?","answer":"We are open and deliver from 11:00 AM to 10:00 PM, seven days a week. Please note that a night surcharge may apply for orders placed after 8:00 PM.","display_order":"10","is_visible":"1"},
+{"id":"2","question":"How do I track my order?","answer":"After you place your order, you will get an Order ID (e.g., PM-123). You can enter this ID on our Track Order page to see its live status, from \"Preparing\" to \"Delivered\".","display_order":"20","is_visible":"1"},
+{"id":"3","question":"What areas do you deliver to?","answer":"During checkout, you can select your area from the \"Delivery Area\" dropdown list. If your area is not on the list, we unfortunately do not deliver there at this time. The delivery fee for your area will be calculated automatically.","display_order":"30","is_visible":"1"}
+]
+}
 ,{"type":"table","name":"homepage_sections","database":"cloud_kitchen","data":
 [
 {"id":"4","category_id":"8","display_order":"2","is_visible":"1"},
@@ -109,7 +116,10 @@
 {"id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","customer_address":"sdasdsa","order_note":null,"delivery_area_id":"1","subtotal":"200.00","delivery_fee":"20.00","total_amount":"220.00","order_status":"Delivered","order_time":"2025-11-15 17:01:49","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
 {"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620.00","delivery_fee":"30.00","total_amount":"340.00","order_status":"Delivered","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310.00"},
 {"id":"14","customer_name":"Shahadat Hossain","customer_phone":"0000","customer_address":"abasb","order_note":null,"delivery_area_id":"2","subtotal":"720.00","delivery_fee":"130.00","total_amount":"490.00","order_status":"Delivered","order_time":"2025-11-15 19:45:40","rider_name":null,"coupon_id":"1","discount_type":"percentage","discount_amount":"360.00"},
-{"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"180.00","delivery_fee":"120.00","total_amount":"300.00","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"}
+{"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"180.00","delivery_fee":"120.00","total_amount":"300.00","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
+{"id":"26","customer_name":"Shahidul islam","customer_phone":"01813631864","customer_address":"দফফদফদ","order_note":"","delivery_area_id":"1","subtotal":"2470.00","delivery_fee":"10.00","total_amount":"2480.00","order_status":"Pending","order_time":"2025-11-17 13:26:11","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
+{"id":"27","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"dsfs","order_note":"wewer","delivery_area_id":"1","subtotal":"230.00","delivery_fee":"20.00","total_amount":"250.00","order_status":"Pending","order_time":"2025-11-18 15:23:23","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
+{"id":"28","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"sdasd","order_note":"asd","delivery_area_id":"2","subtotal":"90.00","delivery_fee":"76.50","total_amount":"166.50","order_status":"Pending","order_time":"2025-11-18 15:26:52","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0.00"}
 ]
 }
 ,{"type":"table","name":"order_items","database":"cloud_kitchen","data":
@@ -123,7 +133,15 @@
 {"id":"36","order_id":"11","menu_item_id":"7","quantity":"4","base_price":"200.00","total_price":"800.00"},
 {"id":"37","order_id":"11","menu_item_id":"6","quantity":"5","base_price":"230.00","total_price":"1150.00"},
 {"id":"38","order_id":"14","menu_item_id":"7","quantity":"4","base_price":"180.00","total_price":"720.00"},
-{"id":"39","order_id":"15","menu_item_id":"7","quantity":"1","base_price":"180.00","total_price":"180.00"}
+{"id":"39","order_id":"15","menu_item_id":"7","quantity":"1","base_price":"180.00","total_price":"180.00"},
+{"id":"57","order_id":"26","menu_item_id":"5","quantity":"3","base_price":"220.00","total_price":"660.00"},
+{"id":"58","order_id":"26","menu_item_id":"24","quantity":"3","base_price":"90.00","total_price":"270.00"},
+{"id":"59","order_id":"26","menu_item_id":"4","quantity":"2","base_price":"190.00","total_price":"380.00"},
+{"id":"60","order_id":"26","menu_item_id":"7","quantity":"2","base_price":"200.00","total_price":"400.00"},
+{"id":"61","order_id":"26","menu_item_id":"8","quantity":"2","base_price":"180.00","total_price":"360.00"},
+{"id":"62","order_id":"26","menu_item_id":"10","quantity":"2","base_price":"200.00","total_price":"400.00"},
+{"id":"63","order_id":"27","menu_item_id":"6","quantity":"1","base_price":"230.00","total_price":"230.00"},
+{"id":"64","order_id":"28","menu_item_id":"24","quantity":"1","base_price":"90.00","total_price":"90.00"}
 ]
 }
 ,{"type":"table","name":"order_item_options","database":"cloud_kitchen","data":
@@ -135,7 +153,7 @@
 [
 {"setting_key":"capi_pixel_id","setting_value":""},
 {"setting_key":"capi_token","setting_value":""},
-{"setting_key":"delivery_discount_active","setting_value":"1"},
+{"setting_key":"delivery_discount_active","setting_value":"0"},
 {"setting_key":"delivery_discount_percentage","setting_value":"50"},
 {"setting_key":"fb_pixel_id","setting_value":""},
 {"setting_key":"free_delivery_active","setting_value":"0"},
@@ -148,8 +166,9 @@
 {"setting_key":"hero_image_url","setting_value":"\/uploads\/banners\/hero_banner_1763283791_1.png"},
 {"setting_key":"hero_subtitle","setting_value":"<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?<\/strong><\/p>"},
 {"setting_key":"hero_title","setting_value":"The Best Pizza in Town"},
-{"setting_key":"night_surcharge_amount","setting_value":"10"},
+{"setting_key":"night_surcharge_amount","setting_value":"33"},
 {"setting_key":"night_surcharge_end_hour","setting_value":"20"},
+{"setting_key":"night_surcharge_exempt_areas","setting_value":"2,3"},
 {"setting_key":"night_surcharge_start_hour","setting_value":"15"},
 {"setting_key":"offer_is_active","setting_value":"1"},
 {"setting_key":"offer_text","setting_value":"Get 20% off all Pizza orders. Use code: PIZZA20"},

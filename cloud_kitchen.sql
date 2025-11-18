@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 16, 2025 at 09:39 PM
+-- Generation Time: Nov 18, 2025 at 09:40 AM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS `delivery_areas` (
   `base_charge` decimal(10,2) NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `delivery_areas`
@@ -211,6 +211,31 @@ INSERT INTO `delivery_areas` (`id`, `area_name`, `base_charge`, `is_active`) VAL
 (1, 'Chwakbazar', '20.00', 1),
 (2, 'Agrabad', '120.00', 1),
 (3, 'PICKUP POINT', '0.00', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faq`
+--
+
+DROP TABLE IF EXISTS `faq`;
+CREATE TABLE IF NOT EXISTS `faq` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `question` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `answer` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_order` int NOT NULL DEFAULT '0',
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `faq`
+--
+
+INSERT INTO `faq` (`id`, `question`, `answer`, `display_order`, `is_visible`) VALUES
+(1, 'What are your delivery hours?', 'We are open and deliver from 11:00 AM to 10:00 PM, seven days a week. Please note that a night surcharge may apply for orders placed after 8:00 PM.', 10, 1),
+(2, 'How do I track my order?', 'After you place your order, you will get an Order ID (e.g., PM-123). You can enter this ID on our Track Order page to see its live status, from \"Preparing\" to \"Delivered\".', 20, 1),
+(3, 'What areas do you deliver to?', 'During checkout, you can select your area from the \"Delivery Area\" dropdown list. If your area is not on the list, we unfortunately do not deliver there at this time. The delivery fee for your area will be calculated automatically.', 30, 1);
 
 -- --------------------------------------------------------
 
@@ -357,7 +382,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
@@ -369,7 +394,10 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
 (13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
 (14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
-(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00');
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
+(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470.00', '10.00', '2480.00', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0.00'),
+(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '250.00', 'Pending', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
+(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 2, '90.00', '76.50', '166.50', 'Pending', '2025-11-18 09:26:52', 'ikram', NULL, 'none', '0.00');
 
 -- --------------------------------------------------------
 
@@ -388,7 +416,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -404,7 +432,15 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (36, 11, 7, 4, '200.00', '800.00'),
 (37, 11, 6, 5, '230.00', '1150.00'),
 (38, 14, 7, 4, '180.00', '720.00'),
-(39, 15, 7, 1, '180.00', '180.00');
+(39, 15, 7, 1, '180.00', '180.00'),
+(57, 26, 5, 3, '220.00', '660.00'),
+(58, 26, 24, 3, '90.00', '270.00'),
+(59, 26, 4, 2, '190.00', '380.00'),
+(60, 26, 7, 2, '200.00', '400.00'),
+(61, 26, 8, 2, '180.00', '360.00'),
+(62, 26, 10, 2, '200.00', '400.00'),
+(63, 27, 6, 1, '230.00', '230.00'),
+(64, 28, 24, 1, '90.00', '90.00');
 
 -- --------------------------------------------------------
 
@@ -442,7 +478,7 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('capi_pixel_id', ''),
 ('capi_token', ''),
-('delivery_discount_active', '1'),
+('delivery_discount_active', '0'),
 ('delivery_discount_percentage', '50'),
 ('fb_pixel_id', ''),
 ('free_delivery_active', '0'),
@@ -455,8 +491,9 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('hero_image_url', '/uploads/banners/hero_banner_1763283791_1.png'),
 ('hero_subtitle', '<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</strong></p>'),
 ('hero_title', 'The Best Pizza in Town'),
-('night_surcharge_amount', '10'),
+('night_surcharge_amount', '33'),
 ('night_surcharge_end_hour', '20'),
+('night_surcharge_exempt_areas', '2,3'),
 ('night_surcharge_start_hour', '15'),
 ('offer_is_active', '1'),
 ('offer_text', 'Get 20% off all Pizza orders. Use code: PIZZA20'),

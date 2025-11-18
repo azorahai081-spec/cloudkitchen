@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 1.9 - (MODIFIED) Added Delivery Promotion Settings
+ * Version 2.1 - (MODIFIED) Improved Exempt Areas UI (Scrollable & Searchable)
  *
  * This is an ADMIN-ONLY page.
  * It provides a UI to edit all values in the `site_settings` table.
@@ -30,6 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
+        // Handle the array of exempt areas
+        $exempt_areas = $_POST['night_surcharge_exempt_areas'] ?? [];
+        $exempt_areas_string = implode(',', $exempt_areas);
+
         $new_settings = [
             'store_name' => $_POST['store_name'],
             'hero_title' => $_POST['hero_title'],
@@ -37,6 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'night_surcharge_amount' => $_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
+            // Save the exempt areas string
+            'night_surcharge_exempt_areas' => $exempt_areas_string,
+            
             'timezone' => $_POST['timezone'],
             'global_discount_type' => $_POST['global_discount_type'],
             'global_discount_value' => $_POST['global_discount_value'] ?? 0,
@@ -46,8 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'offer_is_active' => isset($_POST['offer_is_active']) ? '1' : '0',
             'offer_title' => $_POST['offer_title'],
             'offer_text' => $_POST['offer_text'],
-            
-            // --- (NEW) Delivery Promotion Settings ---
             'free_delivery_active' => isset($_POST['free_delivery_active']) ? '1' : '0',
             'delivery_discount_active' => isset($_POST['delivery_discount_active']) ? '1' : '0',
             'delivery_discount_percentage' => $_POST['delivery_discount_percentage'] ?? '0'
@@ -124,8 +129,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 5. --- LOAD TIMEZONES FOR DROPDOWN ---
+// 5. --- LOAD DATA FOR DROPDOWNS ---
 $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+
+// Load Delivery Areas for the Multi-Select
+$delivery_areas = [];
+$area_result = $db->query("SELECT id, area_name FROM delivery_areas WHERE is_active = 1 ORDER BY area_name ASC");
+while ($row = $area_result->fetch_assoc()) {
+    $delivery_areas[] = $row;
+}
+
+// Parse the current exempt list into an array
+$current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? '');
 
 ?>
 
@@ -284,6 +299,44 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
             </div>
             
         </div>
+
+        <!-- (NEW) Improved Exempt Areas Selector -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Exclude Areas from Night Surcharge</h3>
+            <p class="text-sm text-gray-500 mb-4">Search and select areas where the night surcharge should <strong>NOT</strong> apply.</p>
+            
+            <!-- Search Input -->
+            <div class="mb-3 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                </div>
+                <input type="text" id="exempt_area_search" placeholder="Type to filter areas..." 
+                       class="block w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+
+            <!-- Scrollable List Box -->
+            <div class="border border-gray-300 rounded-lg bg-gray-50 p-4 max-h-64 overflow-y-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="exempt_area_list">
+                    <?php foreach ($delivery_areas as $area): ?>
+                    <div class="flex items-center area-item" data-name="<?php echo strtolower(e($area['area_name'])); ?>">
+                        <input type="checkbox" 
+                               id="exempt_area_<?php echo $area['id']; ?>" 
+                               name="night_surcharge_exempt_areas[]" 
+                               value="<?php echo $area['id']; ?>"
+                               <?php echo in_array($area['id'], $current_exempt_ids) ? 'checked' : ''; ?>
+                               class="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300 rounded cursor-pointer">
+                        <label for="exempt_area_<?php echo $area['id']; ?>" class="ml-3 text-sm font-medium text-gray-700 cursor-pointer select-none">
+                            <?php echo e($area['area_name']); ?>
+                        </label>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <p id="no_areas_found" class="text-sm text-gray-500 text-center py-4 hidden">No areas match your search.</p>
+            </div>
+            <p class="text-xs text-gray-500 mt-2 text-right"><span id="exempt_count"><?php echo count($current_exempt_ids); ?></span> areas currently excluded.</p>
+        </div>
     </div>
     
     <!-- Section 3: Global Discount Settings -->
@@ -378,6 +431,48 @@ $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         .catch(error => {
             console.error('Error loading CKEditor:', error);
         });
+
+    // (NEW) Simple Filter Script for Exempt Areas
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('exempt_area_search');
+        const areaItems = document.querySelectorAll('.area-item');
+        const noAreasMsg = document.getElementById('no_areas_found');
+        const checkboxes = document.querySelectorAll('input[name="night_surcharge_exempt_areas[]"]');
+        const exemptCount = document.getElementById('exempt_count');
+
+        // Update count when checkboxes change
+        function updateCount() {
+            let count = 0;
+            checkboxes.forEach(cb => {
+                if(cb.checked) count++;
+            });
+            exemptCount.textContent = count;
+        }
+        checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
+        updateCount(); // Initial count
+
+        // Filter logic
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            let visibleCount = 0;
+
+            areaItems.forEach(item => {
+                const name = item.getAttribute('data-name');
+                if (name.includes(term)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (visibleCount === 0) {
+                noAreasMsg.classList.remove('hidden');
+            } else {
+                noAreasMsg.classList.add('hidden');
+            }
+        });
+    });
 </script>
 
 <?php

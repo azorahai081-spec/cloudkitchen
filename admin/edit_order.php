@@ -2,11 +2,10 @@
 /*
  * admin/edit_order.php
  * KitchCo: Cloud Kitchen Order Editor
- * Version 1.2 - (FIXED) Reloads data after save, fixes new item option ID bug.
+ * Version 1.4 - (MODIFIED) Added Night Surcharge Display to JS
  *
  * This page loads an existing order into the manual order interface
  * and allows an admin to modify and re-save it.
- * Based on admin/manual_order.php
  */
 
 // 1. HEADER
@@ -180,8 +179,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $surcharge_amount = 0;
                 $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
                 
-                if ($surcharge > 0) {
-                    // ... (surcharge logic as before) ...
+                // (NEW) Check exemption list
+                $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
+                $exempt_areas = explode(',', $exempt_areas_str);
+                $is_exempt = in_array($delivery_area_id, $exempt_areas);
+
+                if ($surcharge > 0 && !$is_exempt) {
                     $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
                     $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
                     $current_hour = (int)date('G');
@@ -419,6 +422,9 @@ while ($row = $result->fetch_assoc()) {
     
     $menu_items[] = $row;
 }
+
+// (NEW) Exempt area list for JS calc
+$exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas'] ?? ''));
 ?>
 
 <!-- Page Title -->
@@ -555,6 +561,13 @@ while ($row = $result->fetch_assoc()) {
                         <span>Delivery Fee</span>
                         <span id="cart-delivery-fee">0.00 BDT</span>
                     </div>
+                    
+                    <!-- (NEW) Surcharge Row for Edit Page -->
+                    <div id="cart-surcharge-row" class="hidden flex justify-between text-sm text-gray-600">
+                        <span>Night Surcharge</span>
+                        <span id="cart-surcharge-fee"></span>
+                    </div>
+                    
                     <div class="flex justify-between font-bold text-gray-900 text-lg">
                         <span>Grand Total</span>
                         <span id="cart-total">0.00 BDT</span>
@@ -613,6 +626,8 @@ while ($row = $result->fetch_assoc()) {
 <script>
     // 1. --- FULL MENU DATA ---
     const fullMenu = <?php echo json_encode($menu_items); ?>;
+    // (NEW) Exempt area list for JS calc
+    const exemptAreas = <?php echo $exempt_areas; ?>;
 
     // 2. --- (MODIFIED) GLOBAL STATE ---
     // Pre-populate cart from PHP
@@ -629,6 +644,9 @@ while ($row = $result->fetch_assoc()) {
     const cartDeliveryFeeEl = document.getElementById('cart-delivery-fee');
     const cartDiscountEl = document.getElementById('cart-discount');
     const cartTotalEl = document.getElementById('cart-total');
+    // (NEW) Surcharge Elements
+    const cartSurchargeRow = document.getElementById('cart-surcharge-row');
+    const cartSurchargeFee = document.getElementById('cart-surcharge-fee');
     
     const deliveryAreaSelect = document.getElementById('delivery_area_id');
     const discountTypeSelect = document.getElementById('discount_type');
@@ -742,36 +760,56 @@ while ($row = $result->fetch_assoc()) {
         }
 
         const selectedArea = deliveryAreaSelect.options[deliveryAreaSelect.selectedIndex];
+        const selectedAreaId = deliveryAreaSelect.value;
         let deliveryFee = 0;
+        // (NEW) Track actual surcharge amount for display
+        let appliedSurcharge = 0;
         
         if (selectedArea && selectedArea.dataset.charge) {
             deliveryFee = parseFloat(selectedArea.dataset.charge);
             
-            const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
-            const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
-            const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
-            const currentHour = new Date().getHours();
-            
-            if (surchargeStart > surchargeEnd) {
-                if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
-                    deliveryFee += surchargeAmount;
-                }
-            } else {
-                if (currentHour >= surchargeStart && currentHour < surchargeEnd) {
-                    deliveryFee += surchargeAmount;
+            // --- NIGHT SURCHARGE LOGIC (With Exemption) ---
+            const isExempt = exemptAreas.includes(selectedAreaId);
+
+            if (!isExempt) {
+                const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
+                const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
+                const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
+                const currentHour = new Date().getHours(); // Get current hour (0-23)
+                
+                if (surchargeStart > surchargeEnd) {
+                    if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
+                        deliveryFee += surchargeAmount;
+                        appliedSurcharge = surchargeAmount;
+                    }
+                } else {
+                    if (currentHour >= surchargeStart && currentHour < surchargeEnd) {
+                        deliveryFee += surchargeAmount;
+                        appliedSurcharge = surchargeAmount;
+                    }
                 }
             }
         }
         
         const total = (subtotal - discountAmount) + deliveryFee;
         
+        // Update the display
         cartSubtotalEl.textContent = `${subtotal.toFixed(2)} BDT`;
         cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`;
         cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
         cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
         
+        // (NEW) Show/Hide Surcharge Row
+        if (appliedSurcharge > 0) {
+            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge.toFixed(2)} surcharge)`;
+            cartSurchargeRow.classList.remove('hidden');
+        } else {
+            cartSurchargeRow.classList.add('hidden');
+        }
+        
+        // (MODIFIED) Update the JS-only hidden inputs
         jsSubtotalInput.value = subtotal.toFixed(2);
-        jsDiscountInput.value = discountAmount.toFixed(2);
+        jsDiscountInput.value = discountAmount.toFixed(2); // (NEW)
         jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
         jsTotalInput.value = total.toFixed(2);
     }
@@ -836,7 +874,7 @@ while ($row = $result->fetch_assoc()) {
             }
             
             modalOptionsContent.innerHTML = optionsHtml;
-            updateModalPrice(); 
+            updateModalPrice(); // Set initial price
 
         } catch (error) {
             modalOptionsContent.innerHTML = `<p class="text-red-500">Error loading options: ${error.message}</p>`;

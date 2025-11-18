@@ -2,7 +2,7 @@
 /*
  * submit_order.php
  * KitchCo: Cloud Kitchen Order Submission Handler
- * Version 1.9 - (FIXED) Removed placeholder comments causing SQL syntax error.
+ * Version 2.0 - (MODIFIED) Added Night Surcharge Exemption Logic
  *
  * This file is NOT a visible page. It:
  * 1. Is the target for the checkout.php form.
@@ -62,9 +62,7 @@ $coupon_id = null;
 $discount_type = 'none';
 $discount_amount = 0;
 
-// --- (NEW) SERVER-SIDE VALIDATION ---
-// This is the most important check, as client-side can be bypassed.
-
+// --- SERVER-SIDE VALIDATION ---
 // Rule 1: Name must be at least 4 characters
 if (strlen($customer_name) < 4) {
     $_SESSION['checkout_error'] = 'Full Name must be at least 4 characters long.';
@@ -72,7 +70,7 @@ if (strlen($customer_name) < 4) {
     exit;
 }
 // Rule 2: Name must only contain valid characters
-$name_pattern = "/^[a-zA-Z .'-]+$/"; // Allow letters, space, period, hyphen, apostrophe
+$name_pattern = "/^[a-zA-Z .'-]+$/"; 
 if (!preg_match($name_pattern, $customer_name)) {
     $_SESSION['checkout_error'] = 'Full Name contains invalid characters. Only letters, spaces, periods, and hyphens are allowed.';
     header('Location: checkout.php');
@@ -93,7 +91,7 @@ if (empty($customer_address) || $delivery_area_id <= 0) {
     header('Location: checkout.php');
     exit;
 }
-// --- END OF NEW VALIDATION ---
+// --- END VALIDATION ---
 
 
 // 4. --- SERVER-SIDE RE-CALCULATION (CRITICAL) ---
@@ -187,7 +185,12 @@ try {
     $surcharge_amount = 0;
     $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
     
-    if ($surcharge > 0) {
+    // (NEW) Check exemption list
+    $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
+    $exempt_areas = explode(',', $exempt_areas_str);
+    $is_exempt = in_array($delivery_area_id, $exempt_areas);
+
+    if ($surcharge > 0 && !$is_exempt) {
         $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
         $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
         $current_hour = (int)date('G');
@@ -200,7 +203,7 @@ try {
     
     $total_delivery_fee = $base_charge + $surcharge_amount;
 
-    // --- (NEW) DELIVERY PROMOTION LOGIC ---
+    // --- DELIVERY PROMOTION LOGIC ---
     
     // First, check for global "Free Delivery" (overrides everything)
     if (!empty($settings['free_delivery_active']) && $settings['free_delivery_active'] == '1') {
@@ -215,11 +218,10 @@ try {
             $total_delivery_fee = $total_delivery_fee - $discount_percent_amount;
         }
     }
-    // --- END OF NEW LOGIC ---
+    // --- END OF LOGIC ---
     
     // --- D. Calculate Final Total ---
     $total_amount = ($subtotal - $discount_amount) + $total_delivery_fee;
-    // Ensure total is not negative
     if ($total_amount < 0) {
         $total_amount = 0;
     }
@@ -342,7 +344,6 @@ try {
 } catch (Exception $e) {
     // Something went wrong, roll back the transaction
     $db->rollback();
-    
     die('Error placing order: ' . $e->getMessage() . ' Please go back and try again.');
 }
 ?>

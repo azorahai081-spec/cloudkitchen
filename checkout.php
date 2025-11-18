@@ -2,14 +2,14 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.5 - (MODIFIED) Added client-side and server-side validation
+ * Version 1.8 - (MODIFIED) Replaced datalist with a custom searchable select component.
  *
  * This page:
  * 1. Requires a non-empty cart to view.
  * 2. Displays the final order summary.
  * 3. Collects customer info (name, phone, address).
  * 4. (MODIFIED) Validates customer name and phone number.
- * 5. Loads delivery areas for a dropdown.
+ * 5. (MODIFIED) Loads delivery areas for a custom searchable component.
  * 6. Uses AJAX to calculate delivery fees live.
  * 7. Uses AJAX to apply coupon codes.
  */
@@ -77,6 +77,9 @@ foreach ($cart as $item) {
             ]
         }
     });
+
+    // (NEW) Store delivery areas in JS for the search component
+    const allAreas = <?php echo json_encode($delivery_areas); ?>;
 </script>
 
 <h1 class="text-3xl font-bold text-gray-900 mb-8">Complete Your Order</h1>
@@ -108,18 +111,42 @@ foreach ($cart as $item) {
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red invalid:border-red-500 invalid:text-red-600 focus:invalid:ring-red-500">
                 </div>
                 
-                <!-- Delivery Area -->
+                <!-- (MODIFIED) Delivery Area -->
                 <div class="md:col-span-2">
-                    <label for="delivery_area_id" class="block text-sm font-medium text-gray-700">Delivery Area *</label>
-                    <select id="delivery_area_id" name="delivery_area_id" required
-                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red invalid:border-red-500 invalid:text-red-600 focus:invalid:ring-red-500">
-                        <option value="">-- Select Your Area --</option>
-                        <?php foreach ($delivery_areas as $area): ?>
-                            <option value="<?php echo e($area['id']); ?>" data-charge="<?php echo e($area['base_charge']); ?>">
-                                <?php echo e($area['area_name']); ?> (<?php echo e(number_format($area['base_charge'], 2)); ?> BDT)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="area-search-button" class="block text-sm font-medium text-gray-700">Select or Search Delivery Area *</label>
+                    <div class="relative mt-1" id="custom-area-select">
+                        <!-- 1. The button that shows the selected value -->
+                        <button type="button" id="area-search-button"
+                                class="relative w-full cursor-default rounded-lg border border-gray-300 bg-white px-4 py-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red sm:text-sm">
+                            <span class="block truncate text-gray-500" id="selected-area-text">Select your area...</span>
+                            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 6.53 8.28a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zm-3.72 9.53a.75.75 0 011.06 0L10 15.19l3.47-3.47a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        </button>
+                        
+                        <!-- 2. The dropdown panel (hidden by default) -->
+                        <div id="area-dropdown-panel" class="absolute z-10 mt-1 hidden w-full rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <!-- 2a. Search Input -->
+                            <div class="p-2">
+                                <input type="text" id="area-search-input"
+                                       placeholder="Type to find your area..."
+                                       autocomplete="off"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red sm:text-sm">
+                            </div>
+                            <!-- 2b. Options List -->
+                            <ul class="max-h-60 overflow-auto py-1 text-base" id="area-options-list">
+                                <!-- Options will be rendered here by JS -->
+                                <li class="p-4 text-sm text-gray-500">Loading...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden input to store the selected Area ID (same as before) -->
+                    <input type="hidden" name="delivery_area_id" id="delivery_area_id" value="">
+                    <!-- We still need the original input for validation, but it can be hidden -->
+                    <input type="text" id="area-validation-input" required class="h-0 w-0 p-0 border-0" value="" style="opacity: 0; position: absolute; z-index: -1;">
                 </div>
                 
                 <!-- Customer Address -->
@@ -243,8 +270,17 @@ foreach ($cart as $item) {
         const phoneInput = document.getElementById('customer_phone');
         const addressInput = document.getElementById('customer_address');
         
+        // --- (MODIFIED) DELIVERY AREA ELEMENTS ---
+        const customSelect = document.getElementById('custom-area-select');
+        const areaButton = document.getElementById('area-search-button');
+        const selectedAreaText = document.getElementById('selected-area-text');
+        const areaDropdown = document.getElementById('area-dropdown-panel');
+        const areaSearchInput = document.getElementById('area-search-input');
+        const areaOptionsList = document.getElementById('area-options-list');
+        const deliveryIdHidden = document.getElementById('delivery_area_id');
+        const areaValidationInput = document.getElementById('area-validation-input'); // For HTML5 validation
+
         // --- EXISTING ELEMENTS ---
-        const deliverySelect = document.getElementById('delivery_area_id');
         const summaryFee = document.getElementById('summary-delivery-fee');
         const summarySurchargeRow = document.getElementById('summary-surcharge-row');
         const summarySurchargeFee = document.getElementById('summary-surcharge-fee');
@@ -267,22 +303,101 @@ foreach ($cart as $item) {
 
         let currentDiscount = 0;
         let currentDeliveryFee = 0;
-        let isFeeCalculated = false; // (NEW)
+        let isFeeCalculated = false; 
 
-        // --- (NEW) Function to check all form validity ---
+        // --- (NEW) Custom Select/Search Logic ---
+
+        // Function to render options in the list
+        function renderAreaOptions(filter = '') {
+            areaOptionsList.innerHTML = ''; // Clear list
+            const filteredAreas = allAreas.filter(area => 
+                area.area_name.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (filteredAreas.length === 0) {
+                areaOptionsList.innerHTML = '<li class="p-3 text-sm text-gray-500">No areas found.</li>';
+                return;
+            }
+
+            filteredAreas.forEach(area => {
+                const li = document.createElement('li');
+                li.className = 'cursor-pointer select-none relative p-3 text-sm text-gray-900 hover:bg-brand-red hover:text-white';
+                li.textContent = `${area.area_name} (${parseFloat(area.base_charge).toFixed(2)} BDT)`;
+                li.dataset.id = area.id;
+                li.dataset.name = area.area_name;
+                areaOptionsList.appendChild(li);
+            });
+        }
+
+        // Toggle dropdown
+        areaButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = areaDropdown.classList.toggle('hidden');
+            if (!isHidden) {
+                // When opening, render all options and focus the search bar
+                renderAreaOptions();
+                areaSearchInput.value = ''; // Clear search on open
+                areaSearchInput.focus();
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!customSelect.contains(e.target)) {
+                areaDropdown.classList.add('hidden');
+            }
+        });
+
+        // Filter list on search input
+        areaSearchInput.addEventListener('input', () => {
+            renderAreaOptions(areaSearchInput.value);
+        });
+
+        // Handle selecting an option
+        areaOptionsList.addEventListener('click', (e) => {
+            if (e.target && e.target.tagName === 'LI' && e.target.dataset.id) {
+                const areaId = e.target.dataset.id;
+                const areaName = e.target.dataset.name;
+
+                // 1. Update the button text
+                selectedAreaText.textContent = areaName;
+                selectedAreaText.classList.remove('text-gray-500');
+                selectedAreaText.classList.add('text-gray-900');
+
+                // 2. Set the hidden input values
+                deliveryIdHidden.value = areaId;
+                areaValidationInput.value = areaName; // Set validation input
+
+                // 3. Close dropdown
+                areaDropdown.classList.add('hidden');
+
+                // 4. Trigger calculations and validation
+                calculateFees();
+                checkAllValidity();
+            }
+        });
+        
+        // --- (MODIFIED) Function to check all form validity ---
         function checkAllValidity() {
             if (!checkoutForm) return;
             
-            // Check HTML5 validation
+            // Check HTML5 validation (this will include our custom validity)
             const isFormValid = checkoutForm.checkValidity();
             
-            // Enable/disable the submit button
-            submitBtn.disabled = !isFormValid || !isFeeCalculated;
+            // Custom check to ensure an ID is set (meaning a valid area was selected)
+            const isAreaSelected = deliveryIdHidden.value !== '';
+
+            // The button is enabled only if the form is valid AND a valid area is selected/found
+            submitBtn.disabled = !isFormValid || !isAreaSelected;
 
             if (!isFormValid) {
-                submitError.textContent = 'Please fix the errors in the form.';
-            } else if (!isFeeCalculated) {
-                submitError.textContent = 'Please select a delivery area.';
+                if (areaValidationInput.validity.valueMissing) {
+                    submitError.textContent = 'Please select a delivery area from the list.';
+                } else {
+                    submitError.textContent = 'Please fix the errors in the form.';
+                }
+            } else if (!isAreaSelected) {
+                 submitError.textContent = 'Please select a delivery area.';
             } else {
                 submitError.textContent = '';
             }
@@ -290,91 +405,74 @@ foreach ($cart as $item) {
 
         // --- (NEW) Function to apply coupon ---
         async function applyCoupon() {
-            // ... (existing code) ...
-// ... existing code ...
             const code = couponInput.value.trim();
             if (!code) {
-// ... existing code ...
+                return;
             }
 
             couponBtn.disabled = true;
-// ... existing code ...
+            couponBtn.textContent = '...';
             couponMsg.textContent = '';
 
             try {
-// ... existing code ...
+                const formData = new FormData();
                 formData.append('coupon_code', code);
                 formData.append('subtotal', subtotal);
-// ... existing code ...
                 formData.append('csrf_token', '<?php echo e(get_csrf_token()); ?>');
 
                 const response = await fetch('ajax_apply_coupon.php', {
-// ... existing code ...
+                    method: 'POST',
                     body: formData
                 });
 
                 if (!response.ok) throw new Error('Network error');
-// ... existing code ...
                 
                 const data = await response.json();
 
                 if (data.success) {
-// ... existing code ...
                     currentDiscount = data.discount_amount;
                     finalDiscountCodeInput.value = code; // Save code for submission
-// ... existing code ...
                     finalDiscountAmountInput.value = currentDiscount;
                     
                     summaryDiscountFee.textContent = `-${currentDiscount.toFixed(2)}`;
-// ... existing code ...
                     summaryDiscountRow.classList.remove('hidden');
                     
                     couponMsg.textContent = data.message;
-// ... existing code ...
                     couponMsg.className = 'text-sm mt-1 text-green-600';
                     couponInput.disabled = true;
-// ... existing code ...
                     couponBtn.textContent = 'Applied';
                 } else {
-// ... existing code ...
                     currentDiscount = 0;
                     finalDiscountCodeInput.value = '';
-// ... existing code ...
                     finalDiscountAmountInput.value = 0;
                     summaryDiscountRow.classList.add('hidden');
-
-// ... existing code ...
                     couponMsg.textContent = data.message;
                     couponMsg.className = 'text-sm mt-1 text-red-600';
-// ... existing code ...
                     couponBtn.disabled = false;
                     couponBtn.textContent = 'Apply';
-// ... existing code ...
                 }
 
             } catch (error) {
-// ... existing code ...
                 couponMsg.textContent = 'Error: ' + error.message;
                 couponMsg.className = 'text-sm mt-1 text-red-600';
-// ... existing code ...
                 couponBtn.disabled = false;
                 couponBtn.textContent = 'Apply';
-// ... existing code ...
             }
             
-            // Recalculate total after applying coupon
-// ... existing code ...
             updateGrandTotal();
         }
 
         // --- (MODIFIED) Function to calculate fees ---
         async function calculateFees() {
-            const areaId = deliverySelect.value;
-            isFeeCalculated = false; // (NEW)
+            // (MODIFIED) Get areaId from the hidden input
+            const areaId = deliveryIdHidden.value;
+            isFeeCalculated = false; 
             if (!areaId) {
                 summaryFee.textContent = '...';
                 summaryTotal.textContent = '...';
                 currentDeliveryFee = 0;
+                // (NEW) Clear validation input if ID is cleared
+                areaValidationInput.value = ''; 
                 updateGrandTotal();
                 return;
             }
@@ -407,14 +505,14 @@ foreach ($cart as $item) {
                     // Update hidden inputs
                     finalDeliveryFeeInput.value = currentDeliveryFee.toFixed(2);
                     
-                    isFeeCalculated = true; // (NEW)
+                    isFeeCalculated = true; // (MODIFIED)
                     
                 } else {
                     throw new Error(data.message || 'Could not calculate fee');
                 }
                 
             } catch (error) {
-                isFeeCalculated = false; // (NEW)
+                isFeeCalculated = false; // (MODIFIED)
                 summaryFee.textContent = 'Error';
                 currentDeliveryFee = 0;
                 submitError.textContent = error.message;
@@ -431,19 +529,17 @@ foreach ($cart as $item) {
             summaryTotal.textContent = `${grandTotal.toFixed(2)} BDT`;
             finalTotalInput.value = grandTotal.toFixed(2);
             
-            // (NEW) Check validity to enable/disable button
+            // Check validity to enable/disable button
             checkAllValidity();
         }
 
         // --- Event Listeners ---
-        deliverySelect.addEventListener('change', calculateFees);
         couponBtn.addEventListener('click', applyCoupon);
         
         // (NEW) Add validation listeners
         nameInput.addEventListener('input', checkAllValidity);
         phoneInput.addEventListener('input', checkAllValidity);
         addressInput.addEventListener('input', checkAllValidity);
-        deliverySelect.addEventListener('change', checkAllValidity);
         
         // (NEW) Check session storage for an applied coupon from cart.php
         const sessionCoupon = sessionStorage.getItem('coupon_code');
@@ -452,6 +548,9 @@ foreach ($cart as $item) {
             applyCoupon();
             sessionStorage.removeItem('coupon_code'); // Clear it
         }
+
+        // (NEW) Initial render of options
+        renderAreaOptions();
     });
 </script>
 

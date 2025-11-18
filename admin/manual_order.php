@@ -2,10 +2,9 @@
 /*
  * admin/manual_order.php
  * KitchCo: Cloud Kitchen Manual Order Entry (POS)
- * Version 1.4 - (MODIFIED) Added Global Discount Logic
+ * Version 1.6 - (MODIFIED) Added Night Surcharge Display to JS
  *
- * This page allows logged-in staff to create orders on behalf of customers
- * (e.g., for phone orders).
+ * This page allows logged-in staff to create orders on behalf of customers.
  */
 
 // 1. HEADER
@@ -74,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
             
             try {
                 $subtotal = 0;
-                $verified_cart_for_db = []; // To hold our re-calculated data
+                $verified_cart_for_db = []; 
 
                 // Prepare statements outside the loop for efficiency
                 $stmt_item = $db->prepare("SELECT price FROM menu_items WHERE id = ?");
@@ -146,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $final_discount_amount = (float)number_format($final_discount_amount, 2, '.', '');
 
 
-                // 6. Calculate Delivery Fee (re-using logic from submit_order.php)
+                // 6. Calculate Delivery Fee
                 $stmt_area = $db->prepare("SELECT base_charge FROM delivery_areas WHERE id = ? AND is_active = 1");
                 $stmt_area->bind_param('i', $delivery_area_id);
                 $stmt_area->execute();
@@ -157,7 +156,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $surcharge_amount = 0;
                 $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
                 
-                if ($surcharge > 0) {
+                // (NEW) Check exemption list
+                $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
+                $exempt_areas = explode(',', $exempt_areas_str);
+                $is_exempt = in_array($delivery_area_id, $exempt_areas);
+
+                if ($surcharge > 0 && !$is_exempt) {
                     $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
                     $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
                     $current_hour = (int)date('G');
@@ -253,6 +257,9 @@ while ($row = $result->fetch_assoc()) {
     
     $menu_items[] = $row;
 }
+
+// (NEW) Exempt area list for JS calc
+$exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas'] ?? ''));
 ?>
 
 <!-- Page Title -->
@@ -389,6 +396,13 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                         <span>Delivery Fee</span>
                         <span id="cart-delivery-fee">0.00 BDT</span>
                     </div>
+
+                    <!-- (NEW) Surcharge Row for Manual Order Page -->
+                    <div id="cart-surcharge-row" class="hidden flex justify-between text-sm text-gray-600">
+                        <span>Night Surcharge</span>
+                        <span id="cart-surcharge-fee"></span>
+                    </div>
+
                     <div class="flex justify-between font-bold text-gray-900 text-lg">
                         <span>Grand Total</span>
                         <span id="cart-total">0.00 BDT</span>
@@ -446,6 +460,8 @@ This is the "brain" of the manual order page.
     // 1. --- FULL MENU DATA ---
     // (MODIFIED) This now contains discounted prices
     const fullMenu = <?php echo json_encode($menu_items); ?>;
+    // (NEW) Exempt area list for JS calc
+    const exemptAreas = <?php echo $exempt_areas; ?>;
 
     // 2. --- GLOBAL STATE ---
     // This is our JavaScript "cart"
@@ -462,6 +478,9 @@ This is the "brain" of the manual order page.
     const cartDeliveryFeeEl = document.getElementById('cart-delivery-fee');
     const cartDiscountEl = document.getElementById('cart-discount'); // (NEW)
     const cartTotalEl = document.getElementById('cart-total');
+    // (NEW) Surcharge Elements
+    const cartSurchargeRow = document.getElementById('cart-surcharge-row');
+    const cartSurchargeFee = document.getElementById('cart-surcharge-fee');
     
     const deliveryAreaSelect = document.getElementById('delivery_area_id');
     // (NEW) Discount fields
@@ -577,24 +596,33 @@ This is the "brain" of the manual order page.
         }
 
         const selectedArea = deliveryAreaSelect.options[deliveryAreaSelect.selectedIndex];
+        const selectedAreaId = deliveryAreaSelect.value;
         let deliveryFee = 0;
+        // (NEW) Track actual surcharge amount for display
+        let appliedSurcharge = 0;
         
         if (selectedArea && selectedArea.dataset.charge) {
             deliveryFee = parseFloat(selectedArea.dataset.charge);
             
-            // --- NIGHT SURCHARGE LOGIC ---
-            const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
-            const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
-            const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
-            const currentHour = new Date().getHours(); // Get current hour (0-23)
+            // --- NIGHT SURCHARGE LOGIC (With Exemption) ---
+            const isExempt = exemptAreas.includes(selectedAreaId);
             
-            if (surchargeStart > surchargeEnd) {
-                if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
-                    deliveryFee += surchargeAmount;
-                }
-            } else {
-                if (currentHour >= surchargeStart && currentHour < surchargeEnd) {
-                    deliveryFee += surchargeAmount;
+            if (!isExempt) {
+                const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
+                const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
+                const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
+                const currentHour = new Date().getHours(); // Get current hour (0-23)
+                
+                if (surchargeStart > surchargeEnd) {
+                    if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
+                        deliveryFee += surchargeAmount;
+                        appliedSurcharge = surchargeAmount;
+                    }
+                } else {
+                    if (currentHour >= surchargeStart && currentHour < surchargeEnd) {
+                        deliveryFee += surchargeAmount;
+                        appliedSurcharge = surchargeAmount;
+                    }
                 }
             }
         }
@@ -606,6 +634,14 @@ This is the "brain" of the manual order page.
         cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`; // (NEW)
         cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
         cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
+
+        // (NEW) Show/Hide Surcharge Row
+        if (appliedSurcharge > 0) {
+            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge.toFixed(2)} surcharge)`;
+            cartSurchargeRow.classList.remove('hidden');
+        } else {
+            cartSurchargeRow.classList.add('hidden');
+        }
         
         // (MODIFIED) Update the JS-only hidden inputs
         jsSubtotalInput.value = subtotal.toFixed(2);
@@ -654,7 +690,7 @@ This is the "brain" of the manual order page.
                         optionsHtml += `
                             <div class="flex items-center justify-between">
                                 <label for="option-${option.id}" class="text-sm text-gray-700">
-                                    ${option.name}
+                                    ${e(option.name)}
                                 </label>
                                 <div>
                                     <span class="text-sm text-gray-600">+${parseFloat(option.price_increase).toFixed(2)} BDT</span>
@@ -663,7 +699,7 @@ This is the "brain" of the manual order page.
                                         id="option-${option.id}" 
                                         name="group-${group.id}" 
                                         value="${option.id}"
-                                        data-name="${option.name}"
+                                        data-name="${e(option.name)}"
                                         data-price="${option.price_increase}"
                                         class="h-4 w-4 ml-3 text-orange-600 border-gray-300 focus:ring-orange-500"
                                         onchange="updateModalPrice()"
@@ -753,6 +789,17 @@ This is the "brain" of the manual order page.
     function removeFromCart(index) {
         cart.splice(index, 1);
         renderCart();
+    }
+    
+    // Helper to escape HTML in JS
+    function e(str) {
+        if (!str) return '';
+        return str.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     // 5. --- EVENT LISTENERS ---

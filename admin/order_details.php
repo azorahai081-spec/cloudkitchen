@@ -2,14 +2,14 @@
 /*
  * admin/order_details.php
  * KitchCo: Cloud Kitchen Order Details Page
- * Version 2.0 - (MODIFIED) Added Order Note
+ * Version 2.1 - (MODIFIED) Added Night Surcharge Display Logic
  *
  * This page:
  * 1. Loads a single order and all its items/options.
  * 2. Allows staff to update the order status.
  * 3. Allows staff to assign a rider.
  * 4. Allows admin to edit a pending/preparing/ready order.
- * 5. (NEW) Displays the customer's order note.
+ * 5. Displays the customer's order note.
  */
 
 // 1. HEADER
@@ -81,7 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 4. --- LOAD ORDER DATA ---
 // A. Load Order Header
 // (FIXED) Select WHERE o.id = ?
-$sql_order = "SELECT o.*, da.area_name 
+// (MODIFIED) Join to get base_charge to calculate surcharge difference
+$sql_order = "SELECT o.*, da.area_name, da.base_charge 
               FROM orders o
               LEFT JOIN delivery_areas da ON o.delivery_area_id = da.id
               WHERE o.id = ?";
@@ -96,6 +97,14 @@ if ($result_order->num_rows == 0) {
     exit;
 }
 $order = $result_order->fetch_assoc();
+
+// (NEW) Calculate if a surcharge was applied
+// If the saved delivery_fee is greater than the current base_charge for that area,
+// the difference is likely the surcharge (or a custom fee change).
+$base_charge = (float)($order['base_charge'] ?? 0);
+$saved_fee = (float)$order['delivery_fee'];
+$surcharge_amount = max(0, $saved_fee - $base_charge);
+
 
 // B. Load Order Items
 $order_items = [];
@@ -263,7 +272,13 @@ $is_editable = in_array($order['order_status'], ['Pending', 'Preparing', 'Ready'
                 <?php endif; ?>
 
                 <div class="flex justify-between text-lg">
-                    <span class="text-gray-700">Delivery Fee</span>
+                    <span class="text-gray-700">
+                        Delivery Fee 
+                        <!-- (NEW) Show surcharge detail if applicable -->
+                        <?php if ($surcharge_amount > 0): ?>
+                            <span class="text-sm text-gray-500">(Includes <?php echo number_format($surcharge_amount, 2); ?> surcharge)</span>
+                        <?php endif; ?>
+                    </span>
                     <span class="font-medium text-gray-900"><?php echo e(number_format($order['delivery_fee'], 2)); ?></span>
                 </div>
                 <div class="flex justify-between text-2xl font-bold">
