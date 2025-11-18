@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 16, 2025 at 07:59 PM
+-- Generation Time: Nov 16, 2025 at 09:39 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -154,7 +154,6 @@ CREATE TABLE IF NOT EXISTS `complaints` (
 --
 
 INSERT INTO `complaints` (`id`, `order_id`, `customer_name`, `customer_phone`, `complaint_type`, `complaint_text`, `status`, `created_at`) VALUES
-(1, 18, 'Newaz', '01820336015', 'Food Quality (e.g., cold, not tasty)', 'Should Improve', 'Resolved', '2025-11-16 19:11:42'),
 (2, 12, 'Ziaul Hoque', '01420336015', 'Food Quality (e.g., cold, not tasty)', 'asdsad', 'Submitted', '2025-11-16 19:14:57'),
 (3, 13, 'Shahidul islam', '01820336015', 'Missing Item(s)', 'avsva', 'Submitted', '2025-11-16 19:19:34');
 
@@ -271,13 +270,6 @@ CREATE TABLE IF NOT EXISTS `item_options_groups` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `item_options_groups`
---
-
-INSERT INTO `item_options_groups` (`id`, `name`, `type`) VALUES
-(6, 'Toppings', 'checkbox');
-
 -- --------------------------------------------------------
 
 --
@@ -322,7 +314,7 @@ INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `
 (20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128.00', '/uploads/menu_items/1763280186_chickendum.png', 1, 1),
 (21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348.00', '/uploads/menu_items/1763242197_1.webp', 1, 1),
 (22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398.00', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1),
-(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 1, 0),
+(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 0, 0),
 (24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90.00', '/uploads/menu_items/1763286952_images1.jfif', 1, 0);
 
 -- --------------------------------------------------------
@@ -365,7 +357,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
@@ -377,11 +369,7 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
 (13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
 (14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
-(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
-(16, 'Race Condition', '01820336015', 'asd', 'sad', 2, '313.20', '120.00', '433.20', 'Pending', '2025-11-16 08:22:01', NULL, NULL, 'none', '0.00'),
-(17, 'Nazrul Islam', '01820331015', 'SAdas', 'Spicy Please', 2, '230.00', '120.00', '350.00', 'Pending', '2025-11-16 05:48:33', NULL, NULL, 'none', '0.00'),
-(18, 'Newaz', '01820336015', '2no Road', 'Less Spicy', 2, '490.00', '120.00', '365.00', 'Delivered', '2025-11-16 05:51:25', NULL, 2, 'percentage', '245.00'),
-(19, 'Shahin', '01420332015', 'casd', 'asdasdasdsdasd', 3, '800.00', '0.00', '800.00', 'Pending', '2025-11-16 19:18:46', NULL, NULL, 'none', '0.00');
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00');
 
 -- --------------------------------------------------------
 
@@ -400,7 +388,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -416,14 +404,7 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (36, 11, 7, 4, '200.00', '800.00'),
 (37, 11, 6, 5, '230.00', '1150.00'),
 (38, 14, 7, 4, '180.00', '720.00'),
-(39, 15, 7, 1, '180.00', '180.00'),
-(40, 16, 21, 1, '313.20', '313.20'),
-(41, 17, 6, 1, '230.00', '230.00'),
-(42, 18, 7, 1, '200.00', '200.00'),
-(43, 18, 24, 1, '90.00', '90.00'),
-(44, 18, 15, 1, '200.00', '200.00'),
-(45, 19, 15, 2, '200.00', '400.00'),
-(46, 19, 14, 2, '200.00', '400.00');
+(39, 15, 7, 1, '180.00', '180.00');
 
 -- --------------------------------------------------------
 
@@ -461,10 +442,13 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('capi_pixel_id', ''),
 ('capi_token', ''),
+('delivery_discount_active', '1'),
+('delivery_discount_percentage', '50'),
 ('fb_pixel_id', ''),
+('free_delivery_active', '0'),
 ('global_discount_active', '0'),
 ('global_discount_type', 'percentage'),
-('global_discount_value', '10'),
+('global_discount_value', '50'),
 ('gtm_id', ''),
 ('hero_image_card_color', '#FFFFFF'),
 ('hero_image_style', 'tilt-no-shadow'),

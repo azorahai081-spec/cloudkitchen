@@ -2,7 +2,7 @@
 /*
  * cart.php
  * KitchCo: Cloud Kitchen View Cart Page
- * Version 1.6 - (MODIFIED) Added item images
+ * Version 1.7 - (MODIFIED) Fixed responsive layout for small mobile screens.
  *
  * This page:
  * 1. Displays all items in the session cart.
@@ -49,7 +49,12 @@ foreach ($cart as $item) {
             <div class="flow-root">
                 <ul role="list" class="-my-6 divide-y divide-gray-200">
                     <?php foreach ($cart as $cart_key => $item): ?>
-                        <li class="flex py-6">
+                        <!-- 
+                            FIX: Changed "flex" to "flex-col sm:flex-row"
+                            This stacks the item image and details vertically on mobile (default)
+                            and puts them in a row on screens 'sm' (640px) and larger.
+                        -->
+                        <li class="flex flex-col sm:flex-row py-6">
                             <!-- (MODIFIED) Show item image -->
                             <div class="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200">
                                 <img 
@@ -60,7 +65,12 @@ foreach ($cart as $item) {
                                 >
                             </div>
 
-                            <div class="ml-4 flex flex-1 flex-col">
+                            <!-- 
+                                FIX: Changed "ml-4" to "mt-4 sm:mt-0 sm:ml-4"
+                                This adds margin-top on mobile (when stacked) and
+                                switches to margin-left on 'sm' screens (when in a row).
+                            -->
+                            <div class="mt-4 sm:mt-0 sm:ml-4 flex flex-1 flex-col">
                                 <div>
                                     <div class="flex justify-between text-base font-medium text-gray-900">
                                         <h3><?php echo e($item['item_name']); ?></h3>

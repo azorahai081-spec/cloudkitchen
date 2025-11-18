@@ -2,7 +2,7 @@
 /*
  * index.php
  * KitchCo: Cloud Kitchen Homepage
- * Version 2.4 - (MODIFIED) Added Offer and Review Sections
+ * Version 2.6 - (MODIFIED) Re-ordered sections
  *
  * This is the main customer-facing homepage.
  */
@@ -79,6 +79,17 @@ if ($result_reviews) {
     }
 }
 
+// --- D. (NEW) Load FAQ Data ---
+$faqs = [];
+$sql_faq = "SELECT * FROM faq WHERE is_visible = 1 ORDER BY display_order ASC";
+$result_faq = $db->query($sql_faq);
+if ($result_faq) {
+    while ($row = $result_faq->fetch_assoc()) {
+        $faqs[] = $row;
+    }
+}
+
+
 // (NEW) Helper function to render stars
 function render_stars($rating) {
     $html = '<div class="flex text-yellow-400">';
@@ -150,12 +161,12 @@ $schema_restaurant = [
             </div>
 
             <div class="order-3">
-                <h1 class="text-4xl lg:text-6xl font-extrabold text-gray-900 mt-4 leading-tight">
+                <h1 class="text-4xl lg:text-6xl font-extrabold text-gray-900 mt-4 leading-tight font-bangla">
                     <?php echo e($settings['hero_title'] ?? 'The Best Pizza in Town'); ?>
                 </h1>
             </div>
 
-            <div class="order-4 mt-6 text-lg text-gray-600">
+            <div class="order-4 mt-6 text-lg text-gray-600 font-bangla">
                 <?php echo strip_tags(
                     $settings['hero_subtitle'] ?? '<p>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</p>',
                     '<p><b><i><strong>'
@@ -233,8 +244,8 @@ NEW OFFER SECTION (IDEA 1)
 <section class="py-16">
     <div class="bg-red-50 border-l-8 border-brand-red rounded-2xl shadow-lg p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="text-center md:text-left">
-            <h2 class="text-3xl font-bold text-gray-900"><?php echo e($settings['offer_title']); ?></h2>
-            <p class="text-xl text-gray-700 mt-2">
+            <h2 class="text-3xl font-bold text-gray-900 font-bangla"><?php echo e($settings['offer_title']); ?></h2>
+            <p class="text-xl text-gray-700 mt-2 font-bangla">
                 <?php echo e($settings['offer_text']); ?>
             </p>
         </div>
@@ -297,7 +308,7 @@ NEW OFFER SECTION (IDEA 1)
 
 <!-- 
 ========================================
-NEW REVIEW SECTION (IDEA 2)
+(MOVED) REVIEW SECTION
 ========================================
 -->
 <?php if (!empty($reviews)): ?>
@@ -313,11 +324,11 @@ NEW REVIEW SECTION (IDEA 2)
                     <?php echo e(strtoupper(substr($review['customer_name'], 0, 2))); ?>
                 </div>
                 <div>
-                    <div class="font-bold text-gray-900"><?php echo e($review['customer_name']); ?></div>
+                    <div class="font-bold text-gray-900 font-bangla"><?php echo e($review['customer_name']); ?></div>
                     <?php echo render_stars($review['rating']); ?>
                 </div>
             </div>
-            <p class="text-gray-600 mt-4 italic">"<?php echo nl2br(e($review['review_text'])); ?>"</p>
+            <p class="text-gray-600 mt-4 italic font-bangla">"<?php echo nl2br(e($review['review_text'])); ?>"</p>
             <div class="flex items-center mt-4">
                 <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
                 <span class="ml-2 text-sm font-medium text-green-600">Verified Customer</span>
@@ -336,7 +347,98 @@ NEW REVIEW SECTION (IDEA 2)
     </div>
 </section>
 <?php endif; ?>
-<!-- NEW REVIEW SECTION END -->
+<!-- REVIEW SECTION END -->
+
+
+<!-- 
+========================================
+(MOVED) "HOW TO ORDER" SECTION
+========================================
+-->
+<section class="py-16">
+    <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center">How to Order in 4 Easy Steps</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <!-- Step 1: Browse -->
+            <div class="text-center">
+                <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                    </svg>
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900">1. Browse the Menu</h3>
+                <p class="mt-1 text-gray-600">Find your favorite pizza, pasta, and meat boxes from our full menu.</p>
+            </div>
+            
+            <!-- Step 2: Add to Cart -->
+            <div class="text-center">
+                <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                    </svg>
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900">2. Add to Cart</h3>
+                <p class="mt-1 text-gray-600">Click "Add" and select any options you want, like extra cheese!</p>
+            </div>
+            
+            <!-- Step 3: Checkout -->
+            <div class="text-center">
+                <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.121-1.58H6.881a2.25 2.25 0 00-2.12 1.58L2.35 13.177a2.25 2.25 0 00-.1.661z" />
+                    </svg>
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900">3. Checkout</h3>
+                <p class="mt-1 text-gray-600">Enter your name, phone, and select your delivery area to confirm.</p>
+            </div>
+            
+            <!-- Step 4: Track -->
+            <div class="text-center">
+                <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900">4. Track Your Order</h3>
+                <p class="mt-1 text-gray-600">Use the "Track Order" page with your Order ID to see its status in real-time.</p>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- "HOW TO ORDER" SECTION END -->
+
+
+<!-- 
+========================================
+(MOVED) FAQ SECTION
+========================================
+-->
+<?php if (!empty($faqs)): ?>
+<section class="py-16">
+    <div class="max-w-3xl mx-auto">
+        <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center">Frequently Asked Questions</h2>
+        
+        <div class="space-y-6">
+            <?php foreach ($faqs as $faq): ?>
+            <!-- FAQ Item -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-t-4 border-brand-red">
+                <h3 class="text-xl font-bold text-gray-900 font-bangla">
+                    <?php echo e($faq['question']); ?>
+                </h3>
+                <p class="text-gray-700 mt-2 font-bangla">
+                    <?php echo nl2br(e($faq['answer'])); ?>
+                </p>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+    </div>
+</section>
+<?php endif; ?>
+<!-- FAQ SECTION END -->
+
 
 <?php
 // 5. FOOTER

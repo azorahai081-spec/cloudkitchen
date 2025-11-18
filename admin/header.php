@@ -2,7 +2,7 @@
 /*
  * admin/header.php
  * KitchCo: Cloud Kitchen Master Admin Header
- * Version 1.8 - (MODIFIED) Added Manage Complaints Link
+ * Version 2.0 - (MODIFIED) Added "Go to Site" link
  *
  * This file is included at the top of ALL protected admin pages.
  */
@@ -65,9 +65,16 @@ $user_initial = strtoupper(substr($username, 0, 1));
         <header class="lg:hidden bg-white shadow-md sticky top-0 z-40">
             <div class="container mx-auto px-4 h-16 flex justify-between items-center">
                 <a href="live_orders.php" class="text-2xl font-bold text-orange-600">PizzaMania Admin</a>
-                <button id="mobile-menu-button" class="p-2 rounded-md text-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
-                </button>
+                
+                <!-- (NEW) Added Go to Site link -->
+                <div class="flex items-center">
+                    <a href="<?php echo BASE_URL; ?>" target="_blank" class="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800" title="Go to Site">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                    </a>
+                    <button id="mobile-menu-button" class="p-2 rounded-md text-gray-700 ml-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -80,6 +87,14 @@ $user_initial = strtoupper(substr($username, 0, 1));
 
             <!-- Navigation -->
             <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <!-- (NEW) Go to Site Link -->
+                <a href="<?php echo BASE_URL; ?>" target="_blank" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default bg-gray-700 hover:bg-orange-600 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                    <span class="font-medium">Go to Main Site</span>
+                </a>
+                
+                <hr class="border-gray-700 my-4"> <!-- Added a separator -->
+
                 <a href="live_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span class="font-medium">Live Orders</span>
@@ -93,7 +108,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
                     <span class="font-medium">Manual Order Entry</span>
                 </a>
                 
-                <hr class="border-gray-700 my-4">
+                <hr class="border-gray-700"> <!-- (MODIFIED) Removed my-4 -->
                 <p class="px-3 text-xs font-semibold text-gray-400 uppercase">Manage</p>
                 <a href="manage_menu_items.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
@@ -135,6 +150,14 @@ $user_initial = strtoupper(substr($username, 0, 1));
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
                         <span class="font-medium">Manage Complaints</span>
+                    </a>
+
+                    <!-- (NEW) Manage FAQ Link -->
+                    <a href="manage_faq.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                        </svg>
+                        <span class="font-medium">Manage FAQ</span>
                     </a>
 
                     <a href="manage_delivery_areas.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">

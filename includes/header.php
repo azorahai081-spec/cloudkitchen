@@ -2,7 +2,7 @@
 /*
  * includes/header.php
  * KitchCo: Cloud Kitchen Public Header
- * Version 1.6 - (MODIFIED) Changed all links to clean URLs
+ * Version 1.7 - (MODIFIED) Added Hind Siliguri font for Bangla
  *
  * This file is included at the top of ALL public-facing pages.
  * It handles:
@@ -54,6 +54,9 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- (NEW) Added Hind Siliguri for Bangla text in FAQ -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- 3. Configure Tailwind -->
     <script>
         tailwind.config = {
@@ -61,6 +64,8 @@ $gtm_id = $settings['gtm_id'] ?? ''; // (NEW) Get GTM ID
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
+                        // (NEW) Add bangla font to tailwind config
+                        bangla: ['Hind Siliguri', 'sans-serif'],
                     },
                     colors: {
                         // (MODIFIED) Brand colors for "Pizza Mania"
