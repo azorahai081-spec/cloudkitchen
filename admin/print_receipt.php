@@ -2,13 +2,10 @@
 /*
  * admin/print_receipt.php
  * KitchCo: Cloud Kitchen Thermal Receipt
- * Version 1.1 - Fixed ALL column name bugs
+ * Version 1.3 - Added Surcharge Display
  *
  * This page is STYLED FOR A 58mm THERMAL PRINTER.
  * It does NOT include the admin header or footer.
- * It has two modes:
- * 1. ?copy=chef (Chef Copy: Large font, items only)
- * 2. ?copy=customer (Customer Copy: Full details, prices, rider)
  */
 
 // 1. CONFIGURATION
@@ -31,9 +28,8 @@ if (empty($order_id)) {
 $order_id = (int)$order_id;
 
 // 4. --- LOAD ORDER DATA ---
-// A. Load Order Header
-// (FIXED) Changed 'o.order_id' to 'o.id'
-$sql_order = "SELECT o.*, da.area_name 
+// A. Load Order Header (Including adjustment)
+$sql_order = "SELECT o.*, da.area_name, da.base_charge 
               FROM orders o
               LEFT JOIN delivery_areas da ON o.delivery_area_id = da.id
               WHERE o.id = ?";
@@ -49,7 +45,6 @@ $order = $result_order->fetch_assoc();
 
 // B. Load Order Items & Options
 $order_items = [];
-// (MODIFIED) Changed to LEFT JOIN to handle deleted menu items
 $sql_items = "SELECT oi.*, mi.name as item_name
               FROM order_items oi
               LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
@@ -60,9 +55,7 @@ $stmt_items->execute();
 $result_items = $stmt_items->get_result();
 
 while ($item_row = $result_items->fetch_assoc()) {
-    // (MODIFIED) Handle deleted items
     $item_row['item_name'] = $item_row['item_name'] ?? '[Deleted Item]';
-    // (FIXED) Changed 'order_item_id' to 'id' to match DB table
     $order_item_id = $item_row['id']; 
     $item_row['options'] = [];
     $sql_options = "SELECT * FROM order_item_options WHERE order_item_id = ?";
@@ -76,6 +69,13 @@ while ($item_row = $result_items->fetch_assoc()) {
     }
     $order_items[] = $item_row;
 }
+
+// Surcharge Logic for Receipt
+$base = (float)($order['base_charge'] ?? 0);
+$saved_fee = (float)$order['delivery_fee'];
+$adj = (float)($order['delivery_adjustment'] ?? 0);
+$surcharge = max(0, $saved_fee - $base - $adj);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -160,7 +160,6 @@ while ($item_row = $result_items->fetch_assoc()) {
             margin-bottom: 2px;
         }
         
-        /* Chef Copy Specifics */
         <?php if ($copy_type == 'chef'): ?>
         .chef-item {
             margin-bottom: 5px;
@@ -173,7 +172,6 @@ while ($item_row = $result_items->fetch_assoc()) {
             padding-left: 15px;
             font-size: 14px; /* Larger font */
         }
-        /* (NEW) Chef copy note */
         .chef-note {
             font-size: 14px;
             font-weight: bold;
@@ -189,18 +187,13 @@ while ($item_row = $result_items->fetch_assoc()) {
 
     <div class="receipt">
         <?php if ($copy_type == 'chef'): ?>
-            <!--
-            ========================
-                CHEF COPY
-            ========================
-            -->
+            <!-- CHEF COPY -->
             <h2>** CHEF COPY **</h2>
             <h1>Order #<?php echo e($order_id); ?> (<?php echo e($order['order_status']); ?>)</h1>
             <div class="info">
                 <div><strong>Time:</strong> <?php echo e(date('h:i A', strtotime($order['order_time']))); ?></div>
             </div>
             
-            <!-- (NEW) Show order note for chef -->
             <?php if (!empty($order['order_note'])): ?>
             <div class="chef-note">
                 NOTE: <?php echo nl2br(e($order['order_note'])); ?>
@@ -226,13 +219,8 @@ while ($item_row = $result_items->fetch_assoc()) {
             </div>
             
         <?php else: ?>
-            <!--
-            ========================
-                CUSTOMER COPY
-            ========================
-            -->
+            <!-- CUSTOMER COPY -->
             <div class="header">
-                <!-- (MODIFIED) Dynamic store name from site settings -->
                 <h1><?php echo e($settings['store_name'] ?? 'Pizza Mania'); ?></h1>
                 <p>Order #<?php echo e($order_id); ?></p>
                 <p><?php echo e(date('d M Y, h:i A', strtotime($order['order_time']))); ?></p>
@@ -245,11 +233,8 @@ while ($item_row = $result_items->fetch_assoc()) {
                 <div><strong>Phone:</strong> <?php echo e($order['customer_phone']); ?></div>
                 <div><strong>Address:</strong> <?php echo e($order['customer_address']); ?></div>
                 <div><strong>Area:</strong> <?php echo e($order['area_name'] ?? 'N/A'); ?></div>
-                <!-- (FIXED) Changed 'assigned_rider_name' to 'rider_name' -->
                 <div><strong>Rider:</strong> <?php echo e($order['rider_name'] ?? 'Not Assigned'); ?></div>
             </div>
-            
-            <!-- (REMOVED) Order note removed from customer copy -->
 
             <div class="item-list">
                 <?php foreach ($order_items as $item): ?>
@@ -278,7 +263,6 @@ while ($item_row = $result_items->fetch_assoc()) {
                     <span><?php echo e(number_format($order['subtotal'], 2)); ?></span>
                 </div>
                 
-                <!-- (NEW) Show discount if it exists -->
                 <?php if ($order['discount_amount'] > 0): ?>
                 <div class="total-row">
                     <span>Discount:</span>
@@ -288,8 +272,26 @@ while ($item_row = $result_items->fetch_assoc()) {
 
                 <div class="total-row">
                     <span>Delivery Fee:</span>
+                    <!-- Show the *Total* fee here, which includes the adjustment -->
                     <span><?php echo e(number_format($order['delivery_fee'], 2)); ?></span>
                 </div>
+
+                <!-- (NEW) Surcharge Display -->
+                <?php if ($surcharge > 0): ?>
+                <div class="total-row" style="font-style: italic; font-size: 9px;">
+                    <span>(Inc. Surcharge: <?php echo number_format($surcharge, 2); ?>)</span>
+                    <span></span>
+                </div>
+                <?php endif; ?>
+                
+                <!-- (NEW) Show adjustment explicitly if it exists -->
+                <?php if (isset($order['delivery_adjustment']) && $order['delivery_adjustment'] != 0): ?>
+                <div class="total-row" style="font-style: italic; font-size: 9px;">
+                    <span>(Inc. Adjustment: <?php echo ($order['delivery_adjustment'] > 0 ? '+' : '') . number_format($order['delivery_adjustment'], 2); ?>)</span>
+                    <span></span>
+                </div>
+                <?php endif; ?>
+
                 <div class="total-row grand-total">
                     <span>TOTAL:</span>
                     <span><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
@@ -298,7 +300,6 @@ while ($item_row = $result_items->fetch_assoc()) {
             
             <div class="footer">
                 <p style="margin-top: 10px;">Thank you for your order!</p>
-                <!-- (NEW) Added a placeholder phone number -->
                 <p>Call us: 01234-567890</p>
                 <p>Payment: Cash on Delivery</p>
             </div>

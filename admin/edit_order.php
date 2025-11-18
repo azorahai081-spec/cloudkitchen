@@ -2,7 +2,7 @@
 /*
  * admin/edit_order.php
  * KitchCo: Cloud Kitchen Order Editor
- * Version 1.4 - (MODIFIED) Added Night Surcharge Display to JS
+ * Version 1.6 - Added Visual "Adjustment" Row to Summary
  *
  * This page loads an existing order into the manual order interface
  * and allows an admin to modify and re-save it.
@@ -66,9 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
         $customer_address = $_POST['customer_address'];
         $delivery_area_id = (int)$_POST['delivery_area_id'];
         
-        // --- C. GET DISCOUNT DATA ---
+        // --- C. GET DISCOUNT & ADJ DATA ---
         $discount_type = $_POST['discount_type'] ?? 'none';
         $discount_value = (float)($_POST['discount_value'] ?? 0);
+        // (NEW) Get Delivery Adjustment
+        $delivery_adjustment = (float)($_POST['delivery_adjustment'] ?? 0);
+
         $final_discount_amount = 0;
         
         // --- D. GET CART DATA ---
@@ -112,10 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     if (!empty($item['options'])) {
                         foreach ($item['options'] as $option) {
                             $option_id = (int)$option['id'];
-                            
-                            // (FIX) Handle items just added from the modal (ID is from item_options table)
-                            // vs. items loaded from DB (ID is from order_item_options table)
-                            // We will look up by *name* if the ID isn't in item_options
                             
                             $stmt_option->bind_param('i', $option_id);
                             $stmt_option->execute();
@@ -179,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $surcharge_amount = 0;
                 $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
                 
-                // (NEW) Check exemption list
+                // Check exemption list
                 $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
                 $exempt_areas = explode(',', $exempt_areas_str);
                 $is_exempt = in_array($delivery_area_id, $exempt_areas);
@@ -193,7 +192,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                         $surcharge_amount = $surcharge;
                     }
                 }
-                $total_delivery_fee = $base_charge + $surcharge_amount;
+                
+                // (NEW) Add the manual adjustment to the total fee
+                $total_delivery_fee = $base_charge + $surcharge_amount + $delivery_adjustment;
+                
+                // Ensure fee doesn't go below zero
+                if ($total_delivery_fee < 0) $total_delivery_fee = 0;
                 
                 // 7. Calculate Final Total
                 $total_amount = ($subtotal - $final_discount_amount) + $total_delivery_fee;
@@ -205,26 +209,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $stmt_delete_items->bind_param('i', $order_id_to_update);
                 $stmt_delete_items->execute();
 
-                // 2. Update the main `orders` table
+                // 2. Update the main `orders` table (Included delivery_adjustment)
                 $sql_update_order = "UPDATE orders SET 
                                         customer_name = ?, customer_phone = ?, customer_address = ?, 
-                                        delivery_area_id = ?, subtotal = ?, delivery_fee = ?, 
+                                        delivery_area_id = ?, subtotal = ?, delivery_fee = ?, delivery_adjustment = ?,
                                         total_amount = ?, discount_type = ?, discount_amount = ?,
                                         coupon_id = NULL 
                                     WHERE id = ?";
                 $stmt_update_order = $db->prepare($sql_update_order);
                 
-                // (FIX) Corrected the type string from 'sssidddssdi' (11 chars) to 'sssidddsdi' (10 chars)
-                $stmt_update_order->bind_param('sssidddsdi', 
+                // FIX: Corrected type string from 'sssidddddsdi' (12 chars) to 'sssiddddsdi' (11 chars)
+                $stmt_update_order->bind_param('sssiddddsdi', 
                     $customer_name, $customer_phone, $customer_address, 
-                    $delivery_area_id, $subtotal, $total_delivery_fee, 
+                    $delivery_area_id, $subtotal, $total_delivery_fee, $delivery_adjustment,
                     $total_amount, $discount_type, $final_discount_amount,
                     $order_id_to_update
-                ); // This was line 197
+                );
                 
                 $stmt_update_order->execute();
 
-                // 3. Re-insert all items and options (same as manual_order.php)
+                // 3. Re-insert all items and options
                 $sql_item = "INSERT INTO order_items (order_id, menu_item_id, quantity, base_price, total_price) VALUES (?, ?, ?, ?, ?)";
                 $stmt_item_db = $db->prepare($sql_item);
                 
@@ -249,28 +253,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 
                 $success_message = "Order #PM-{$order_id_to_update} updated successfully!";
                 
-                // (!!!) NEW FIX: Re-load all data from DB to show the updated order
-                // This is the same logic from the GET request block
-                
+                // Reload settings from DB
                 $stmt_order = $db->prepare("SELECT * FROM orders WHERE id = ?");
-                $stmt_order->bind_param('i', $order_id_to_update); // Use the ID we just updated
+                $stmt_order->bind_param('i', $order_id_to_update); 
                 $stmt_order->execute();
                 $result_order = $stmt_order->get_result();
                 $order = $result_order->fetch_assoc();
                 
-                // Re-populate all page variables
                 $customer_name = $order['customer_name'];
                 $customer_phone = $order['customer_phone'];
                 $customer_address = $order['customer_address'];
                 $delivery_area_id = $order['delivery_area_id'];
                 $discount_type = $order['discount_type'];
+                $delivery_adjustment = $order['delivery_adjustment']; // Reload adj
+                
                 $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount'];
                 if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
                      $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
                 }
             
-                // Re-load items and build the JS cart
-                $cart_for_js = []; // Clear the old JS cart
+                // Re-load items
+                $cart_for_js = []; 
                 $sql_items = "SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.base_price, oi.total_price 
                               FROM order_items oi
                               LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
@@ -284,7 +287,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $order_item_id = $item['id'];
                     $item_options = [];
                     
-                    // (FIX) We need the ID from item_options, not order_item_options, for the JS
                     $sql_options = "SELECT oio.option_name, oio.option_price, io.id 
                                     FROM order_item_options oio
                                     LEFT JOIN item_options io ON oio.option_name = io.name
@@ -296,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     
                     while ($option = $result_options->fetch_assoc()) {
                         $item_options[] = [
-                            'id' => $option['id'] ?? 0, // Use the ID from item_options
+                            'id' => $option['id'] ?? 0,
                             'name' => $option['option_name'],
                             'price' => (float)$option['option_price']
                         ];
@@ -311,18 +313,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                         'totalPrice' => (float)$item['total_price']
                     ];
                 }
-                // (END OF NEW FIX)
                 
             } catch (Exception $e) {
-                // Something went wrong, roll back
                 $db->rollback();
                 $error_message = 'Failed to update order: ' . $e->getMessage();
             }
         }
     }
 }
-// 4. --- (MODIFIED) LOAD EXISTING ORDER DATA (GET REQUEST) ---
-else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
+// 4. --- LOAD EXISTING ORDER DATA (GET REQUEST) ---
+else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { 
     $stmt_order = $db->prepare("SELECT * FROM orders WHERE id = ?");
     $stmt_order->bind_param('i', $order_id);
     $stmt_order->execute();
@@ -336,20 +336,20 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
     
     $order = $result_order->fetch_assoc();
     
-    // Pre-populate customer fields
     $customer_name = $order['customer_name'];
     $customer_phone = $order['customer_phone'];
     $customer_address = $order['customer_address'];
     $delivery_area_id = $order['delivery_area_id'];
-    
-    // Pre-populate discount fields
     $discount_type = $order['discount_type'];
-    $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount']; // approximation
+    
+    // (NEW) Load Adjustment
+    $delivery_adjustment = $order['delivery_adjustment'] ?? 0.00;
+
+    $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount']; 
     if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
          $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
     }
 
-    // Load items and build the JS cart
     $sql_items = "SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.base_price, oi.total_price 
                   FROM order_items oi
                   LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
@@ -363,7 +363,6 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
         $order_item_id = $item['id'];
         $item_options = [];
         
-        // (FIX) We need the ID from item_options, not order_item_options, for the JS
         $sql_options = "SELECT oio.option_name, oio.option_price, io.id 
                         FROM order_item_options oio
                         LEFT JOIN item_options io ON oio.option_name = io.name
@@ -374,15 +373,13 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
         $result_options = $stmt_options->get_result();
         
         while ($option = $result_options->fetch_assoc()) {
-            // (FIX) Pass the *actual option ID* from item_options to the JS cart
             $item_options[] = [
-                'id' => $option['id'] ?? 0, // Use the ID from item_options
+                'id' => $option['id'] ?? 0, 
                 'name' => $option['option_name'],
                 'price' => (float)$option['option_price']
             ];
         }
 
-        // Rebuild cart item structure for JS
         $cart_for_js[] = [
             'id' => $item['menu_item_id'],
             'name' => $item['name'] ?? '[Deleted Item]',
@@ -396,14 +393,12 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') { // Added 'else if'
 
 
 // 5. --- LOAD DATA FOR DISPLAY ---
-// Load Delivery Areas for the dropdown
 $delivery_areas = [];
 $result = $db->query("SELECT * FROM delivery_areas WHERE is_active = 1 ORDER BY area_name ASC");
 while ($row = $result->fetch_assoc()) {
     $delivery_areas[] = $row;
 }
 
-// Load All Menu Items for the search (we will pass this to JavaScript)
 $menu_items = [];
 $sql = "SELECT m.id, m.name, m.price, c.name as category_name 
         FROM menu_items m
@@ -412,18 +407,16 @@ $sql = "SELECT m.id, m.name, m.price, c.name as category_name
         ORDER BY m.name ASC";
 $result = $db->query($sql);
 while ($row = $result->fetch_assoc()) {
-    // (NEW) Apply global discount before passing to JS
     $original_price = (float)$row['price'];
     $discounted_price = calculate_discounted_price($original_price, $settings);
     
-    $row['price'] = $discounted_price; // Overwrite price with discounted one
+    $row['price'] = $discounted_price; 
     $row['original_price'] = $original_price;
     $row['has_discount'] = ($discounted_price < $original_price);
     
     $menu_items[] = $row;
 }
 
-// (NEW) Exempt area list for JS calc
 $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas'] ?? ''));
 ?>
 
@@ -500,7 +493,7 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
 
             <!-- Manual Discount -->
             <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">2. Manual Discount (Optional)</h2>
+                <h2 class="text-xl font-bold text-gray-900 mb-4">2. Discounts & Fees</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="discount_type" class="block text-sm font-medium text-gray-700">Discount Type</label>
@@ -514,6 +507,18 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                         <label for="discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
                         <input type="number" step="0.01" id="discount_value" name="discount_value" value="<?php echo e(number_format($discount_value, 2, '.', '')); ?>"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    
+                    <!-- (NEW) Delivery Adjustment Input -->
+                    <div class="md:col-span-2">
+                         <label for="delivery_adjustment" class="block text-sm font-medium text-gray-700">
+                             Delivery Fee Adjustment (+/-)
+                         </label>
+                         <input type="number" step="0.01" id="delivery_adjustment" name="delivery_adjustment" 
+                                value="<?php echo e(number_format($delivery_adjustment, 2, '.', '')); ?>"
+                                placeholder="e.g., 50 or -20"
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                         <p class="text-xs text-gray-500 mt-1">Enter a positive number to increase fee, negative to decrease.</p>
                     </div>
                 </div>
             </div>
@@ -552,7 +557,6 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                         <span>Subtotal</span>
                         <span id="cart-subtotal">0.00 BDT</span>
                     </div>
-                    <!-- (NEW) Discount Row -->
                     <div class="flex justify-between text-red-600">
                         <span>Discount</span>
                         <span id="cart-discount">-0.00 BDT</span>
@@ -562,10 +566,15 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                         <span id="cart-delivery-fee">0.00 BDT</span>
                     </div>
                     
-                    <!-- (NEW) Surcharge Row for Edit Page -->
                     <div id="cart-surcharge-row" class="hidden flex justify-between text-sm text-gray-600">
                         <span>Night Surcharge</span>
                         <span id="cart-surcharge-fee"></span>
+                    </div>
+                    
+                    <!-- (NEW) Adjustment Row (Hidden by default) -->
+                    <div id="cart-adjustment-row" class="hidden flex justify-between text-sm text-gray-600 italic">
+                        <span>Adjustment</span>
+                        <span id="cart-adjustment-fee"></span>
                     </div>
                     
                     <div class="flex justify-between font-bold text-gray-900 text-lg">
@@ -595,7 +604,7 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         <div class="flex justify-between items-center p-6 border-b">
             <h2 id="modal-item-name" class="text-2xl font-bold text-gray-900">Item Options</h2>
             <button id="modal-close-btn" class="p-2 text-gray-500 hover:text-gray-800">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
         
@@ -626,11 +635,9 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
 <script>
     // 1. --- FULL MENU DATA ---
     const fullMenu = <?php echo json_encode($menu_items); ?>;
-    // (NEW) Exempt area list for JS calc
     const exemptAreas = <?php echo $exempt_areas; ?>;
 
-    // 2. --- (MODIFIED) GLOBAL STATE ---
-    // Pre-populate cart from PHP
+    // 2. --- GLOBAL STATE ---
     let cart = <?php echo json_encode($cart_for_js); ?>; 
     let currentModalItem = {};
     
@@ -644,13 +651,18 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
     const cartDeliveryFeeEl = document.getElementById('cart-delivery-fee');
     const cartDiscountEl = document.getElementById('cart-discount');
     const cartTotalEl = document.getElementById('cart-total');
-    // (NEW) Surcharge Elements
+    
     const cartSurchargeRow = document.getElementById('cart-surcharge-row');
     const cartSurchargeFee = document.getElementById('cart-surcharge-fee');
+    // (NEW) Adjustment Elements
+    const cartAdjustmentRow = document.getElementById('cart-adjustment-row');
+    const cartAdjustmentFee = document.getElementById('cart-adjustment-fee');
     
     const deliveryAreaSelect = document.getElementById('delivery_area_id');
     const discountTypeSelect = document.getElementById('discount_type');
     const discountValueInput = document.getElementById('discount_value');
+    // (NEW) Adjustment Input
+    const deliveryAdjustmentInput = document.getElementById('delivery_adjustment');
     
     const modal = document.getElementById('options-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
@@ -669,13 +681,10 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
     const jsTotalInput = document.getElementById('js-total');
     
     
-    // 4. --- CORE FUNCTIONS --- (Identical to manual_order.php)
+    // 4. --- CORE FUNCTIONS ---
 
-    /**
-     * Renders the menu items in the search results list
-     */
     function renderMenu(itemsToRender) {
-        searchResultsContainer.innerHTML = ''; // Clear old results
+        searchResultsContainer.innerHTML = ''; 
         if (itemsToRender.length === 0) {
             searchResultsContainer.innerHTML = '<p class="text-gray-500">No items match your search.</p>';
             return;
@@ -703,9 +712,6 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         });
     }
 
-    /**
-     * Renders the cart items in the sidebar
-     */
     function renderCart() {
         if (cart.length === 0) {
             cartEmptyMsg.style.display = 'block';
@@ -740,9 +746,6 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         updateTotals();
     }
     
-    /**
-     * Calculates and updates all totals
-     */
     function updateTotals() {
         const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
         
@@ -762,20 +765,22 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         const selectedArea = deliveryAreaSelect.options[deliveryAreaSelect.selectedIndex];
         const selectedAreaId = deliveryAreaSelect.value;
         let deliveryFee = 0;
-        // (NEW) Track actual surcharge amount for display
         let appliedSurcharge = 0;
+        
+        // (NEW) Get manual adjustment
+        const adjustment = parseFloat(deliveryAdjustmentInput.value) || 0;
         
         if (selectedArea && selectedArea.dataset.charge) {
             deliveryFee = parseFloat(selectedArea.dataset.charge);
             
-            // --- NIGHT SURCHARGE LOGIC (With Exemption) ---
+            // --- NIGHT SURCHARGE LOGIC ---
             const isExempt = exemptAreas.includes(selectedAreaId);
 
             if (!isExempt) {
                 const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
                 const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
                 const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
-                const currentHour = new Date().getHours(); // Get current hour (0-23)
+                const currentHour = new Date().getHours(); 
                 
                 if (surchargeStart > surchargeEnd) {
                     if (currentHour >= surchargeStart || currentHour < surchargeEnd) {
@@ -791,32 +796,42 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
             }
         }
         
+        // Add the adjustment to the delivery fee
+        deliveryFee += adjustment;
+        if (deliveryFee < 0) deliveryFee = 0;
+        
         const total = (subtotal - discountAmount) + deliveryFee;
         
-        // Update the display
+        // Update display
         cartSubtotalEl.textContent = `${subtotal.toFixed(2)} BDT`;
         cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`;
         cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
         cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
         
-        // (NEW) Show/Hide Surcharge Row
+        // Surcharge visibility
         if (appliedSurcharge > 0) {
             cartSurchargeFee.textContent = `(Includes ${appliedSurcharge.toFixed(2)} surcharge)`;
             cartSurchargeRow.classList.remove('hidden');
         } else {
             cartSurchargeRow.classList.add('hidden');
         }
+
+        // (NEW) Adjustment visibility
+        if (adjustment !== 0) {
+            const sign = adjustment > 0 ? '+' : '';
+            cartAdjustmentFee.textContent = `${sign}${adjustment.toFixed(2)} BDT`;
+            cartAdjustmentRow.classList.remove('hidden');
+        } else {
+            cartAdjustmentRow.classList.add('hidden');
+        }
         
-        // (MODIFIED) Update the JS-only hidden inputs
         jsSubtotalInput.value = subtotal.toFixed(2);
-        jsDiscountInput.value = discountAmount.toFixed(2); // (NEW)
+        jsDiscountInput.value = discountAmount.toFixed(2);
         jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
         jsTotalInput.value = total.toFixed(2);
     }
     
-    /**
-     * Opens the modal to configure an item's options
-     */
+    // ... (Rest of the JS functions: openItemModal, updateModalPrice, closeModal, addItemToCart, removeFromCart, e) ...
     async function openItemModal(itemId) {
         const baseItem = fullMenu.find(item => item.id == itemId);
         if (!baseItem) return;
@@ -874,45 +889,32 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
             }
             
             modalOptionsContent.innerHTML = optionsHtml;
-            updateModalPrice(); // Set initial price
+            updateModalPrice(); 
 
         } catch (error) {
             modalOptionsContent.innerHTML = `<p class="text-red-500">Error loading options: ${error.message}</p>`;
         }
     }
 
-    /**
-     * Updates the total price in the modal as options are selected
-     */
     function updateModalPrice() {
         let optionsPrice = 0;
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
-        
         selectedOptions.forEach(opt => {
             optionsPrice += parseFloat(opt.dataset.price);
         });
-        
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (currentModalItem.basePrice + optionsPrice) * quantity;
-        
         modalTotalPrice.textContent = total.toFixed(2);
     }
     
-    /**
-     * Closes the item modal
-     */
     function closeModal() {
         modal.style.display = 'none';
         currentModalItem = {};
     }
     
-    /**
-     * Adds the configured item from the modal to the main cart array
-     */
     function addItemToCart() {
         const selectedOptions = [];
         const selectedElements = modalOptionsContent.querySelectorAll('input:checked');
-        
         let optionsPrice = 0;
         selectedElements.forEach(opt => {
             const price = parseFloat(opt.dataset.price);
@@ -941,15 +943,11 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         closeModal();
     }
     
-    /**
-     * Removes an item from the cart by its index
-     */
     function removeFromCart(index) {
         cart.splice(index, 1);
         renderCart();
     }
     
-    // Helper to escape HTML in JS
     function e(str) {
         if (!str) return '';
         return str.toString()
@@ -962,14 +960,12 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
 
     // 5. --- EVENT LISTENERS ---
     
-    // (MODIFIED) Initial render on page load
     document.addEventListener('DOMContentLoaded', () => {
         renderMenu(fullMenu);
-        renderCart(); // This will render the pre-populated cart
-        updateTotals(); // This will calculate totals based on pre-populated data
+        renderCart(); 
+        updateTotals(); 
     });
     
-    // Search input filtering
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredMenu = fullMenu.filter(item => 
@@ -979,24 +975,18 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         renderMenu(filteredMenu);
     });
 
-    // Delivery area change
     deliveryAreaSelect.addEventListener('change', updateTotals);
-    
-    // (NEW) Discount fields change
     discountTypeSelect.addEventListener('change', updateTotals);
     discountValueInput.addEventListener('input', updateTotals);
+    // (NEW) Adjustment listener
+    deliveryAdjustmentInput.addEventListener('input', updateTotals);
     
-    // Modal controls
     modalCloseBtn.addEventListener('click', closeModal);
     modalAddToCartBtn.addEventListener('click', addItemToCart);
     modalQuantity.addEventListener('input', updateModalPrice);
     
-    // Form submission
     form.addEventListener('submit', (e) => {
-        // Before submitting, update the hidden input with the final cart data
         cartDataInput.value = JSON.stringify(cart);
-        
-        // The rest of the form submission is handled by the browser
     });
 
 </script>

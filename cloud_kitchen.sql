@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 18, 2025 at 09:40 AM
+-- Generation Time: Nov 18, 2025 at 04:26 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -372,6 +372,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `delivery_area_id` int NOT NULL,
   `subtotal` decimal(10,2) NOT NULL,
   `delivery_fee` decimal(10,2) NOT NULL,
+  `delivery_adjustment` decimal(10,2) NOT NULL DEFAULT '0.00',
   `total_amount` decimal(10,2) NOT NULL,
   `order_status` enum('Pending','Preparing','Ready','Delivered','Cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Pending',
   `order_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -382,22 +383,23 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address`, `order_note`, `delivery_area_id`, `subtotal`, `delivery_fee`, `total_amount`, `order_status`, `order_time`, `rider_name`, `coupon_id`, `discount_type`, `discount_amount`) VALUES
-(10, 'Arif', '01820331015', 'adasd', NULL, 1, '800.00', '30.00', '707.00', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123.00'),
-(11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950.00', '30.00', '1005.00', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975.00'),
-(12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
-(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
-(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
-(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '180.00', '120.00', '300.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
-(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470.00', '10.00', '2480.00', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0.00'),
-(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '250.00', 'Pending', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
-(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 2, '90.00', '76.50', '166.50', 'Pending', '2025-11-18 09:26:52', 'ikram', NULL, 'none', '0.00');
+INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address`, `order_note`, `delivery_area_id`, `subtotal`, `delivery_fee`, `delivery_adjustment`, `total_amount`, `order_status`, `order_time`, `rider_name`, `coupon_id`, `discount_type`, `discount_amount`) VALUES
+(10, 'Arif', '01820331015', 'adasd', NULL, 1, '800.00', '30.00', '0.00', '707.00', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123.00'),
+(11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950.00', '30.00', '0.00', '1005.00', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975.00'),
+(12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '0.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
+(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '0.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
+(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '0.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '200.00', '107.00', '-13.00', '307.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
+(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470.00', '10.00', '0.00', '2480.00', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0.00'),
+(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '0.00', '250.00', 'Pending', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
+(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90.00', '20.00', '0.00', '110.00', 'Preparing', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0.00'),
+(29, 'Safin', '01420332015', 'sadasd', '', 1, '968.00', '63.00', '10.00', '1031.00', 'Preparing', '2025-11-18 16:01:38', NULL, NULL, 'none', '0.00');
 
 -- --------------------------------------------------------
 
@@ -416,7 +418,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=78 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -432,7 +434,6 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (36, 11, 7, 4, '200.00', '800.00'),
 (37, 11, 6, 5, '230.00', '1150.00'),
 (38, 14, 7, 4, '180.00', '720.00'),
-(39, 15, 7, 1, '180.00', '180.00'),
 (57, 26, 5, 3, '220.00', '660.00'),
 (58, 26, 24, 3, '90.00', '270.00'),
 (59, 26, 4, 2, '190.00', '380.00'),
@@ -440,7 +441,12 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (61, 26, 8, 2, '180.00', '360.00'),
 (62, 26, 10, 2, '200.00', '400.00'),
 (63, 27, 6, 1, '230.00', '230.00'),
-(64, 28, 24, 1, '90.00', '90.00');
+(68, 15, 7, 1, '200.00', '200.00'),
+(69, 28, 24, 1, '90.00', '90.00'),
+(74, 29, 4, 1, '190.00', '190.00'),
+(75, 29, 5, 1, '220.00', '220.00'),
+(76, 29, 12, 1, '358.00', '358.00'),
+(77, 29, 15, 1, '200.00', '200.00');
 
 -- --------------------------------------------------------
 
@@ -457,6 +463,21 @@ CREATE TABLE IF NOT EXISTS `order_item_options` (
   PRIMARY KEY (`id`),
   KEY `order_item_id` (`order_item_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `riders`
+--
+
+DROP TABLE IF EXISTS `riders`;
+CREATE TABLE IF NOT EXISTS `riders` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -492,7 +513,7 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
 ('hero_subtitle', '<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</strong></p>'),
 ('hero_title', 'The Best Pizza in Town'),
 ('night_surcharge_amount', '33'),
-('night_surcharge_end_hour', '20'),
+('night_surcharge_end_hour', '23'),
 ('night_surcharge_exempt_areas', '2,3'),
 ('night_surcharge_start_hour', '15'),
 ('offer_is_active', '1'),
