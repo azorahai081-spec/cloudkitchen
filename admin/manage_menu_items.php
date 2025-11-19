@@ -2,13 +2,11 @@
 /*
  * admin/manage_menu_items.php
  * KitchCo: Cloud Kitchen Menu Item Manager
- * Version 1.6 - (FINAL FIX) Corrected bind_param type mismatch.
+ * Version 2.1 - Fixed Syntax Error
  *
- * This is the most complex CRUD page. It handles:
- * 1. CRUD for menu_items (name, price, image, etc.)
- * 2. Pulling data from 'categories' for a dropdown.
- * 3. Pulling data from 'item_options_groups' for checkboxes.
- * 4. Managing the 'menu_item_options_groups' join table.
+ * Permissions:
+ * - Admin: Full Access (Create, Edit, Delete, Toggle Status)
+ * - Manager: View List & Toggle Status ONLY
  */
 
 // 1. HEADER
@@ -27,196 +25,203 @@ $item_category_id = '';
 $item_image = '';
 $is_available = 1;
 $is_featured = 0;
-$selected_option_groups = []; // Array to hold IDs of attached groups
+$selected_option_groups = [];
 
 $error_message = '';
 $success_message = '';
 
-// 3. --- HANDLE POST REQUESTS (Create & Update) ---
+// 3. --- HANDLE POST REQUESTS ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // (NEW) CSRF Token validation
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // Get all form data
-        $item_name = $_POST['item_name'];
-        $item_description = $_POST['item_description'];
-        $item_price = $_POST['item_price'];
-        $item_category_id = $_POST['item_category_id'];
-        $is_available = isset($_POST['is_available']) ? 1 : 0;
-        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
-        $current_image = $_POST['current_image'] ?? '';
-        // This will be an array of group IDs, e.g., [1, 3, 5]
-        $selected_option_groups = $_POST['option_groups'] ?? []; 
-        
-        // --- START IMAGE UPLOAD LOGIC ---
-        // (FIX) Default to current image, but clear it if it's the invalid '0'
-        $image_path = $current_image;
-        if ($image_path === '0') {
-            $image_path = ''; // Start with an empty path if current image is '0'
-        }
-        
-        if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = '../uploads/menu_items/'; // New folder for item images
+
+        // --- A. QUICK STATUS TOGGLE (Allowed for Admin & Manager) ---
+        if (isset($_POST['toggle_status_action'])) {
+            $toggle_id = (int)$_POST['item_id'];
+            $current_status = (int)$_POST['current_status'];
+            $new_status = ($current_status == 1) ? 0 : 1;
+
+            $sql = "UPDATE menu_items SET is_available = ? WHERE id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->bind_param('ii', $new_status, $toggle_id);
             
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            
-            $file = $_FILES['item_image'];
-            // (FIX) Sanitize filename to prevent issues
-            $file_name = time() . '_' . preg_replace("/[^a-zA-Z0-9\._-]/", "", basename($file['name']));
-            $target_path = $upload_dir . $file_name;
-            
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (in_array($file['type'], $allowed_types)) {
-                if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                    // (FIX) Store path relative to the /uploads/ folder
-                    $image_path = '/uploads/menu_items/' . $file_name;
-                    
-                    // (FIX) Only unlink if current_image is a valid, existing file
-                    if (!empty($current_image) && $current_image !== '0' && file_exists('..' . $current_image)) {
-                        unlink('..' . $current_image);
-                    }
-                } else {
-                    $error_message = 'Failed to move uploaded file.';
-                }
+            if ($stmt->execute()) {
+                // Optional: Set a success message, but usually a quick toggle just reloads
+                // $success_message = "Status updated!"; 
             } else {
-                $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
+                $error_message = "Failed to update status.";
             }
+            $stmt->close();
         }
-        // --- END IMAGE UPLOAD LOGIC ---
-        
-        // Basic validation
-        if (empty($item_name) || empty($item_price) || empty($item_category_id)) {
-            $error_message = 'Item Name, Price, and Category are required.';
-        }
-        
-        // (MODIFIED) Check for $error_message *before* DB operations
-        if (empty($error_message)) {
-            if (isset($_POST['item_id']) && !empty($_POST['item_id'])) {
-                // --- UPDATE existing item ---
-                $item_id = $_POST['item_id'];
-                $sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_available = ?, is_featured = ? WHERE id = ?";
-                $stmt = $db->prepare($sql);
-                // (FIX) Corrected type string from 'ssdsisii' to 'ssdisiii'
-                // s = name, s = description, d = price, i = category_id, s = image, i = is_available, i = is_featured, i = id
-                $stmt->bind_param('ssdisiii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
-                
-                if ($stmt->execute()) {
-                    $success_message = 'Menu item updated successfully!';
-                    // (FIX) After a successful save, update the local PHP variable
-                    // so the form re-renders with the new image path.
-                    $item_image = $image_path; 
-                } else {
-                    $error_message = 'Failed to update menu item.';
-                }
-                $stmt->close();
-                
+
+        // --- B. CREATE & UPDATE (Admin ONLY) ---
+        // We check for 'item_name' to identify the main form submission
+        elseif (isset($_POST['item_name'])) {
+            
+            if (!hasAdminAccess()) {
+                $error_message = "Access Denied. Only Admins can add or edit items.";
             } else {
-                // --- CREATE new item ---
-                $sql = "INSERT INTO menu_items (name, description, price, category_id, image, is_available, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                $stmt = $db->prepare($sql);
-                // (FIX) Corrected type string from 'ssdsisi' to 'ssdisii'
-                // s = name, s = description, d = price, i = category_id, s = image, i = is_available, i = is_featured
-                $stmt->bind_param('ssdisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
+                // Get all form data
+                $item_name = $_POST['item_name'];
+                $item_description = $_POST['item_description'];
+                $item_price = $_POST['item_price'];
+                $item_category_id = $_POST['item_category_id'];
+                $is_available = isset($_POST['is_available']) ? 1 : 0;
+                $is_featured = isset($_POST['is_featured']) ? 1 : 0;
+                $current_image = $_POST['current_image'] ?? '';
+                $selected_option_groups = $_POST['option_groups'] ?? []; 
                 
-                if ($stmt->execute()) {
-                    $item_id = $db->insert_id; // Get the ID of the new item
-                    $success_message = 'Menu item created successfully!';
-                    // (FIX) After a successful save, update the local PHP variable
-                    $item_image = $image_path;
-                } else {
-                    $error_message = 'Failed to create menu item.';
-                }
-                $stmt->close();
-            }
-            
-            // --- SYNC OPTION GROUPS (The Join Table) ---
-            // This runs on both CREATE and UPDATE, as long as we have an $item_id
-            if ($item_id && empty($error_message)) {
-                // 1. Delete all *existing* associations for this item
-                $delete_sql = "DELETE FROM menu_item_options_groups WHERE menu_item_id = ?";
-                $delete_stmt = $db->prepare($delete_sql);
-                $delete_stmt->bind_param('i', $item_id);
-                $delete_stmt->execute();
-                $delete_stmt->close();
+                // --- START IMAGE UPLOAD LOGIC ---
+                $image_path = $current_image;
+                if ($image_path === '0') $image_path = '';
                 
-                // 2. Insert the new associations
-                if (!empty($selected_option_groups)) {
-                    $insert_sql = "INSERT INTO menu_item_options_groups (menu_item_id, option_group_id) VALUES (?, ?)";
-                    $insert_stmt = $db->prepare($insert_sql);
+                if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ERR_OK) {
+                    $upload_dir = '../uploads/menu_items/';
+                    if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
                     
-                    foreach ($selected_option_groups as $group_id) {
-                        $insert_stmt->bind_param('ii', $item_id, $group_id);
-                        $insert_stmt->execute();
+                    $file = $_FILES['item_image'];
+                    $file_name = time() . '_' . preg_replace("/[^a-zA-Z0-9\._-]/", "", basename($file['name']));
+                    $target_path = $upload_dir . $file_name;
+                    
+                    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (in_array($file['type'], $allowed_types)) {
+                        if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                            $image_path = '/uploads/menu_items/' . $file_name;
+                            if (!empty($current_image) && $current_image !== '0' && file_exists('..' . $current_image)) {
+                                unlink('..' . $current_image);
+                            }
+                        } else {
+                            $error_message = 'Failed to move uploaded file.';
+                        }
+                    } else {
+                        $error_message = 'Invalid file type. Please upload a JPG, PNG, GIF, or WebP.';
                     }
-                    $insert_stmt->close();
                 }
-            }
-            
-            if (empty($error_message) && !isset($_POST['item_id'])) {
-                 // Clear form fields on successful *creation*
-                $item_name = ''; $item_description = ''; $item_price = ''; 
-                $item_category_id = ''; $item_image = ''; $is_available = 1;
-                $is_featured = 0; $selected_option_groups = [];
-            } else if (empty($error_message) && isset($_POST['item_id'])) {
-                // (FIX) If updating, we need to re-load the selected option groups
-                // because the page is re-rendering with POST data.
-                $selected_option_groups = $_POST['option_groups'] ?? [];
+                // --- END IMAGE UPLOAD LOGIC ---
+                
+                if (empty($item_name) || empty($item_price) || empty($item_category_id)) {
+                    $error_message = 'Item Name, Price, and Category are required.';
+                }
+                
+                if (empty($error_message)) {
+                    if (isset($_POST['item_id']) && !empty($_POST['item_id'])) {
+                        // --- UPDATE ---
+                        $item_id = $_POST['item_id'];
+                        $sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_available = ?, is_featured = ? WHERE id = ?";
+                        $stmt = $db->prepare($sql);
+                        $stmt->bind_param('ssdisiii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured, $item_id);
+                        
+                        if ($stmt->execute()) {
+                            $success_message = 'Menu item updated successfully!';
+                            $item_image = $image_path; 
+                        } else {
+                            $error_message = 'Failed to update menu item.';
+                        }
+                        $stmt->close();
+                        
+                    } else {
+                        // --- CREATE ---
+                        $sql = "INSERT INTO menu_items (name, description, price, category_id, image, is_available, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                        $stmt = $db->prepare($sql);
+                        $stmt->bind_param('ssdisii', $item_name, $item_description, $item_price, $item_category_id, $image_path, $is_available, $is_featured);
+                        
+                        if ($stmt->execute()) {
+                            $item_id = $db->insert_id;
+                            $success_message = 'Menu item created successfully!';
+                            $item_image = $image_path;
+                        } else {
+                            $error_message = 'Failed to create menu item.';
+                        }
+                        $stmt->close();
+                    }
+                    
+                    // --- SYNC OPTION GROUPS ---
+                    if ($item_id && empty($error_message)) {
+                        $delete_sql = "DELETE FROM menu_item_options_groups WHERE menu_item_id = ?";
+                        $delete_stmt = $db->prepare($delete_sql);
+                        $delete_stmt->bind_param('i', $item_id);
+                        $delete_stmt->execute();
+                        $delete_stmt->close();
+                        
+                        if (!empty($selected_option_groups)) {
+                            $insert_sql = "INSERT INTO menu_item_options_groups (menu_item_id, option_group_id) VALUES (?, ?)";
+                            $insert_stmt = $db->prepare($insert_sql);
+                            foreach ($selected_option_groups as $group_id) {
+                                $insert_stmt->bind_param('ii', $item_id, $group_id);
+                                $insert_stmt->execute();
+                            }
+                            $insert_stmt->close();
+                        }
+                    }
+                    
+                    if (empty($error_message) && !isset($_POST['item_id'])) {
+                        $item_name = ''; $item_description = ''; $item_price = ''; 
+                        $item_category_id = ''; $item_image = ''; $is_available = 1;
+                        $is_featured = 0; $selected_option_groups = [];
+                    } elseif (empty($error_message) && isset($_POST['item_id'])) {
+                        $selected_option_groups = $_POST['option_groups'] ?? [];
+                    }
+                }
             }
         }
     }
 }
 
-// 4. --- HANDLE GET ACTIONS (Edit & Delete) ---
+// 4. --- HANDLE GET ACTIONS (Edit & Delete - Admin ONLY) ---
 
 if ($action === 'edit' && $item_id) {
-    $page_title = 'Edit Menu Item';
-    
-    // Load item data
-    $sql = "SELECT * FROM menu_items WHERE id = ?";
-    $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $item_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 1) {
-        $item = $result->fetch_assoc();
-        $item_name = $item['name'];
-        $item_description = $item['description'];
-        $item_price = $item['price'];
-        $item_category_id = $item['category_id'];
-        $item_image = $item['image'];
-        $is_available = $item['is_available'];
-        $is_featured = $item['is_featured'];
-        
-        // Load the associated option groups
-        $group_sql = "SELECT option_group_id FROM menu_item_options_groups WHERE menu_item_id = ?";
-        $group_stmt = $db->prepare($group_sql);
-        $group_stmt->bind_param('i', $item_id);
-        $group_stmt->execute();
-        $group_result = $group_stmt->get_result();
-        while ($row = $group_result->fetch_assoc()) {
-            $selected_option_groups[] = $row['option_group_id'];
-        }
-        $group_stmt->close();
-        
+    if (!hasAdminAccess()) {
+        $error_message = "Access Denied. Only Admins can edit items.";
+        $action = 'list'; // Redirect view back to list
     } else {
-        $error_message = 'Menu item not found.';
-        $action = 'list';
+        $page_title = 'Edit Menu Item';
+        // Load item data
+        $sql = "SELECT * FROM menu_items WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('i', $item_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $item = $result->fetch_assoc();
+            $item_name = $item['name'];
+            $item_description = $item['description'];
+            $item_price = $item['price'];
+            $item_category_id = $item['category_id'];
+            $item_image = $item['image'];
+            $is_available = $item['is_available'];
+            $is_featured = $item['is_featured'];
+            
+            // Load options
+            $group_sql = "SELECT option_group_id FROM menu_item_options_groups WHERE menu_item_id = ?";
+            $group_stmt = $db->prepare($group_sql);
+            $group_stmt->bind_param('i', $item_id);
+            $group_stmt->execute();
+            $group_result = $group_stmt->get_result();
+            while ($row = $group_result->fetch_assoc()) {
+                $selected_option_groups[] = $row['option_group_id'];
+            }
+            $group_stmt->close();
+            
+        } else {
+            $error_message = 'Menu item not found.';
+            $action = 'list';
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 if ($action === 'delete' && $item_id) {
     
-    // (NEW) CSRF Token validation
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
+    } elseif (!hasAdminAccess()) {
+        $error_message = "Access Denied. Only Admins can delete items.";
     } else {
-        // Get image path for deletion
+        // Get image path
         $img_sql = "SELECT image FROM menu_items WHERE id = ?";
         $img_stmt = $db->prepare($img_sql);
         $img_stmt->bind_param('i', $item_id);
@@ -228,19 +233,18 @@ if ($action === 'delete' && $item_id) {
         }
         $img_stmt->close();
         
-        // Delete the item (cascades will handle join table)
+        // Delete item
         $sql = "DELETE FROM menu_items WHERE id = ?";
         $stmt = $db->prepare($sql);
         $stmt->bind_param('i', $item_id);
         
         if ($stmt->execute()) {
             $success_message = 'Menu item deleted successfully!';
-            // (FIX) Use '..' to go up one directory and check for '0'
             if (!empty($image_to_delete) && $image_to_delete !== '0' && file_exists('..' . $image_to_delete)) {
                 unlink('..' . $image_to_delete);
             }
         } else {
-            $error_message = 'Failed to delete menu item. It might be part of an old order.';
+            $error_message = 'Failed to delete menu item.';
         }
         $stmt->close();
     }
@@ -248,24 +252,19 @@ if ($action === 'delete' && $item_id) {
 }
 
 // 5. --- LOAD DATA FOR DISPLAY ---
-
-// Load Categories for the dropdown
 $categories = [];
 $cat_result = $db->query("SELECT id, name FROM categories ORDER BY name ASC");
 while ($row = $cat_result->fetch_assoc()) {
     $categories[] = $row;
 }
 
-// Load Option Groups for the checkboxes
 $option_groups = [];
 $group_result = $db->query("SELECT id, name, type FROM item_options_groups ORDER BY name ASC");
 while ($row = $group_result->fetch_assoc()) {
     $option_groups[] = $row;
 }
 
-// Load Menu Items for the list
 $menu_items = [];
-// (MODIFIED) Changed ORDER BY from m.name ASC to m.id DESC
 $sql = "SELECT m.*, c.name as category_name 
         FROM menu_items m
         LEFT JOIN categories c ON m.category_id = c.id
@@ -299,9 +298,12 @@ while ($row = $item_result->fetch_assoc()) {
         <h2 class="text-xl font-bold text-gray-900">
             Existing Menu Items (<?php echo count($menu_items); ?>)
         </h2>
+        <!-- Only Admin sees Add Button -->
+        <?php if (hasAdminAccess()): ?>
         <a href="manage_menu_items.php?action=add" class="px-5 py-2 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
             Add New Item
         </a>
+        <?php endif; ?>
     </div>
     
     <div class="overflow-x-auto">
@@ -312,7 +314,7 @@ while ($row = $item_result->fetch_assoc()) {
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status (Click to Toggle)</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
@@ -322,15 +324,13 @@ while ($row = $item_result->fetch_assoc()) {
                 <?php else: ?>
                     <?php foreach ($menu_items as $item): ?>
                         <?php
-                            // (FIX) Add PHP logic to determine the correct image source
-                            $image_src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image'; // Default placeholder
+                            $image_src = 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=No+Image';
                             if (!empty($item['image']) && $item['image'] !== '0') {
                                 $image_src = BASE_URL . $item['image'];
                             }
                         ?>
                         <tr>
                             <td class="px-6 py-4">
-                                <!-- (FIX) Use the pre-calculated $image_src. Keep onerror as a backup. -->
                                 <img src="<?php echo e($image_src); ?>" 
                                      alt="<?php echo e($item['name']); ?>" 
                                      class="w-12 h-12 object-cover rounded-lg" 
@@ -339,19 +339,30 @@ while ($row = $item_result->fetch_assoc()) {
                             <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($item['name']); ?></div></td>
                             <td class="px-6 py-4"><div class="text-sm text-gray-500"><?php echo e($item['category_name']); ?></div></td>
                             <td class="px-6 py-4"><div class="text-sm text-gray-900"><?php echo e(number_format($item['price'], 2)); ?> BDT</div></td>
+                            
+                            <!-- QUICK STATUS TOGGLE -->
                             <td class="px-6 py-4">
-                                <?php if ($item['is_available']): ?>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>
-                                <?php else: ?>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Sold Out</span>
-                                <?php endif; ?>
+                                <form method="POST" action="manage_menu_items.php" class="inline-block">
+                                    <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                                    <input type="hidden" name="toggle_status_action" value="1">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <input type="hidden" name="current_status" value="<?php echo $item['is_available']; ?>">
+                                    
+                                    <button type="submit" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full transition-all transform hover:scale-105 <?php echo $item['is_available'] ? 'bg-green-100 text-green-800 border border-green-200 hover:bg-green-200' : 'bg-red-100 text-red-800 border border-red-200 hover:bg-red-200'; ?>" title="Click to toggle availability">
+                                        <?php echo $item['is_available'] ? 'Available' : 'Sold Out'; ?>
+                                    </button>
+                                </form>
                             </td>
+
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                <a href="manage_menu_items.php?action=edit&id=<?php echo e($item['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                <!-- (MODIFIED) Added CSRF token to delete link -->
-                                <a href="manage_menu_items.php?action=delete&id=<?php echo e($item['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
-                                   class="text-red-600 hover:text-red-900" 
-                                   onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                                <?php if (hasAdminAccess()): ?>
+                                    <a href="manage_menu_items.php?action=edit&id=<?php echo e($item['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
+                                    <a href="manage_menu_items.php?action=delete&id=<?php echo e($item['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
+                                       class="text-red-600 hover:text-red-900" 
+                                       onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                                <?php else: ?>
+                                    <span class="text-gray-400 italic text-xs">View Only</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -362,25 +373,29 @@ while ($row = $item_result->fetch_assoc()) {
 </div>
 
 <?php else: ?>
-<!-- --- ADD/EDIT FORM --- -->
+<!-- --- ADD/EDIT FORM (Admin Only Check inside) --- -->
+<?php 
+// Extra check to prevent direct URL access
+// Use alternative syntax for clean HTML structure
+if (!hasAdminAccess()):
+    echo '<div class="p-4 bg-red-100 text-red-700 rounded-lg">Access Denied. Only Admins can access this area.</div>';
+else:
+?>
 <div class="bg-white p-8 rounded-2xl shadow-lg">
     <a href="manage_menu_items.php" class="text-orange-600 hover:text-orange-900 mb-4 inline-block">&larr; Back to all items</a>
     <h2 class="text-2xl font-bold text-gray-900 mb-6">
         <?php echo ($action === 'edit') ? 'Edit Menu Item' : 'Add New Menu Item'; ?>
     </h2>
     
-    <!-- (FIX) The form action must contain the query parameters to stay on the add/edit page -->
     <form action="manage_menu_items.php?action=<?php echo e($action); ?><?php echo $item_id ? '&id=' . e($item_id) : ''; ?>" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Column 1: Main Details -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- (NEW) CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
             
             <?php if ($action === 'edit' && $item_id): ?>
                 <input type="hidden" name="item_id" value="<?php echo e($item_id); ?>">
             <?php endif; ?>
-            <!-- (FIX) Pass the item_image to the hidden field -->
             <input type="hidden" name="current_image" value="<?php echo e($item_image); ?>">
 
             <div>
@@ -437,23 +452,19 @@ while ($row = $item_result->fetch_assoc()) {
                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
                     <div class="space-y-1 text-center">
                         <?php
-                            // (FIX) Add PHP logic to determine the correct image source for the edit form
                             $edit_image_src = '';
                             if ($action === 'edit' && !empty($item_image) && $item_image !== '0') {
                                 $edit_image_src = BASE_URL . $item_image;
                             }
                         ?>
                         <?php if (!empty($edit_image_src)): ?>
-                            <!-- (FIX) Use the pre-calculated $edit_image_src -->
                             <img id="image-preview" src="<?php echo e($edit_image_src); ?>" 
                                  alt="Current Image" 
                                  class="w-40 h-40 mx-auto object-cover rounded-lg mb-4"
                                  onerror="this.style.display='none'; document.getElementById('image-placeholder-svg').style.display='block';">
-                            <!-- (FIX) Show SVG by default if no image -->
                             <svg id="image-placeholder-svg" class="mx-auto h-12 w-12 text-gray-400" style="display:none;" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                         <?php else: ?>
                             <svg id="image-placeholder-svg" class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                            <!-- (FIX) Add hidden img tag for onerror logic to work -->
                             <img id="image-preview" src="" alt="Current Image" class="w-40 h-40 mx-auto object-cover rounded-lg mb-4" style="display: none;">
                         <?php endif; ?>
                         <div class="flex text-sm text-gray-600">
@@ -506,13 +517,14 @@ while ($row = $item_result->fetch_assoc()) {
     </form>
 </div>
 <?php endif; ?>
+<?php endif; ?>
 
 <?php
 // 6. FOOTER
 require_once('footer.php');
 ?>
 <script>
-// (NEW) Simple script to show image preview on the edit form
+// Simple script to show image preview on the edit form
 document.addEventListener('DOMContentLoaded', function() {
     const imageInput = document.getElementById('item_image');
     const imagePreview = document.getElementById('image-preview');

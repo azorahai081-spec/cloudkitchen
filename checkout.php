@@ -2,14 +2,14 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.8 - (MODIFIED) Replaced datalist with a custom searchable select component.
+ * Version 1.9 - (MODIFIED) Added Cooking & Delivery Time Info
  *
  * This page:
  * 1. Requires a non-empty cart to view.
  * 2. Displays the final order summary.
  * 3. Collects customer info (name, phone, address).
- * 4. (MODIFIED) Validates customer name and phone number.
- * 5. (MODIFIED) Loads delivery areas for a custom searchable component.
+ * 4. Validates customer name and phone number.
+ * 5. Loads delivery areas for a custom searchable component.
  * 6. Uses AJAX to calculate delivery fees live.
  * 7. Uses AJAX to apply coupon codes.
  */
@@ -17,7 +17,7 @@
 // 1. CONFIGURATION
 require_once('config.php');
 
-// 2. --- (MODIFIED) SECURITY CHECK (MOVED UP) ---
+// 2. --- SECURITY CHECK ---
 // This check MUST happen before any HTML is output (i.e., before header.php)
 $cart = $_SESSION['cart'] ?? [];
 $store_is_open = $settings['store_is_open'] ?? '1'; // Get store status from config
@@ -35,7 +35,7 @@ $meta_description = 'Complete your order and get your food delivered.';
 // 4. HEADER (HTML output starts here)
 require_once('includes/header.php');
 
-// (NEW) Check for server-side validation errors
+// Check for server-side validation errors
 $checkout_error = $_SESSION['checkout_error'] ?? '';
 if (!empty($checkout_error)) {
     echo '<div class="mb-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">' . e($checkout_error) . '</div>';
@@ -78,7 +78,7 @@ foreach ($cart as $item) {
         }
     });
 
-    // (NEW) Store delivery areas in JS for the search component
+    // Store delivery areas in JS for the search component
     const allAreas = <?php echo json_encode($delivery_areas); ?>;
 </script>
 
@@ -91,7 +91,7 @@ foreach ($cart as $item) {
         <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">1. Delivery Details</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- (MODIFIED) Customer Name -->
+                <!-- Customer Name -->
                 <div>
                     <label for="customer_name" class="block text-sm font-medium text-gray-700">Full Name *</label>
                     <input type="text" id="customer_name" name="customer_name" required
@@ -101,7 +101,7 @@ foreach ($cart as $item) {
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red invalid:border-red-500 invalid:text-red-600 focus:invalid:ring-red-500">
                 </div>
                 
-                <!-- (MODIFIED) Customer Phone -->
+                <!-- Customer Phone -->
                 <div>
                     <label for="customer_phone" class="block text-sm font-medium text-gray-700">Phone Number *</label>
                     <input type="tel" id="customer_phone" name="customer_phone" required
@@ -111,7 +111,7 @@ foreach ($cart as $item) {
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red invalid:border-red-500 invalid:text-red-600 focus:invalid:ring-red-500">
                 </div>
                 
-                <!-- (MODIFIED) Delivery Area -->
+                <!-- Delivery Area -->
                 <div class="md:col-span-2">
                     <label for="area-search-button" class="block text-sm font-medium text-gray-700">Select or Search Delivery Area *</label>
                     <div class="relative mt-1" id="custom-area-select">
@@ -143,7 +143,7 @@ foreach ($cart as $item) {
                         </div>
                     </div>
                     
-                    <!-- Hidden input to store the selected Area ID (same as before) -->
+                    <!-- Hidden input to store the selected Area ID -->
                     <input type="hidden" name="delivery_area_id" id="delivery_area_id" value="">
                     <!-- We still need the original input for validation, but it can be hidden -->
                     <input type="text" id="area-validation-input" required class="h-0 w-0 p-0 border-0" value="" style="opacity: 0; position: absolute; z-index: -1;">
@@ -189,7 +189,6 @@ foreach ($cart as $item) {
                             <div>
                                 <div class="font-medium text-gray-800">
                                     <?php echo e($item['quantity']); ?>x <?php echo e($item['item_name']); ?>
-
                                 </div>
                                 <div class="text-xs text-gray-500">
                                     <?php foreach ($item['options'] as $option): ?>
@@ -236,6 +235,19 @@ foreach ($cart as $item) {
                     </div>
                     <p id="coupon-message" class="text-sm mt-1"></p>
                 </div>
+                
+                <!-- (NEW) Cooking & Delivery Time Estimates -->
+                <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 text-blue-500 mt-0.5">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div class="text-sm text-blue-800">
+                            <p><strong>Cooking Time:</strong> 15-20 minutes</p>
+                            <p><strong>Delivery Time:</strong> 15-20 minutes</p>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Hidden inputs for final totals -->
                 <input type="hidden" name="final_subtotal" id="final-subtotal" value="<?php echo e($subtotal); ?>">
@@ -244,7 +256,6 @@ foreach ($cart as $item) {
                 <input type="hidden" name="final_discount_amount" id="final-discount-amount" value="0">
                 <input type="hidden" name="final_total" id="final-total" value="0">
 
-                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
                 <button type="submit" id="submit-order-btn" disabled
                         class="mt-6 w-full py-3 px-4 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-colors
                                disabled:bg-gray-400 disabled:cursor-not-allowed">
@@ -264,13 +275,13 @@ foreach ($cart as $item) {
 -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- (NEW) VALIDATION ELEMENTS ---
+        // --- VALIDATION ELEMENTS ---
         const checkoutForm = document.getElementById('checkout-form');
         const nameInput = document.getElementById('customer_name');
         const phoneInput = document.getElementById('customer_phone');
         const addressInput = document.getElementById('customer_address');
         
-        // --- (MODIFIED) DELIVERY AREA ELEMENTS ---
+        // --- DELIVERY AREA ELEMENTS ---
         const customSelect = document.getElementById('custom-area-select');
         const areaButton = document.getElementById('area-search-button');
         const selectedAreaText = document.getElementById('selected-area-text');
@@ -278,7 +289,7 @@ foreach ($cart as $item) {
         const areaSearchInput = document.getElementById('area-search-input');
         const areaOptionsList = document.getElementById('area-options-list');
         const deliveryIdHidden = document.getElementById('delivery_area_id');
-        const areaValidationInput = document.getElementById('area-validation-input'); // For HTML5 validation
+        const areaValidationInput = document.getElementById('area-validation-input');
 
         // --- EXISTING ELEMENTS ---
         const summaryFee = document.getElementById('summary-delivery-fee');
@@ -305,7 +316,7 @@ foreach ($cart as $item) {
         let currentDeliveryFee = 0;
         let isFeeCalculated = false; 
 
-        // --- (NEW) Custom Select/Search Logic ---
+        // --- Custom Select/Search Logic ---
 
         // Function to render options in the list
         function renderAreaOptions(filter = '') {
@@ -377,17 +388,13 @@ foreach ($cart as $item) {
             }
         });
         
-        // --- (MODIFIED) Function to check all form validity ---
+        // --- Function to check all form validity ---
         function checkAllValidity() {
             if (!checkoutForm) return;
             
-            // Check HTML5 validation (this will include our custom validity)
             const isFormValid = checkoutForm.checkValidity();
-            
-            // Custom check to ensure an ID is set (meaning a valid area was selected)
             const isAreaSelected = deliveryIdHidden.value !== '';
 
-            // The button is enabled only if the form is valid AND a valid area is selected/found
             submitBtn.disabled = !isFormValid || !isAreaSelected;
 
             if (!isFormValid) {
@@ -403,7 +410,7 @@ foreach ($cart as $item) {
             }
         }
 
-        // --- (NEW) Function to apply coupon ---
+        // --- Function to apply coupon ---
         async function applyCoupon() {
             const code = couponInput.value.trim();
             if (!code) {
@@ -462,16 +469,14 @@ foreach ($cart as $item) {
             updateGrandTotal();
         }
 
-        // --- (MODIFIED) Function to calculate fees ---
+        // --- Function to calculate fees ---
         async function calculateFees() {
-            // (MODIFIED) Get areaId from the hidden input
             const areaId = deliveryIdHidden.value;
             isFeeCalculated = false; 
             if (!areaId) {
                 summaryFee.textContent = '...';
                 summaryTotal.textContent = '...';
                 currentDeliveryFee = 0;
-                // (NEW) Clear validation input if ID is cleared
                 areaValidationInput.value = ''; 
                 updateGrandTotal();
                 return;
@@ -480,7 +485,6 @@ foreach ($cart as $item) {
             summaryFee.textContent = 'Calculating...';
             
             try {
-                // Call our existing AJAX file
                 const response = await fetch(`ajax_calculate_fee.php?area_id=${areaId}`);
                 if (!response.ok) throw new Error('Network error');
                 
@@ -495,7 +499,7 @@ foreach ($cart as $item) {
                     summaryFee.textContent = `${currentDeliveryFee.toFixed(2)}`;
 
                     // Show surcharge row if applied
-                    if (surcharge > 0 && currentDeliveryFee > 0) { // (MODIFIED) Only show if fee isn't 0
+                    if (surcharge > 0 && currentDeliveryFee > 0) {
                         summarySurchargeFee.textContent = `+${surcharge.toFixed(2)}`;
                         summarySurchargeRow.classList.remove('hidden');
                     } else {
@@ -505,14 +509,14 @@ foreach ($cart as $item) {
                     // Update hidden inputs
                     finalDeliveryFeeInput.value = currentDeliveryFee.toFixed(2);
                     
-                    isFeeCalculated = true; // (MODIFIED)
+                    isFeeCalculated = true;
                     
                 } else {
                     throw new Error(data.message || 'Could not calculate fee');
                 }
                 
             } catch (error) {
-                isFeeCalculated = false; // (MODIFIED)
+                isFeeCalculated = false;
                 summaryFee.textContent = 'Error';
                 currentDeliveryFee = 0;
                 submitError.textContent = error.message;
@@ -522,7 +526,7 @@ foreach ($cart as $item) {
             updateGrandTotal();
         }
 
-        // (MODIFIED) Function to update the final total and check validity
+        // Function to update the final total and check validity
         function updateGrandTotal() {
             // Recalculate grand total
             const grandTotal = subtotal - currentDiscount + currentDeliveryFee;
@@ -536,12 +540,11 @@ foreach ($cart as $item) {
         // --- Event Listeners ---
         couponBtn.addEventListener('click', applyCoupon);
         
-        // (NEW) Add validation listeners
         nameInput.addEventListener('input', checkAllValidity);
         phoneInput.addEventListener('input', checkAllValidity);
         addressInput.addEventListener('input', checkAllValidity);
         
-        // (NEW) Check session storage for an applied coupon from cart.php
+        // Check session storage for an applied coupon from cart.php
         const sessionCoupon = sessionStorage.getItem('coupon_code');
         if (sessionCoupon) {
             couponInput.value = sessionCoupon;
@@ -549,7 +552,7 @@ foreach ($cart as $item) {
             sessionStorage.removeItem('coupon_code'); // Clear it
         }
 
-        // (NEW) Initial render of options
+        // Initial render of options
         renderAreaOptions();
     });
 </script>

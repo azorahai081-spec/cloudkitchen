@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 18, 2025 at 04:26 PM
+-- Generation Time: Nov 19, 2025 at 01:23 AM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -339,7 +339,7 @@ INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `
 (20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128.00', '/uploads/menu_items/1763280186_chickendum.png', 1, 1),
 (21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348.00', '/uploads/menu_items/1763242197_1.webp', 1, 1),
 (22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398.00', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1),
-(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 0, 0),
+(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 1, 0),
 (24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90.00', '/uploads/menu_items/1763286952_images1.jfif', 1, 0);
 
 -- --------------------------------------------------------
@@ -383,7 +383,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
@@ -397,9 +397,11 @@ INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address
 (14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '0.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
 (15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '200.00', '107.00', '-13.00', '307.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
 (26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470.00', '10.00', '0.00', '2480.00', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0.00'),
-(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '0.00', '250.00', 'Pending', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
-(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90.00', '20.00', '0.00', '110.00', 'Preparing', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0.00'),
-(29, 'Safin', '01420332015', 'sadasd', '', 1, '968.00', '63.00', '10.00', '1031.00', 'Preparing', '2025-11-18 16:01:38', NULL, NULL, 'none', '0.00');
+(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '0.00', '250.00', 'Delivered', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
+(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90.00', '20.00', '0.00', '110.00', 'Delivered', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0.00'),
+(29, 'Safin', '01420332015', 'sadasd', '', 1, '968.00', '63.00', '10.00', '1031.00', 'Delivered', '2025-11-18 16:01:38', NULL, NULL, 'none', '0.00'),
+(30, 'Arif', '01820336015', 'dsdad', '', 2, '200.00', '120.00', '0.00', '320.00', 'Delivered', '2025-11-18 16:40:31', NULL, NULL, 'none', '0.00'),
+(31, 'Arif', '01820336015', 'asdasd', '', 2, '748.00', '120.00', '0.00', '868.00', 'Cancelled', '2025-11-18 16:41:37', NULL, NULL, 'none', '0.00');
 
 -- --------------------------------------------------------
 
@@ -418,7 +420,7 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=78 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -446,7 +448,11 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_p
 (74, 29, 4, 1, '190.00', '190.00'),
 (75, 29, 5, 1, '220.00', '220.00'),
 (76, 29, 12, 1, '358.00', '358.00'),
-(77, 29, 15, 1, '200.00', '200.00');
+(77, 29, 15, 1, '200.00', '200.00'),
+(78, 30, 7, 1, '200.00', '200.00'),
+(79, 31, 7, 1, '200.00', '200.00'),
+(80, 31, 4, 1, '190.00', '190.00'),
+(81, 31, 12, 1, '358.00', '358.00');
 
 -- --------------------------------------------------------
 
