@@ -2,7 +2,7 @@
 /*
  * index.php
  * KitchCo: Cloud Kitchen Homepage
- * Version 2.6 - (MODIFIED) Re-ordered sections
+ * Version 2.8 - (UPDATED) Custom Sorting for Fan Favorites
  *
  * This is the main customer-facing homepage.
  */
@@ -14,7 +14,7 @@ $meta_description = strip_tags($settings['hero_subtitle'] ?? 'Order the best piz
 // 2. HEADER
 require_once('includes/header.php');
 
-// (NEW) Helper function to apply global discount
+// Helper function to apply global discount
 function calculate_discounted_price($original_price, $settings) {
     if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
         return $original_price;
@@ -33,13 +33,14 @@ function calculate_discounted_price($original_price, $settings) {
 
 // 3. --- LOAD PAGE DATA ---
 
-// --- A. Load Featured Items ---
+// --- A. Load Featured Items (Fan Favorites) ---
 $featured_items = [];
+// (MODIFIED) Added 'ORDER BY m.display_order ASC'
 $sql_featured = "SELECT m.id, m.name, m.price, m.image, m.description, c.name as category_name
                  FROM menu_items m
                  JOIN categories c ON m.category_id = c.id
                  WHERE m.is_available = 1 AND m.is_featured = 1
-                 ORDER BY m.name ASC
+                 ORDER BY m.display_order ASC, m.name ASC
                  LIMIT 8";
                  
 $result_featured = $db->query($sql_featured);
@@ -69,7 +70,7 @@ if ($result_categories) {
     }
 }
 
-// --- C. (NEW) Load Homepage Reviews ---
+// --- C. Load Homepage Reviews ---
 $reviews = [];
 $sql_reviews = "SELECT * FROM admin_reviews WHERE is_visible = 1 ORDER BY id DESC LIMIT 3";
 $result_reviews = $db->query($sql_reviews);
@@ -79,7 +80,7 @@ if ($result_reviews) {
     }
 }
 
-// --- D. (NEW) Load FAQ Data ---
+// --- D. Load FAQ Data ---
 $faqs = [];
 $sql_faq = "SELECT * FROM faq WHERE is_visible = 1 ORDER BY display_order ASC";
 $result_faq = $db->query($sql_faq);
@@ -90,7 +91,7 @@ if ($result_faq) {
 }
 
 
-// (NEW) Helper function to render stars
+// Helper function to render stars
 function render_stars($rating) {
     $html = '<div class="flex text-yellow-400">';
     for ($i = 0; $i < 5; $i++) {
@@ -174,7 +175,6 @@ $schema_restaurant = [
             </div>
 
             <div class="order-5 mt-10">
-                <!-- (FIXED) Clean URL -->
                 <a href="<?php echo BASE_URL; ?>/menu" class="px-10 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
                     Order Now
                 </a>
@@ -212,12 +212,11 @@ $schema_restaurant = [
         
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-<?php echo count($homepage_categories); ?> gap-6">
             <?php foreach ($homepage_categories as $category): ?>
-                <!-- (FIXED) Clean URL -->
                 <a href="<?php echo BASE_URL; ?>/menu#category-<?php echo e($category['id']); ?>" class="block bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl hover:-translate-y-1">
                     <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full text-brand-red mx-auto">
                         
                         <?php if (!empty($category['svg_icon'])): ?>
-                            <?php echo $category['svg_icon']; // Echo the raw SVG code ?>
+                            <?php echo $category['svg_icon']; ?>
                         <?php else: ?>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
@@ -235,11 +234,7 @@ $schema_restaurant = [
 <?php endif; ?>
 
 
-<!-- 
-========================================
-NEW OFFER SECTION (IDEA 1)
-========================================
--->
+<!-- NEW OFFER SECTION -->
 <?php if (!empty($settings['offer_is_active']) && $settings['offer_is_active'] == '1'): ?>
 <section class="py-16">
     <div class="bg-red-50 border-l-8 border-brand-red rounded-2xl shadow-lg p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -250,7 +245,6 @@ NEW OFFER SECTION (IDEA 1)
             </p>
         </div>
         <div class="flex-shrink-0">
-            <!-- (FIXED) Clean URL -->
             <a href="<?php echo BASE_URL; ?>/menu" class="px-8 py-4 bg-brand-red text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 transition-colors">
                 Order Now
             </a>
@@ -258,8 +252,6 @@ NEW OFFER SECTION (IDEA 1)
     </div>
 </section>
 <?php endif; ?>
-<!-- NEW OFFER SECTION END -->
-
 
 <!-- Section 3: Fan Favorites -->
 <?php if (!empty($featured_items)): ?>
@@ -270,7 +262,6 @@ NEW OFFER SECTION (IDEA 1)
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <?php foreach ($featured_items as $item): ?>
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl hover:-translate-y-1">
-                    <!-- (FIXED) Clean URL -->
                     <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="block">
                         <img 
                             src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image')); ?>" 
@@ -284,14 +275,13 @@ NEW OFFER SECTION (IDEA 1)
                         <div class="flex justify-between items-center mt-4">
                             <p class="text-2xl font-bold text-gray-900">
                                 <?php if ($item['has_discount']): ?>
-                                    <?php echo e(number_format($item['price'], 2)); ?>
-                                    <span class="text-sm font-normal text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 2)); ?></span>
+                                    <?php echo number_format($item['price'], 0); ?>
+                                    <span class="text-sm font-normal text-gray-500 line-through ml-1"><?php echo number_format($item['original_price'], 0); ?></span>
                                 <?php else: ?>
-                                    <?php echo e(number_format($item['price'], 2)); ?>
+                                    <?php echo number_format($item['price'], 0); ?>
                                 <?php endif; ?>
                                 <span class="text-sm font-normal">BDT</span>
                             </p>
-                            <!-- (FIXED) Clean URL -->
                             <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>"
                                class="px-4 py-2 bg-brand-red text-white font-bold rounded-lg transition-all duration-200 hover:bg-red-700">
                                 Add
@@ -306,18 +296,13 @@ NEW OFFER SECTION (IDEA 1)
 <?php endif; ?>
 
 
-<!-- 
-========================================
-(MOVED) REVIEW SECTION
-========================================
--->
+<!-- REVIEW SECTION -->
 <?php if (!empty($reviews)): ?>
 <section class="py-16">
     <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center">What Our Customers Say</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         
         <?php foreach ($reviews as $review): ?>
-        <!-- Review Card -->
         <div class="bg-white rounded-2xl shadow-lg p-6 border-t-4 border-brand-red">
             <div class="flex items-center space-x-4">
                 <div class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
@@ -338,29 +323,21 @@ NEW OFFER SECTION (IDEA 1)
 
     </div>
 
-    <!-- "See All Reviews" Button -->
     <div class="text-center mt-12">
-        <!-- (FIXED) Clean URL for reviews page -->
         <a href="<?php echo BASE_URL; ?>/reviews" class="px-8 py-3 bg-white text-brand-red font-semibold rounded-lg shadow-md hover:bg-gray-50 border border-gray-200 transition-colors">
             See All Reviews
         </a>
     </div>
 </section>
 <?php endif; ?>
-<!-- REVIEW SECTION END -->
 
 
-<!-- 
-========================================
-(MOVED) "HOW TO ORDER" SECTION
-========================================
--->
+<!-- "HOW TO ORDER" SECTION -->
 <section class="py-16">
     <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12">
         <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center">How to Order in 4 Easy Steps</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             
-            <!-- Step 1: Browse -->
             <div class="text-center">
                 <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
@@ -371,7 +348,6 @@ NEW OFFER SECTION (IDEA 1)
                 <p class="mt-1 text-gray-600">Find your favorite pizza, pasta, and meat boxes from our full menu.</p>
             </div>
             
-            <!-- Step 2: Add to Cart -->
             <div class="text-center">
                 <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
@@ -382,7 +358,6 @@ NEW OFFER SECTION (IDEA 1)
                 <p class="mt-1 text-gray-600">Click "Add" and select any options you want, like extra cheese!</p>
             </div>
             
-            <!-- Step 3: Checkout -->
             <div class="text-center">
                 <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
@@ -393,7 +368,6 @@ NEW OFFER SECTION (IDEA 1)
                 <p class="mt-1 text-gray-600">Enter your name, phone, and select your delivery area to confirm.</p>
             </div>
             
-            <!-- Step 4: Track -->
             <div class="text-center">
                 <div class="flex items-center justify-center w-20 h-20 bg-brand-red text-white rounded-full mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10">
@@ -407,14 +381,9 @@ NEW OFFER SECTION (IDEA 1)
         </div>
     </div>
 </section>
-<!-- "HOW TO ORDER" SECTION END -->
 
 
-<!-- 
-========================================
-(MOVED) FAQ SECTION
-========================================
--->
+<!-- FAQ SECTION -->
 <?php if (!empty($faqs)): ?>
 <section class="py-16">
     <div class="max-w-3xl mx-auto">
@@ -422,7 +391,6 @@ NEW OFFER SECTION (IDEA 1)
         
         <div class="space-y-6">
             <?php foreach ($faqs as $faq): ?>
-            <!-- FAQ Item -->
             <div class="bg-white rounded-2xl shadow-lg p-6 border-t-4 border-brand-red">
                 <h3 class="text-xl font-bold text-gray-900 font-bangla">
                     <?php echo e($faq['question']); ?>
@@ -437,7 +405,6 @@ NEW OFFER SECTION (IDEA 1)
     </div>
 </section>
 <?php endif; ?>
-<!-- FAQ SECTION END -->
 
 
 <?php

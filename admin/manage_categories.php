@@ -2,7 +2,7 @@
 /*
  * admin/manage_categories.php
  * KitchCo: Cloud Kitchen Category Manager
- * Version 1.2 - Added CSRF Protection
+ * Version 1.4 - (RESTORED) Admin Only Access
  *
  * This page handles full CRUD for food categories.
  */
@@ -10,7 +10,14 @@
 // 1. HEADER
 require_once('header.php');
 
-// 2. PAGE VARIABLES & INITIALIZATION
+// 2. SECURITY CHECK - ADMINS ONLY
+// (RESTORED) This check ensures only Admins can access this page.
+if (!hasAdminAccess()) {
+    header('Location: live_orders.php');
+    exit;
+}
+
+// 3. PAGE VARIABLES & INITIALIZATION
 $action = $_GET['action'] ?? 'list';
 $category_id = $_GET['id'] ?? null;
 $page_title = 'Manage Categories';
@@ -24,7 +31,7 @@ $is_visible = 1;
 $error_message = '';
 $success_message = '';
 
-// 3. --- HANDLE POST REQUESTS (Create & Update) ---
+// 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // (NEW) CSRF Token validation
@@ -115,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 4. --- HANDLE GET ACTIONS (Edit & Delete) ---
+// 5. --- HANDLE GET ACTIONS (Edit & Delete) ---
 
 // Handle "Edit" - Load data into the form
 if ($action === 'edit' && $category_id) {
@@ -176,7 +183,7 @@ if ($action === 'delete' && $category_id) {
     $action = 'list';
 }
 
-// 5. --- LOAD DATA FOR DISPLAY ---
+// 6. --- LOAD DATA FOR DISPLAY ---
 $categories = [];
 $result = $db->query("SELECT * FROM categories ORDER BY name ASC");
 if ($result) {

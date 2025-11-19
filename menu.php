@@ -2,11 +2,11 @@
 /*
  * menu.php
  * KitchCo: Cloud Kitchen Full Menu Page
- * Version 1.6 - (MODIFIED) Changed to single-page scroll-to category
+ * Version 1.7 - (MODIFIED) Removed decimal points for BDT
  *
  * This page:
  * 1. Loads all visible categories for filtering.
- * 2. (MODIFIED) Loads ALL visible items, grouped by category.
+ * 2. Loads ALL visible items, grouped by category.
  * 3. Calculates and displays global discounts.
  * 4. Includes the "Item Options" modal popup.
  * 5. Handles adding items to the cart via AJAX.
@@ -183,10 +183,12 @@ $schema_menu = [
                                         <!-- (NEW) Price display logic -->
                                         <span class="text-xl font-bold text-brand-red">
                                             <?php if ($item['has_discount']): ?>
-                                                <?php echo e(number_format($item['item_price'], 2)); ?> BDT
-                                                <span class="text-sm text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 2)); ?></span>
+                                                <!-- (MODIFIED) Removed decimals -->
+                                                <?php echo e(number_format($item['item_price'], 0)); ?> BDT
+                                                <span class="text-sm text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 0)); ?></span>
                                             <?php else: ?>
-                                                <?php echo e(number_format($item['item_price'], 2)); ?> BDT
+                                                <!-- (MODIFIED) Removed decimals -->
+                                                <?php echo e(number_format($item['item_price'], 0)); ?> BDT
                                             <?php endif; ?>
                                         </span>
                                         <!-- (MODIFIED) Pass the (potentially discounted) item_price to the modal -->
@@ -241,7 +243,8 @@ $schema_menu = [
                 </div>
                 <!-- (MODIFIED) Button styling updated from brand-orange to brand-red and added disabled state. (FIXED) Added closing parenthesis -->
                 <button id="modal-add-to-cart-btn" type="submit" class="w-full sm:w-auto px-6 py-3 bg-brand-red text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors disabled:bg-gray-400">
-                    Add to Cart (Total: <span id="modal-total-price">0.00</span>)
+                    <!-- (MODIFIED) Removed decimals from initial text -->
+                    Add to Cart (Total: <span id="modal-total-price">0</span>)
                 </button>
             </div>
         </form>
@@ -307,7 +310,8 @@ $schema_menu = [
         // This fixes the "Adding..." bug when opening a new modal
         modalAddToCartBtn.disabled = false;
         // This rebuilds the button's inner HTML, restoring the span
-        modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0.00</span>)';
+        // (MODIFIED) Removed decimals
+        modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0</span>)';
         // --- END OF NEW CODE ---
         
         // Modal animations
@@ -345,13 +349,14 @@ $schema_menu = [
                     
                     group.options.forEach(option => {
                         const inputType = group.type === 'radio' ? 'radio' : 'checkbox';
+                        // (MODIFIED) Use parseInt for display logic in JS loop
                         optionsHtml += `
                             <div class="flex items-center justify-between">
                                 <label for="option-${option.id}" class="text-sm text-gray-700 flex-1">
                                     ${option.name}
                                 </label>
                                 <div class="flex items-center">
-                                    <span class="text-sm text-gray-600 mr-3">+${parseFloat(option.price_increase).toFixed(2)}</span>
+                                    <span class="text-sm text-gray-600 mr-3">+${parseInt(option.price_increase)}</span>
                                     <input 
                                         type="${inputType}" 
                                         id="option-${option.id}" 
@@ -401,17 +406,18 @@ $schema_menu = [
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
         
         selectedOptions.forEach(opt => {
-            optionsPrice += parseFloat(opt.dataset.price);
+            // (MODIFIED) Use parseInt for calculation
+            optionsPrice += parseInt(opt.dataset.price);
         });
         
-        // (MODIFIED) modalBasePrice.value is already discounted
-        const basePrice = parseFloat(modalBasePrice.value);
+        // (MODIFIED) Use parseInt for base calculation
+        const basePrice = parseInt(modalBasePrice.value);
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (basePrice + optionsPrice) * quantity;
         
-        // (MODIFIED) Update the span only if it was found
+        // (MODIFIED) Update the span only if it was found, remove decimals
         if (modalTotalPriceSpan) {
-            modalTotalPriceSpan.textContent = total.toFixed(2);
+            modalTotalPriceSpan.textContent = total;
         }
     }
     
@@ -473,7 +479,8 @@ $schema_menu = [
                         items: [{
                             item_id: itemId,
                             item_name: modalItemName.textContent,
-                            price: parseFloat(modalBasePrice.value), // (MODIFIED) This is now the discounted price
+                            // (MODIFIED) Use parseInt
+                            price: parseInt(modalBasePrice.value), 
                             quantity: parseInt(quantity)
                         }]
                     }
@@ -487,8 +494,8 @@ $schema_menu = [
             alert('Error: ' + error.message);
         } finally {
             modalAddToCartBtn.disabled = false;
-            // (MODIFIED) Restore the button text with the span
-            modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0.00</span>)';
+            // (MODIFIED) Restore the button text with the span, remove decimals
+            modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0</span>)';
             updateModalPrice(); // Re-renders the price
         }
     }

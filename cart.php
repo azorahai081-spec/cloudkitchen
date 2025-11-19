@@ -2,14 +2,7 @@
 /*
  * cart.php
  * KitchCo: Cloud Kitchen View Cart Page
- * Version 1.7 - (MODIFIED) Fixed responsive layout for small mobile screens.
- *
- * This page:
- * 1. Displays all items in the session cart.
- * 2. Allows users to update quantities or remove items.
- * 3. Shows the subtotal.
- * 4. Allows applying a coupon code.
- * 5. Links to checkout.
+ * Version 2.1 - (FIXED) Quantity Selector Layout & Missing Icons
  */
 
 // 1. PAGE SETUP
@@ -27,153 +20,245 @@ foreach ($cart as $item) {
     $subtotal += $item['single_item_price'] * $item['quantity'];
 }
 
+// 4. --- FETCH CROSS-SELL ITEMS ---
+$cross_sell_items = [];
+$sql_cross = "SELECT id, name, price, image, description FROM menu_items 
+              WHERE category_id IN (4, 9) AND is_available = 1 
+              ORDER BY RAND() LIMIT 3";
+$result_cross = $db->query($sql_cross);
+if ($result_cross) {
+    while ($row = $result_cross->fetch_assoc()) {
+        $cross_sell_items[] = $row;
+    }
+}
 ?>
 
-<h1 class="text-3xl font-bold text-gray-900 mb-8">Your Shopping Cart</h1>
+<div class="bg-gray-50 min-h-screen font-sans text-gray-800 pb-12">
+    <main class="container mx-auto px-4 py-8 max-w-6xl">
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Your Shopping Cart</h1>
 
-    <!-- Column 1: Cart Items -->
-    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
-        <?php if (empty($cart)): ?>
-            <div class="text-center py-12">
-                <img src="https://placehold.co/100x100/EFEFEF/AAAAAA?text=Cart" alt="Empty Cart" class="mx-auto h-24 w-24 text-gray-400">
-                <h2 class="mt-4 text-xl font-bold text-gray-900">Your cart is empty</h2>
-                <p class="mt-2 text-gray-600">Looks like you haven't added any items yet.</p>
-                <!-- (MODIFIED) Clean URL -->
-                <a href="<?php echo BASE_URL; ?>/menu" class="mt-6 inline-block px-6 py-3 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700">
-                    Browse Our Menu
-                </a>
-            </div>
-        <?php else: ?>
-            <div class="flow-root">
-                <ul role="list" class="-my-6 divide-y divide-gray-200">
-                    <?php foreach ($cart as $cart_key => $item): ?>
-                        <!-- 
-                            FIX: Changed "flex" to "flex-col sm:flex-row"
-                            This stacks the item image and details vertically on mobile (default)
-                            and puts them in a row on screens 'sm' (640px) and larger.
-                        -->
-                        <li class="flex flex-col sm:flex-row py-6">
-                            <!-- (MODIFIED) Show item image -->
-                            <div class="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200">
-                                <img 
-                                    src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item')); ?>" 
-                                    alt="<?php echo e($item['item_name']); ?>" 
-                                    class="h-full w-full object-cover object-center"
-                                    onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item'"
-                                >
-                            </div>
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <!-- LEFT COLUMN: Cart Items & Cross Sells -->
+            <div class="flex-grow space-y-6">
 
-                            <!-- 
-                                FIX: Changed "ml-4" to "mt-4 sm:mt-0 sm:ml-4"
-                                This adds margin-top on mobile (when stacked) and
-                                switches to margin-left on 'sm' screens (when in a row).
-                            -->
-                            <div class="mt-4 sm:mt-0 sm:ml-4 flex flex-1 flex-col">
+                <?php if (empty($cart)): ?>
+                    <!-- Empty State -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                        <div class="w-24 h-24 bg-orange-50 text-orange-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-cart-shopping text-4xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+                        <p class="text-gray-500 mb-8">Looks like you haven't added any delicious food yet.</p>
+                        <a href="<?php echo BASE_URL; ?>/menu" class="inline-flex items-center justify-center px-8 py-3 bg-brand-red text-white font-bold rounded-xl shadow-md hover:bg-red-700 transition-all transform hover:-translate-y-0.5">
+                            Browse Full Menu
+                        </a>
+                    </div>
+                <?php else: ?>
+
+                    <!-- Cart Items List -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <!-- Header Row (Desktop) -->
+                        <div class="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div class="col-span-6">Product</div>
+                            <div class="col-span-3 text-center">Quantity</div>
+                            <div class="col-span-3 text-right">Total</div>
+                        </div>
+
+                        <?php foreach ($cart as $cart_key => $item): 
+                            $item_total = $item['single_item_price'] * $item['quantity'];
+                        ?>
+                        <!-- Item Row -->
+                        <div class="p-6 border-b last:border-b-0 flex flex-col md:grid md:grid-cols-12 gap-6 items-center hover:bg-gray-50 transition-colors">
+                            
+                            <!-- Image & Details -->
+                            <div class="col-span-6 w-full flex gap-4 items-start">
+                                <div class="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                                    <img 
+                                        src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item')); ?>" 
+                                        alt="<?php echo e($item['item_name']); ?>" 
+                                        class="h-full w-full object-cover"
+                                        onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=Item'"
+                                    >
+                                </div>
                                 <div>
-                                    <div class="flex justify-between text-base font-medium text-gray-900">
-                                        <h3><?php echo e($item['item_name']); ?></h3>
-                                        <p class="ml-4"><?php echo e(number_format($item['single_item_price'] * $item['quantity'], 2)); ?> BDT</p>
-                                    </div>
-                                    <!-- Options List -->
+                                    <h3 class="text-base font-bold text-gray-900"><?php echo e($item['item_name']); ?></h3>
+                                    
                                     <?php if (!empty($item['options'])): ?>
-                                        <div class="mt-1 text-sm text-gray-500">
+                                        <div class="mt-1 text-xs text-gray-600 space-y-0.5">
                                             <?php foreach ($item['options'] as $option): ?>
-                                                <div><?php echo e($option['name']); ?> (+<?php echo e(number_format($option['price'], 2)); ?>)</div>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="fa-solid fa-check text-green-500 text-[10px]"></i>
+                                                    <span><?php echo e($option['name']); ?> (+<?php echo number_format($option['price'], 0); ?>)</span>
+                                                </div>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-                                </div>
-                                <div class="flex flex-1 items-end justify-between text-sm">
-                                    <!-- Quantity Form -->
-                                    <!-- (MODIFIED) Action points to the .php file, not a clean URL -->
-                                    <form action="cart_actions.php" method="POST" class="flex items-center">
-                                        <input type="hidden" name="action" value="update">
-                                        <input type="hidden" name="cart_key" value="<?php echo e($cart_key); ?>">
-                                        <!-- (NEW) CSRF Token -->
-                                        <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
-                                        <label for="quantity-<?php echo e($cart_key); ?>" class="mr-2 text-gray-700">Qty:</label>
-                                        <input type="number" id="quantity-<?php echo e($cart_key); ?>" name="quantity" value="<?php echo e($item['quantity']); ?>" min="0" class="w-16 px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                                        <!-- (MODIFIED) Button styling updated -->
-                                        <button type="submit" class="ml-2 px-3 py-1 bg-brand-yellow text-gray-900 font-semibold rounded-lg shadow-sm hover:bg-yellow-500 transition-colors text-xs">Update</button>
-                                    </form>
 
-                                    <!-- Remove Button -->
-                                    <div class="flex">
-                                        <!-- (FIXED) Changed from <a> link to a <form> to use POST -->
-                                        <!-- (MODIFIED) Action points to the .php file, not a clean URL -->
-                                        <form action="cart_actions.php" method="POST">
+                                    <div class="mt-3 flex gap-3 text-xs font-medium">
+                                        <form action="cart_actions.php" method="POST" class="inline">
                                             <input type="hidden" name="action" value="remove">
                                             <input type="hidden" name="cart_key" value="<?php echo e($cart_key); ?>">
-                                            <!-- (NEW) CSRF Token -->
                                             <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
-                                            <!-- (MODIFIED) Button styling updated -->
-                                            <button type="submit" 
-                                                    class="font-medium text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
-                                                    onclick="return confirm('Are you sure you want to remove this item?');">
-                                                Remove
+                                            <button type="submit" class="text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors" onclick="return confirm('Remove this item?');">
+                                                <i class="fa-solid fa-trash"></i> Remove
                                             </button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-    </div>
 
-    <!-- Column 2: Order Summary -->
-    <?php if (!empty($cart)): ?>
-    <aside class="lg:col-span-1">
-        <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-24">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-3">Order Summary</h2>
-            <div class="space-y-3">
-                <div class="flex justify-between text-base font-medium text-gray-900">
-                    <p>Subtotal</p>
-                    <p><?php echo e(number_format($subtotal, 2)); ?> BDT</p>
-                </div>
-                <p class="text-sm text-gray-500">
-                    Discount, shipping and taxes will be calculated at checkout.
-                </p>
+                            <!-- Quantity Selector (FIXED) -->
+                            <div class="col-span-3 flex justify-center w-full md:w-auto">
+                                <form action="cart_actions.php" method="POST" class="flex items-center border border-gray-300 rounded-lg bg-white overflow-hidden h-9">
+                                    <input type="hidden" name="action" value="update">
+                                    <input type="hidden" name="cart_key" value="<?php echo e($cart_key); ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                                    
+                                    <!-- Minus Button -->
+                                    <button type="submit" name="quantity" value="<?php echo max(0, $item['quantity'] - 1); ?>" 
+                                            class="px-3 bg-gray-50 hover:bg-gray-100 text-gray-600 border-r border-gray-200 h-full transition-colors flex items-center justify-center">
+                                        <i class="fa-solid fa-minus text-xs"></i>
+                                    </button>
+                                    
+                                    <!-- Display (Replaced Input with Div to fix double border) -->
+                                    <div class="w-12 text-center text-sm font-semibold text-gray-900 select-none flex items-center justify-center h-full">
+                                        <?php echo e($item['quantity']); ?>
+                                    </div>
+                                    
+                                    <!-- Plus Button -->
+                                    <button type="submit" name="quantity" value="<?php echo $item['quantity'] + 1; ?>" 
+                                            class="px-3 bg-gray-50 hover:bg-gray-100 text-gray-600 border-l border-gray-200 h-full transition-colors flex items-center justify-center">
+                                        <i class="fa-solid fa-plus text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
 
-                <!-- (NEW) Coupon Form -->
-                <div class="mt-4 space-y-2 border-t pt-4">
-                    <form id="cart-coupon-form">
-                        <label for="cart_coupon_code" class="block text-sm font-medium text-gray-700">Have a coupon?</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="cart_coupon_code" name="coupon_code" placeholder="Enter coupon code" class="flex-grow mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
-                            <button type="submit" id="cart-apply-coupon-btn" class="mt-1 px-5 py-3 bg-brand-yellow text-gray-900 font-semibold rounded-lg shadow-sm hover:bg-yellow-500 transition-colors">Apply</button>
+                            <!-- Total Price -->
+                            <div class="col-span-3 text-right w-full md:w-auto flex justify-between md:block items-center">
+                                <span class="md:hidden text-sm font-medium text-gray-500">Total:</span>
+                                <p class="text-lg font-bold text-brand-red"><?php echo number_format($item_total, 0); ?> BDT</p>
+                            </div>
                         </div>
-                        <p id="cart-coupon-message" class="text-sm mt-1"></p>
-                    </form>
-                </div>
+                        <?php endforeach; ?>
 
-                <div class="mt-6">
-                    <!-- (MODIFIED) Clean URL -->
-                    <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
-                    <a href="<?php echo BASE_URL; ?>/checkout" class="flex w-full items-center justify-center rounded-lg border border-transparent bg-brand-red px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 <?php echo ($store_is_open == '0') ? 'opacity-50 cursor-not-allowed' : ''; ?>"
-                       <?php echo ($store_is_open == '0') ? 'onclick="event.preventDefault(); alert(\'The store is currently closed.\');"' : ''; ?>>
-                        Proceed to Checkout
-                    </a>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Cross Sells -->
+                <?php if (!empty($cross_sell_items)): ?>
+                <div class="mt-8">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Complete your meal</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <?php foreach ($cross_sell_items as $cs_item): ?>
+                        <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow cursor-pointer group">
+                            <div class="h-12 w-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                                <img 
+                                    src="<?php echo e(BASE_URL . ($cs_item['image'] ?? 'https://placehold.co/100x100/EFEFEF/AAAAAA?text=Add')); ?>" 
+                                    class="h-full w-full object-cover group-hover:scale-110 transition-transform"
+                                    onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text=Add'"
+                                >
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                <h4 class="text-sm font-bold text-gray-800 truncate"><?php echo e($cs_item['name']); ?></h4>
+                                <p class="text-xs text-gray-500"><?php echo number_format($cs_item['price'], 0); ?> BDT</p>
+                            </div>
+                            
+                            <!-- Quick Add Form -->
+                            <form action="cart_actions.php" method="POST">
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="item_id" value="<?php echo $cs_item['id']; ?>">
+                                <input type="hidden" name="quantity" value="1">
+                                <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
+                                <!-- Added type="submit" and flex/justify/items center to center the icon -->
+                                <button type="submit" class="h-8 w-8 rounded-full bg-gray-100 text-gray-600 hover:bg-brand-red hover:text-white flex items-center justify-center transition-colors">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-                <div class="mt-4 text-center text-sm">
-                    <!-- (MODIFIED) Clean URL -->
-                    <!-- (MODIFIED) Link styling updated from brand-orange to brand-red -->
-                    <a href="<?php echo BASE_URL; ?>/menu" class="font-medium text-brand-red hover:text-red-700">
-                        or Continue Shopping &rarr;
+                <?php endif; ?>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Order Summary -->
+            <?php if (!empty($cart)): ?>
+            <div class="lg:w-96 flex-shrink-0">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sticky top-24">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-4">Order Summary</h2>
+                    
+                    <div class="space-y-3 text-sm text-gray-600 mb-6">
+                        <div class="flex justify-between">
+                            <span>Subtotal</span>
+                            <span class="font-semibold text-gray-900"><?php echo number_format($subtotal, 0); ?> BDT</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center gap-1">
+                                Delivery Fee
+                                <i class="fa-regular fa-circle-question text-gray-400 cursor-help" title="Calculated based on your location at checkout"></i>
+                            </span>
+                            <span class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">Calculated at checkout</span>
+                        </div>
+                    </div>
+
+                    <!-- Coupon Code -->
+                    <div class="mb-6">
+                         <form id="cart-coupon-form">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs font-bold uppercase text-gray-500">Coupon Code</label>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="cart_coupon_code" placeholder="Enter code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 text-sm">
+                                <button type="submit" id="cart-apply-coupon-btn" class="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
+                                    Apply
+                                </button>
+                            </div>
+                            <p id="cart-coupon-message" class="text-xs mt-2 hidden"></p>
+                        </form>
+                    </div>
+
+                    <div class="border-t border-dashed border-gray-300 my-4"></div>
+
+                    <!-- Total -->
+                    <div class="flex justify-between items-end mb-6">
+                        <span class="text-base font-bold text-gray-900">Total Amount</span>
+                        <div class="text-right">
+                            <span class="block text-2xl font-extrabold text-brand-red"><?php echo number_format($subtotal, 0); ?> BDT</span>
+                            <span class="text-xs text-gray-500">(Excl. delivery)</span>
+                        </div>
+                    </div>
+
+                    <!-- Checkout Button -->
+                    <a href="<?php echo BASE_URL; ?>/checkout" class="block w-full py-3.5 bg-brand-red text-white font-bold rounded-xl shadow-md hover:bg-red-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5 text-center flex items-center justify-center gap-2 <?php echo ($settings['store_is_open'] == '0') ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''; ?>">
+                        Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
                     </a>
+                    
+                    <?php if ($settings['store_is_open'] == '0'): ?>
+                        <p class="text-xs text-red-500 text-center mt-2">Store is currently closed.</p>
+                    <?php endif; ?>
+                    
+                    <a href="<?php echo BASE_URL; ?>/menu" class="block text-center text-sm font-medium text-gray-500 mt-4 hover:text-gray-800">
+                        or Continue Shopping
+                    </a>
+                    
+                    <div class="mt-4 text-center">
+                         <div class="inline-flex items-center justify-center gap-1 text-xs text-green-600 font-medium bg-green-50 py-1 px-3 rounded-full">
+                            <i class="fa-regular fa-clock"></i> Est. Delivery: 30-45 mins
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
-    </aside>
-    <?php endif; ?>
+            <?php endif; ?>
 
+        </div>
+
+    </main>
 </div>
 
-<!-- (NEW) JavaScript for Cart Coupon -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const couponForm = document.getElementById('cart-coupon-form');
@@ -181,69 +266,68 @@ foreach ($cart as $item) {
         const couponBtn = document.getElementById('cart-apply-coupon-btn');
         const couponMsg = document.getElementById('cart-coupon-message');
 
-        // Check if a coupon is already applied in session storage
         const appliedCoupon = sessionStorage.getItem('coupon_code');
         if (appliedCoupon) {
             couponInput.value = appliedCoupon;
-            couponMsg.textContent = 'Coupon applied! Proceed to checkout to see discount.';
-            couponMsg.className = 'text-sm mt-1 text-green-600';
+            couponMsg.textContent = 'Code applied! Discount will appear at checkout.';
+            couponMsg.className = 'text-xs mt-2 text-green-600 block';
             couponInput.disabled = true;
             couponBtn.textContent = 'Applied';
             couponBtn.disabled = true;
+            couponBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
-        couponForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const code = couponInput.value.trim();
-            if (!code) {
-                couponMsg.textContent = 'Please enter a code.';
-                couponMsg.className = 'text-sm mt-1 text-red-600';
-                return;
-            }
+        if (couponForm) {
+            couponForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const code = couponInput.value.trim();
+                if (!code) {
+                    couponMsg.textContent = 'Please enter a code.';
+                    couponMsg.className = 'text-xs mt-2 text-red-600 block';
+                    return;
+                }
 
-            couponBtn.disabled = true;
-            couponBtn.textContent = '...';
+                couponBtn.disabled = true;
+                couponBtn.textContent = '...';
 
-            // For simplicity, we'll use the same AJAX file as checkout
-            try {
-                const formData = new FormData();
-                formData.append('coupon_code', code);
-                formData.append('subtotal', <?php echo $subtotal; ?>); // Pass current subtotal
-                formData.append('csrf_token', '<?php echo e(get_csrf_token()); ?>');
+                try {
+                    const formData = new FormData();
+                    formData.append('coupon_code', code);
+                    formData.append('subtotal', <?php echo $subtotal; ?>);
+                    formData.append('csrf_token', '<?php echo e(get_csrf_token()); ?>');
 
-                const response = await fetch('ajax_apply_coupon.php', {
-                    method: 'POST',
-                    body: formData
-                });
+                    const response = await fetch('ajax_apply_coupon.php', {
+                        method: 'POST',
+                        body: formData
+                    });
 
-                if (!response.ok) throw new Error('Network error');
-                
-                const data = await response.json();
+                    if (!response.ok) throw new Error('Network error');
+                    
+                    const data = await response.json();
 
-                if (data.success) {
-                    // Store the valid code to be used on the checkout page
-                    sessionStorage.setItem('coupon_code', code);
-                    couponMsg.textContent = 'Coupon applied! Proceed to checkout to see discount.';
-                    couponMsg.className = 'text-sm mt-1 text-green-600';
-                    couponInput.disabled = true;
-                    couponBtn.textContent = 'Applied';
-                } else {
-                    couponMsg.textContent = data.message;
-                    couponMsg.className = 'text-sm mt-1 text-red-600';
+                    if (data.success) {
+                        sessionStorage.setItem('coupon_code', code);
+                        couponMsg.textContent = 'Code valid! Discount will appear at checkout.';
+                        couponMsg.className = 'text-xs mt-2 text-green-600 block';
+                        couponInput.disabled = true;
+                        couponBtn.textContent = 'Applied';
+                    } else {
+                        couponMsg.textContent = data.message;
+                        couponMsg.className = 'text-xs mt-2 text-red-600 block';
+                        couponBtn.disabled = false;
+                        couponBtn.textContent = 'Apply';
+                    }
+                } catch (error) {
+                    couponMsg.textContent = 'Error: ' + error.message;
+                    couponMsg.className = 'text-xs mt-2 text-red-600 block';
                     couponBtn.disabled = false;
                     couponBtn.textContent = 'Apply';
                 }
-            } catch (error) {
-                couponMsg.textContent = 'Error: ' + error.message;
-                couponMsg.className = 'text-sm mt-1 text-red-600';
-                couponBtn.disabled = false;
-                couponBtn.textContent = 'Apply';
-            }
-        });
+            });
+        }
     });
 </script>
 
 <?php
-// 5. FOOTER
 require_once('includes/footer.php');
 ?>

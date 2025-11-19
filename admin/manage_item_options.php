@@ -2,7 +2,7 @@
 /*
  * admin/manage_item_options.php
  * KitchCo: Cloud Kitchen Item Options Manager
- * Version 1.2 - (FIXED) Added error handling for deletes
+ * Version 1.5 - (RESTORED) Admin Only Access
  *
  * This page handles full CRUD for:
  * 1. `item_options_groups` (e.g., "Size", "Toppings")
@@ -12,7 +12,14 @@
 // 1. HEADER
 require_once('header.php');
 
-// 2. PAGE VARIABLES & INITIALIZATION
+// 2. SECURITY CHECK
+// (RESTORED) Only Admins can access this page.
+if (!hasAdminAccess()) {
+    header('Location: live_orders.php');
+    exit;
+}
+
+// 3. PAGE VARIABLES & INITIALIZATION
 $action = $_GET['action'] ?? 'list_groups'; // Default action
 $group_id = $_GET['group_id'] ?? $_GET['id'] ?? null;
 $option_id = $_GET['option_id'] ?? null;
@@ -27,7 +34,7 @@ $option_price = 0;
 $error_message = '';
 $success_message = '';
 
-// 3. --- HANDLE POST REQUESTS (Create/Update Groups & Options) ---
+// 4. --- HANDLE POST REQUESTS (Create/Update Groups & Options) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // (NEW) CSRF Token validation
@@ -75,7 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // --- B. Handle Option Form ---
         if ($form_type === 'option' && $group_id) {
             $option_name = $_POST['option_name'];
-            $option_price = $_POST['option_price'];
+            // (MODIFIED) Cast to int
+            $option_price = (int)$_POST['option_price'];
             $edit_option_id = $_POST['option_id'] ?? null;
 
             if (empty($option_name)) {
@@ -85,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // UPDATE Option
                     $sql = "UPDATE item_options SET name = ?, price_increase = ? WHERE id = ? AND group_id = ?";
                     $stmt = $db->prepare($sql);
+                    // (MODIFIED) Bind as integer ('i') or double ('d') but logic is int
                     $stmt->bind_param('sdii', $option_name, $option_price, $edit_option_id, $group_id);
                     if ($stmt->execute()) {
                         $success_message = 'Option updated successfully!';
@@ -111,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 4. --- HANDLE GET ACTIONS (Edit/Delete Groups & Options) ---
+// 5. --- HANDLE GET ACTIONS (Edit/Delete Groups & Options) ---
 // --- A. Group Actions ---
 if ($action === 'edit_group' && $group_id) {
     $page_title = 'Edit Option Group';
@@ -138,7 +147,6 @@ if ($action === 'delete_group' && $group_id) {
     } else {
         
         // (MODIFIED) Wrap database action in try...catch
-        // This prevents a fatal error (blank page) if a foreign key constraint fails
         try {
             $sql = "DELETE FROM item_options_groups WHERE id = ?";
             $stmt = $db->prepare($sql);
@@ -147,13 +155,11 @@ if ($action === 'delete_group' && $group_id) {
             if ($stmt->execute()) {
                 $success_message = 'Group and all its options deleted successfully!';
             } else {
-                // This will now be shown instead of a blank page
                 $error_message = 'Failed to delete group. It is likely linked to a menu item.';
             }
             $stmt->close();
             
         } catch (mysqli_sql_exception $e) {
-            // Catch the database-level error
             $error_message = 'Failed to delete group. It is linked to a menu item. Please remove it from all menu items first.';
         }
     }
@@ -171,7 +177,8 @@ if ($action === 'edit_option' && $group_id && $option_id) {
     if ($result->num_rows === 1) {
         $option = $result->fetch_assoc();
         $option_name = $option['name'];
-        $option_price = $option['price_increase'];
+        // (MODIFIED) Cast to int
+        $option_price = (int)$option['price_increase'];
     } else {
         $error_message = 'Option not found.';
     }
@@ -184,7 +191,6 @@ if ($action === 'delete_option' && $group_id && $option_id) {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // (MODIFIED) Wrap database action in try...catch
         try {
             $sql = "DELETE FROM item_options WHERE id = ? AND group_id = ?";
             $stmt = $db->prepare($sql);
@@ -203,7 +209,7 @@ if ($action === 'delete_option' && $group_id && $option_id) {
 }
 
 
-// 5. --- LOAD DATA FOR DISPLAY ---
+// 6. --- LOAD DATA FOR DISPLAY ---
 $groups = [];
 $options = [];
 $current_group_name = '';
@@ -268,11 +274,6 @@ if ($action === 'list_groups') {
     </div>
 <?php endif; ?>
 
-<!-- 
-This grid layout splits the page into two columns:
-1. The form (for adding/editing)
-2. The list (for viewing all items)
--->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <!-- Column 1: Add/Edit Form -->
@@ -286,7 +287,6 @@ This grid layout splits the page into two columns:
             </h2>
             
             <form action="manage_item_options.php" method="POST" class="space-y-4">
-                <!-- (NEW) CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 <input type="hidden" name="form_type" value="group">
                 <?php if ($action === 'edit_group' && $group_id): ?>
@@ -333,7 +333,6 @@ This grid layout splits the page into two columns:
             </h2>
             
             <form action="manage_item_options.php?action=manage_options&group_id=<?php echo e($group_id); ?>" method="POST" class="space-y-4">
-                <!-- (NEW) CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 <input type="hidden" name="form_type" value="option">
                 <?php if ($action === 'edit_option' && $option_id): ?>
@@ -350,9 +349,10 @@ This grid layout splits the page into two columns:
 
                 <div>
                     <label for="option_price" class="block text-sm font-medium text-gray-700">
-                        Price Increase (e.g., 50.00)
+                        Price Increase (e.g., 50)
                     </label>
-                    <input type="number" step="0.01" id="option_price" name="option_price" value="<?php echo e($option_price); ?>" required
+                    <!-- (MODIFIED) step="1" for integer -->
+                    <input type="number" step="1" id="option_price" name="option_price" value="<?php echo e((int)$option_price); ?>" required
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
 
@@ -401,7 +401,6 @@ This grid layout splits the page into two columns:
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="manage_item_options.php?action=manage_options&group_id=<?php echo e($group['id']); ?>" class="text-blue-600 hover:text-blue-900 font-bold">Manage Options</a>
                                         <a href="manage_item_options.php?action=edit_group&id=<?php echo e($group['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <!-- (MODIFIED) Added CSRF token to delete link -->
                                         <a href="manage_item_options.php?action=delete_group&id=<?php echo e($group['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
                                            class="text-red-600 hover:text-red-900" 
                                            onclick="return confirm('Are you sure you want to delete this group? ALL its options will be deleted.');">Delete</a>
@@ -435,10 +434,10 @@ This grid layout splits the page into two columns:
                             <?php foreach ($options as $option): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900"><?php echo e($option['name']); ?></div></td>
-                                    <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-700">+ <?php echo e(number_format($option['price_increase'], 2)); ?> BDT</div></td>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-700">+ <?php echo number_format($option['price_increase'], 0); ?> BDT</div></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="manage_item_options.php?action=edit_option&group_id=<?php echo e($group_id); ?>&option_id=<?php echo e($option['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <!-- (MODIFIED) Added CSRF token to delete link -->
                                         <a href="manage_item_options.php?action=delete_option&group_id=<?php echo e($group_id); ?>&option_id=<?php echo e($option['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
                                            class="text-red-600 hover:text-red-900" 
                                            onclick="return confirm('Are you sure you want to delete this option?');">Delete</a>

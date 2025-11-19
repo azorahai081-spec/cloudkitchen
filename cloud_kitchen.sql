@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 19, 2025 at 01:23 AM
+-- Generation Time: Nov 19, 2025 at 02:01 PM
 -- Server version: 8.0.31
 -- PHP Version: 8.1.13
 
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `admin_ledger` (
   `id` int NOT NULL AUTO_INCREMENT,
   `type` enum('deposit','withdrawal') COLLATE utf8mb4_unicode_ci NOT NULL,
   `entry_date` date NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
+  `amount` decimal(10,0) NOT NULL,
   `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -44,11 +44,11 @@ CREATE TABLE IF NOT EXISTS `admin_ledger` (
 --
 
 INSERT INTO `admin_ledger` (`id`, `type`, `entry_date`, `amount`, `description`, `created_at`) VALUES
-(3, 'deposit', '2025-10-01', '1000.00', '', '2025-11-16 16:42:56'),
-(4, 'deposit', '2025-10-02', '10000.00', '', '2025-11-16 16:48:18'),
-(5, 'deposit', '2025-11-01', '5000.00', '', '2025-11-16 16:48:43'),
-(6, 'withdrawal', '2025-11-16', '20000.00', '', '2025-11-16 17:16:09'),
-(7, 'deposit', '2025-11-16', '30000.00', '', '2025-11-16 17:16:16');
+(3, 'deposit', '2025-10-01', '1000', '', '2025-11-16 16:42:56'),
+(4, 'deposit', '2025-10-02', '10000', '', '2025-11-16 16:48:18'),
+(5, 'deposit', '2025-11-01', '5000', '', '2025-11-16 16:48:43'),
+(6, 'withdrawal', '2025-11-16', '20000', '', '2025-11-16 17:16:09'),
+(7, 'deposit', '2025-11-16', '30000', '', '2025-11-16 17:16:16');
 
 -- --------------------------------------------------------
 
@@ -169,8 +169,8 @@ CREATE TABLE IF NOT EXISTS `coupons` (
   `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `type` enum('percentage','fixed') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'fixed',
-  `value` decimal(10,2) NOT NULL DEFAULT '0.00',
-  `min_order_amount` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `value` decimal(10,0) NOT NULL,
+  `min_order_amount` decimal(10,0) NOT NULL,
   `start_date` datetime NOT NULL,
   `end_date` datetime NOT NULL,
   `max_uses` int NOT NULL DEFAULT '100',
@@ -185,8 +185,8 @@ CREATE TABLE IF NOT EXISTS `coupons` (
 --
 
 INSERT INTO `coupons` (`id`, `code`, `description`, `type`, `value`, `min_order_amount`, `start_date`, `end_date`, `max_uses`, `current_uses`, `is_active`) VALUES
-(1, 'EID50', '', 'percentage', '50.00', '0.00', '2025-11-15 19:44:00', '2025-12-15 19:44:00', 1, 1, 1),
-(2, 'EID501', '', 'percentage', '50.00', '0.00', '2025-11-16 11:50:00', '2025-12-16 11:50:00', 1, 1, 1);
+(1, 'EID50', '', 'percentage', '50', '0', '2025-11-15 19:44:00', '2025-12-15 19:44:00', 1, 1, 1),
+(2, 'EID501', '', 'percentage', '50', '0', '2025-11-16 11:50:00', '2025-12-16 11:50:00', 1, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -198,7 +198,7 @@ DROP TABLE IF EXISTS `delivery_areas`;
 CREATE TABLE IF NOT EXISTS `delivery_areas` (
   `id` int NOT NULL AUTO_INCREMENT,
   `area_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `base_charge` decimal(10,2) NOT NULL,
+  `base_charge` decimal(10,0) NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -208,9 +208,9 @@ CREATE TABLE IF NOT EXISTS `delivery_areas` (
 --
 
 INSERT INTO `delivery_areas` (`id`, `area_name`, `base_charge`, `is_active`) VALUES
-(1, 'Chwakbazar', '20.00', 1),
-(2, 'Agrabad', '120.00', 1),
-(3, 'PICKUP POINT', '0.00', 1);
+(1, 'Chwakbazar', '20', 1),
+(2, 'Agrabad', '120', 1),
+(3, 'PICKUP POINT', '0', 1);
 
 -- --------------------------------------------------------
 
@@ -276,10 +276,19 @@ CREATE TABLE IF NOT EXISTS `item_options` (
   `id` int NOT NULL AUTO_INCREMENT,
   `group_id` int NOT NULL,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `price_increase` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `price_increase` decimal(10,0) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `group_id` (`group_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `item_options`
+--
+
+INSERT INTO `item_options` (`id`, `group_id`, `name`, `price_increase`) VALUES
+(7, 10, '10 Inch', '100'),
+(8, 11, 'Extra Cheese', '50'),
+(9, 11, 'Extra Sauce', '10');
 
 -- --------------------------------------------------------
 
@@ -293,7 +302,15 @@ CREATE TABLE IF NOT EXISTS `item_options_groups` (
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` enum('radio','checkbox') COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `item_options_groups`
+--
+
+INSERT INTO `item_options_groups` (`id`, `name`, `type`) VALUES
+(10, 'Size', 'radio'),
+(11, 'Toppings', 'checkbox');
 
 -- --------------------------------------------------------
 
@@ -307,7 +324,7 @@ CREATE TABLE IF NOT EXISTS `menu_items` (
   `category_id` int NOT NULL,
   `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text COLLATE utf8mb4_unicode_ci,
-  `price` decimal(10,2) NOT NULL,
+  `price` decimal(10,0) NOT NULL,
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_available` tinyint(1) NOT NULL DEFAULT '1',
   `is_featured` tinyint(1) NOT NULL DEFAULT '0',
@@ -320,27 +337,27 @@ CREATE TABLE IF NOT EXISTS `menu_items` (
 --
 
 INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `image`, `is_available`, `is_featured`) VALUES
-(4, 4, 'CRISPY WINGS-6PCS', 'Golden, crunchy chicken wings seasoned to perfection.', '190.00', '/uploads/menu_items/1763281022_CRISPYWINGs.jpeg', 1, 0),
-(5, 4, 'PERI PERI WINGS-6PCS', 'Zesty peri peri wings bursting with spicy, citrusy flavours.', '220.00', '/uploads/menu_items/1763281010_PERIPERIWINGs.jpeg', 1, 0),
-(6, 4, 'BUFFALO WINGS-6PCS', 'Tangy and spicy Buffalo-style wings with a bold kick.', '230.00', '/uploads/menu_items/1763280989_BUFFALOWINGs.jpeg', 1, 1),
-(7, 4, 'BBQ WINGS-6PCS', 'Crispy chicken wings coated in sweet and smoky BBQ sauce.', '200.00', '/uploads/menu_items/1763280977_BBQWINGSs.jpeg', 1, 1),
-(8, 5, 'REGULAR MEAT BOX', 'A classic meat box with perfectly seasoned chicken and a balanced flavour profile.', '180.00', '/uploads/menu_items/1763280964_REGULARMEATBOx.jpeg', 1, 0),
-(9, 5, 'BBQ MEAT BOX', 'Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.', '200.00', '/uploads/menu_items/1763280951_BBQMEAt.jpeg', 1, 1),
-(10, 5, 'NAGA MEAT BOX', 'A spicy meat box infused with bold Naga chilli flavour for heat lovers.', '200.00', '/uploads/menu_items/1763280935_nagameatbox.jpeg', 1, 0),
-(11, 5, 'CHEESY MEAT BOX', 'A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.', '230.00', '/uploads/menu_items/1763280918_cheesymeat.png', 1, 0),
-(12, 5, 'MEAT BOX WITH DUMSTRIC (LARGE SIZE)', 'A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.', '358.00', '/uploads/menu_items/1763280673_MEATBOXWITHDUMSTRIC.png', 1, 1),
-(13, 8, 'OVEN BAKED PASTA', 'Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.', '200.00', '/uploads/menu_items/1763280577_ovenbaked.png', 1, 0),
-(14, 8, 'MASALA PASTA', 'A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.', '200.00', '/uploads/menu_items/1763280509_MASALAPASTA.png', 1, 0),
-(15, 8, 'GREEN SAUCE PASTA', 'Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.', '200.00', '/uploads/menu_items/1763280463_GREENSAUCEPASTA.png', 1, 0),
-(16, 8, 'WHITE SAUCE PASTA', 'Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.', '230.00', '/uploads/menu_items/1763280427_WHITESAUCEPASTA.png', 1, 1),
-(17, 8, 'SPICY CREAMY PASTA', 'A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.', '200.00', '/uploads/menu_items/1763280352_SPICYCREAMYPASTA.png', 1, 0),
-(18, 6, 'CHICKEN RICE BOWL (FRIED RICE)', 'Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.', '200.00', '/uploads/menu_items/1763280300_CHICKENRICEBOWL.png', 1, 0),
-(19, 6, 'SAUSAGE RICE BOWL (FRIED RICE)', 'Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.', '180.00', '/uploads/menu_items/1763280225_SAUSAGERICEBOWL.png', 1, 1),
-(20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128.00', '/uploads/menu_items/1763280186_chickendum.png', 1, 1),
-(21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348.00', '/uploads/menu_items/1763242197_1.webp', 1, 1),
-(22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398.00', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1),
-(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70.00', '/uploads/menu_items/1763286907_images.jfif', 1, 0),
-(24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90.00', '/uploads/menu_items/1763286952_images1.jfif', 1, 0);
+(4, 4, 'CRISPY WINGS-6PCS', 'Golden, crunchy chicken wings seasoned to perfection.', '190', '/uploads/menu_items/1763281022_CRISPYWINGs.jpeg', 1, 0),
+(5, 4, 'PERI PERI WINGS-6PCS', 'Zesty peri peri wings bursting with spicy, citrusy flavours.', '220', '/uploads/menu_items/1763281010_PERIPERIWINGs.jpeg', 1, 0),
+(6, 4, 'BUFFALO WINGS-6PCS', 'Tangy and spicy Buffalo-style wings with a bold kick.', '230', '/uploads/menu_items/1763280989_BUFFALOWINGs.jpeg', 1, 1),
+(7, 4, 'BBQ WINGS-6PCS', 'Crispy chicken wings coated in sweet and smoky BBQ sauce.', '200', '/uploads/menu_items/1763280977_BBQWINGSs.jpeg', 1, 1),
+(8, 5, 'REGULAR MEAT BOX', 'A classic meat box with perfectly seasoned chicken and a balanced flavour profile.', '180', '/uploads/menu_items/1763280964_REGULARMEATBOx.jpeg', 1, 0),
+(9, 5, 'BBQ MEAT BOX', 'Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.', '200', '/uploads/menu_items/1763280951_BBQMEAt.jpeg', 1, 1),
+(10, 5, 'NAGA MEAT BOX', 'A spicy meat box infused with bold Naga chilli flavour for heat lovers.', '200', '/uploads/menu_items/1763280935_nagameatbox.jpeg', 1, 0),
+(11, 5, 'CHEESY MEAT BOX', 'A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.', '230', '/uploads/menu_items/1763280918_cheesymeat.png', 1, 0),
+(12, 5, 'MEAT BOX WITH DUMSTRIC (LARGE SIZE)', 'A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.', '358', '/uploads/menu_items/1763280673_MEATBOXWITHDUMSTRIC.png', 1, 1),
+(13, 8, 'OVEN BAKED PASTA', 'Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.', '200', '/uploads/menu_items/1763280577_ovenbaked.png', 1, 0),
+(14, 8, 'MASALA PASTA', 'A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.', '200', '/uploads/menu_items/1763280509_MASALAPASTA.png', 1, 0),
+(15, 8, 'GREEN SAUCE PASTA', 'Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.', '200', '/uploads/menu_items/1763280463_GREENSAUCEPASTA.png', 1, 0),
+(16, 8, 'WHITE SAUCE PASTA', 'Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.', '230', '/uploads/menu_items/1763280427_WHITESAUCEPASTA.png', 1, 1),
+(17, 8, 'SPICY CREAMY PASTA', 'A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.', '200', '/uploads/menu_items/1763280352_SPICYCREAMYPASTA.png', 1, 0),
+(18, 6, 'CHICKEN RICE BOWL (FRIED RICE)', 'Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.', '200', '/uploads/menu_items/1763280300_CHICKENRICEBOWL.png', 1, 0),
+(19, 6, 'SAUSAGE RICE BOWL (FRIED RICE)', 'Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.', '180', '/uploads/menu_items/1763280225_SAUSAGERICEBOWL.png', 1, 1),
+(20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128', '/uploads/menu_items/1763280186_chickendum.png', 1, 1),
+(21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '348', '/uploads/menu_items/1763242197_1.webp', 1, 1),
+(22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1),
+(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70', '/uploads/menu_items/1763286907_images.jfif', 1, 0),
+(24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90', '/uploads/menu_items/1763286952_images1.jfif', 1, 0);
 
 -- --------------------------------------------------------
 
@@ -356,6 +373,16 @@ CREATE TABLE IF NOT EXISTS `menu_item_options_groups` (
   KEY `fk_group_id` (`option_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `menu_item_options_groups`
+--
+
+INSERT INTO `menu_item_options_groups` (`menu_item_id`, `option_group_id`) VALUES
+(21, 10),
+(22, 10),
+(21, 11),
+(22, 11);
+
 -- --------------------------------------------------------
 
 --
@@ -370,38 +397,39 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `customer_address` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `order_note` text COLLATE utf8mb4_unicode_ci,
   `delivery_area_id` int NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL,
-  `delivery_fee` decimal(10,2) NOT NULL,
-  `delivery_adjustment` decimal(10,2) NOT NULL DEFAULT '0.00',
-  `total_amount` decimal(10,2) NOT NULL,
+  `subtotal` decimal(10,0) NOT NULL,
+  `delivery_fee` decimal(10,0) NOT NULL,
+  `delivery_adjustment` decimal(10,0) NOT NULL DEFAULT '0',
+  `total_amount` decimal(10,0) NOT NULL,
   `order_status` enum('Pending','Preparing','Ready','Delivered','Cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Pending',
   `order_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `rider_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `coupon_id` int DEFAULT NULL,
   `discount_type` enum('none','percentage','fixed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'none',
-  `discount_amount` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `discount_amount` decimal(10,0) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `delivery_area_id` (`delivery_area_id`),
   KEY `fk_order_coupon` (`coupon_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `orders`
 --
 
 INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address`, `order_note`, `delivery_area_id`, `subtotal`, `delivery_fee`, `delivery_adjustment`, `total_amount`, `order_status`, `order_time`, `rider_name`, `coupon_id`, `discount_type`, `discount_amount`) VALUES
-(10, 'Arif', '01820331015', 'adasd', NULL, 1, '800.00', '30.00', '0.00', '707.00', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123.00'),
-(11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950.00', '30.00', '0.00', '1005.00', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975.00'),
-(12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200.00', '20.00', '0.00', '220.00', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0.00'),
-(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620.00', '30.00', '0.00', '340.00', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310.00'),
-(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720.00', '130.00', '0.00', '490.00', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360.00'),
-(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '200.00', '107.00', '-13.00', '307.00', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0.00'),
-(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470.00', '10.00', '0.00', '2480.00', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0.00'),
-(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230.00', '20.00', '0.00', '250.00', 'Delivered', '2025-11-18 09:23:23', NULL, NULL, 'none', '0.00'),
-(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90.00', '20.00', '0.00', '110.00', 'Delivered', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0.00'),
-(29, 'Safin', '01420332015', 'sadasd', '', 1, '968.00', '63.00', '10.00', '1031.00', 'Delivered', '2025-11-18 16:01:38', NULL, NULL, 'none', '0.00'),
-(30, 'Arif', '01820336015', 'dsdad', '', 2, '200.00', '120.00', '0.00', '320.00', 'Delivered', '2025-11-18 16:40:31', NULL, NULL, 'none', '0.00'),
-(31, 'Arif', '01820336015', 'asdasd', '', 2, '748.00', '120.00', '0.00', '868.00', 'Cancelled', '2025-11-18 16:41:37', NULL, NULL, 'none', '0.00');
+(10, 'Arif', '01820331015', 'adasd', NULL, 1, '800', '30', '0', '707', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123'),
+(11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950', '30', '0', '1005', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975'),
+(12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200', '20', '0', '220', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0'),
+(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620', '30', '0', '340', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310'),
+(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720', '130', '0', '490', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360'),
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '200', '107', '-13', '307', 'Pending', '2025-11-15 14:22:32', NULL, NULL, 'none', '0'),
+(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470', '10', '0', '2480', 'Pending', '2025-11-17 07:26:11', NULL, NULL, 'none', '0'),
+(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230', '20', '0', '250', 'Delivered', '2025-11-18 09:23:23', NULL, NULL, 'none', '0'),
+(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90', '20', '0', '110', 'Delivered', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0'),
+(29, 'Safin', '01420332015', 'sadasd', '', 1, '968', '63', '10', '1031', 'Delivered', '2025-11-18 16:01:38', NULL, NULL, 'none', '0'),
+(30, 'Arif', '01820336015', 'dsdad', '', 2, '200', '120', '0', '320', 'Delivered', '2025-11-18 16:40:31', NULL, NULL, 'none', '0'),
+(31, 'Arif', '01820336015', 'asdasd', '', 2, '748', '120', '0', '868', 'Cancelled', '2025-11-18 16:41:37', NULL, NULL, 'none', '0'),
+(32, 'Neon', '01820336015', 'asvasvasv', '', 2, '200', '122', '2', '322', 'Delivered', '2025-11-19 01:44:58', NULL, NULL, 'none', '0');
 
 -- --------------------------------------------------------
 
@@ -415,44 +443,45 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   `order_id` int NOT NULL,
   `menu_item_id` int DEFAULT NULL,
   `quantity` int NOT NULL,
-  `base_price` decimal(10,2) NOT NULL,
-  `total_price` decimal(10,2) NOT NULL,
+  `base_price` decimal(10,0) NOT NULL,
+  `total_price` decimal(10,0) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `menu_item_id` (`menu_item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `order_items`
 --
 
 INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_price`, `total_price`) VALUES
-(13, 12, 7, 1, '200.00', '200.00'),
-(29, 13, 7, 1, '200.00', '200.00'),
-(30, 13, 7, 1, '200.00', '200.00'),
-(31, 13, 5, 1, '220.00', '220.00'),
-(32, 10, 7, 1, '200.00', '200.00'),
-(33, 10, 7, 3, '200.00', '600.00'),
-(36, 11, 7, 4, '200.00', '800.00'),
-(37, 11, 6, 5, '230.00', '1150.00'),
-(38, 14, 7, 4, '180.00', '720.00'),
-(57, 26, 5, 3, '220.00', '660.00'),
-(58, 26, 24, 3, '90.00', '270.00'),
-(59, 26, 4, 2, '190.00', '380.00'),
-(60, 26, 7, 2, '200.00', '400.00'),
-(61, 26, 8, 2, '180.00', '360.00'),
-(62, 26, 10, 2, '200.00', '400.00'),
-(63, 27, 6, 1, '230.00', '230.00'),
-(68, 15, 7, 1, '200.00', '200.00'),
-(69, 28, 24, 1, '90.00', '90.00'),
-(74, 29, 4, 1, '190.00', '190.00'),
-(75, 29, 5, 1, '220.00', '220.00'),
-(76, 29, 12, 1, '358.00', '358.00'),
-(77, 29, 15, 1, '200.00', '200.00'),
-(78, 30, 7, 1, '200.00', '200.00'),
-(79, 31, 7, 1, '200.00', '200.00'),
-(80, 31, 4, 1, '190.00', '190.00'),
-(81, 31, 12, 1, '358.00', '358.00');
+(13, 12, 7, 1, '200', '200'),
+(29, 13, 7, 1, '200', '200'),
+(30, 13, 7, 1, '200', '200'),
+(31, 13, 5, 1, '220', '220'),
+(32, 10, 7, 1, '200', '200'),
+(33, 10, 7, 3, '200', '600'),
+(36, 11, 7, 4, '200', '800'),
+(37, 11, 6, 5, '230', '1150'),
+(38, 14, 7, 4, '180', '720'),
+(57, 26, 5, 3, '220', '660'),
+(58, 26, 24, 3, '90', '270'),
+(59, 26, 4, 2, '190', '380'),
+(60, 26, 7, 2, '200', '400'),
+(61, 26, 8, 2, '180', '360'),
+(62, 26, 10, 2, '200', '400'),
+(63, 27, 6, 1, '230', '230'),
+(68, 15, 7, 1, '200', '200'),
+(69, 28, 24, 1, '90', '90'),
+(74, 29, 4, 1, '190', '190'),
+(75, 29, 5, 1, '220', '220'),
+(76, 29, 12, 1, '358', '358'),
+(77, 29, 15, 1, '200', '200'),
+(78, 30, 7, 1, '200', '200'),
+(79, 31, 7, 1, '200', '200'),
+(80, 31, 4, 1, '190', '190'),
+(81, 31, 12, 1, '358', '358'),
+(83, 32, 7, 1, '200', '200');
 
 -- --------------------------------------------------------
 
@@ -465,7 +494,7 @@ CREATE TABLE IF NOT EXISTS `order_item_options` (
   `id` int NOT NULL AUTO_INCREMENT,
   `order_item_id` int NOT NULL,
   `option_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `option_price` decimal(10,2) NOT NULL,
+  `option_price` decimal(10,0) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `order_item_id` (`order_item_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

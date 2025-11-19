@@ -2,19 +2,17 @@
 /*
  * admin/complaint_details.php
  * KitchCo: Cloud Kitchen Complaint Details Page
- * Version 1.0
+ * Version 1.1 - (MODIFIED) Allowed Manager Access
  *
- * This is an ADMIN-ONLY page to view and manage a single complaint.
+ * This page allows Admins AND Managers to view and update a single complaint.
  */
 
 // 1. HEADER
 require_once('header.php');
 
-// 2. SECURITY CHECK - ADMINS ONLY
-if (!hasAdminAccess()) {
-    header('Location: live_orders.php');
-    exit;
-}
+// 2. SECURITY CHECK
+// (MODIFIED) Removed strict Admin check. 
+// Authenticated Managers should be able to resolve complaints.
 
 // 3. --- GET COMPLAINT ID ---
 $complaint_id = $_GET['id'] ?? null;

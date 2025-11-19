@@ -2,7 +2,7 @@
 /*
  * order_success.php
  * KitchCo: Cloud Kitchen Order Success ("Thank You") Page
- * Version 1.5 - (FIXED) Moved security check before header output
+ * Version 1.6 - (MODIFIED) Removed decimal points for BDT
  *
  * This page:
  * 1. Confirms the order was placed.
@@ -90,8 +90,8 @@ unset($_SESSION['last_order_id']);
             </div>
             <div class="flex justify-between text-lg font-bold">
                 <span class="text-gray-900">Total Amount:</span>
-                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red -->
-                <span class="text-brand-red"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red, removed decimals -->
+                <span class="text-brand-red"><?php echo e(number_format($order['total_amount'], 0)); ?> BDT</span>
             </div>
         </div>
         

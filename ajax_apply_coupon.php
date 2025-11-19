@@ -2,9 +2,7 @@
 /*
  * ajax_apply_coupon.php
  * KitchCo: Cloud Kitchen Coupon AJAX Helper
- *
- * This file is called by checkout.php and cart.php.
- * It validates a coupon code and returns the discount amount.
+ * Version 1.1 - (MODIFIED) Integers Only for BDT
  */
 
 // 1. CONFIGURATION
@@ -26,7 +24,8 @@ try {
 
     // 4. GET INPUT
     $coupon_code = trim($_POST['coupon_code'] ?? '');
-    $subtotal = (float)($_POST['subtotal'] ?? 0);
+    // (MODIFIED) Accept subtotal
+    $subtotal = (float)($_POST['subtotal'] ?? 0); 
 
     if (empty($coupon_code)) {
         throw new Exception('Please enter a coupon code.');
@@ -67,31 +66,33 @@ try {
         throw new Exception('This coupon has expired.');
     }
     if ($subtotal < $coupon['min_order_amount']) {
-        throw new Exception('A minimum order of ' . number_format($coupon['min_order_amount'], 2) . ' BDT is required.');
+        throw new Exception('A minimum order of ' . number_format($coupon['min_order_amount'], 0) . ' BDT is required.');
     }
 
     // 7. CALCULATE DISCOUNT
     $discount_amount = 0;
     if ($coupon['type'] == 'percentage') {
-        $discount_amount = $subtotal * ($coupon['value'] / 100);
+        $raw = $subtotal * ($coupon['value'] / 100);
+        // (MODIFIED) Round to int
+        $discount_amount = (int)round($raw);
     } else {
-        $discount_amount = $coupon['value'];
+        // (MODIFIED) Cast to int
+        $discount_amount = (int)$coupon['value'];
     }
     
-    // Ensure discount doesn't exceed subtotal
     if ($discount_amount > $subtotal) {
-        $discount_amount = $subtotal;
+        $discount_amount = (int)$subtotal;
     }
 
     // 8. SUCCESS RESPONSE
     $response['success'] = true;
     $response['message'] = 'Coupon applied successfully!';
-    $response['discount_amount'] = (float)number_format($discount_amount, 2, '.', ''); // Format to 2 decimal places
+    // (MODIFIED) Return int
+    $response['discount_amount'] = $discount_amount;
 
 } catch (Exception $e) {
     $response['message'] = $e->getMessage();
 }
 
-// 9. SEND JSON
 echo json_encode($response);
 ?>

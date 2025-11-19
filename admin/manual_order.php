@@ -2,7 +2,7 @@
 /*
  * admin/manual_order.php
  * KitchCo: Cloud Kitchen Manual Order Entry (POS)
- * Version 1.6 - (MODIFIED) Added Night Surcharge Display to JS
+ * Version 1.7 - (MODIFIED) Integers Only for BDT
  *
  * This page allows logged-in staff to create orders on behalf of customers.
  */
@@ -13,7 +13,7 @@ require_once('header.php');
 // (NEW) Helper function to apply global discount
 function calculate_discounted_price($original_price, $settings) {
     if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
-        return $original_price;
+        return (int)$original_price;
     }
 
     $discount_type = $settings['global_discount_type'];
@@ -27,7 +27,7 @@ function calculate_discounted_price($original_price, $settings) {
     }
     
     // Don't let price go below 0
-    return ($new_price > 0) ? $new_price : 0;
+    return max(0, (int)round($new_price));
 }
 
 // 2. PAGE VARIABLES & INITIALIZATION
@@ -48,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
         $customer_address = $_POST['customer_address'];
         $delivery_area_id = (int)$_POST['delivery_area_id'];
         
-        // (NEW) Get Manual Discount Data
+        // (NEW) Get Manual Discount Data (int)
         $discount_type = $_POST['discount_type'] ?? 'none';
-        $discount_value = (float)($_POST['discount_value'] ?? 0);
+        $discount_value = (int)($_POST['discount_value'] ?? 0);
         $final_discount_amount = 0;
         
         $order_status = 'Preparing'; // Manual orders are usually accepted right away
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $db_item = $result_item->fetch_assoc();
                     
                     // (MODIFIED) Apply global discount
-                    $original_base_price = (float)$db_item['price'];
+                    $original_base_price = $db_item['price'];
                     $base_price = calculate_discounted_price($original_base_price, $settings);
                     
                     // 2. Get options prices from DB
@@ -106,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                             if ($result_option->num_rows == 0) throw new Exception("Option ID {$option_id} not found.");
                             
                             $db_option = $result_option->fetch_assoc();
-                            $price_increase = (float)$db_option['price_increase'];
+                            // (MODIFIED) Cast to int
+                            $price_increase = (int)$db_option['price_increase'];
                             
                             $options_price += $price_increase;
                             $verified_options_list[] = [
@@ -133,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
 
                 // 5. (NEW) Calculate Manual Discount
                 if ($discount_type == 'percentage' && $discount_value > 0) {
-                    $final_discount_amount = $subtotal * ($discount_value / 100);
+                    // Round percentage calc
+                    $final_discount_amount = (int)round($subtotal * ($discount_value / 100));
                 } elseif ($discount_type == 'fixed' && $discount_value > 0) {
                     $final_discount_amount = $discount_value;
                 }
@@ -142,8 +144,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 if ($final_discount_amount > $subtotal) {
                     $final_discount_amount = $subtotal;
                 }
-                $final_discount_amount = (float)number_format($final_discount_amount, 2, '.', '');
-
 
                 // 6. Calculate Delivery Fee
                 $stmt_area = $db->prepare("SELECT base_charge FROM delivery_areas WHERE id = ? AND is_active = 1");
@@ -152,9 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $result_area = $stmt_area->get_result();
                 if ($result_area->num_rows == 0) throw new Exception("Selected delivery area is not available.");
                 
-                $base_charge = (float)$result_area->fetch_assoc()['base_charge'];
+                // (MODIFIED) Cast to int
+                $base_charge = (int)$result_area->fetch_assoc()['base_charge'];
                 $surcharge_amount = 0;
-                $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
+                $surcharge = (int)($settings['night_surcharge_amount'] ?? 0);
                 
                 // (NEW) Check exemption list
                 $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
@@ -184,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                                       discount_type, discount_amount, order_time) 
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                 $stmt_order = $db->prepare($sql_order);
+                // Note: Integers use 'i', but 'd' is fine for ints too.
                 $stmt_order->bind_param('sssidddssd', 
                     $customer_name, $customer_phone, $customer_address, $delivery_area_id, 
                     $subtotal, $total_delivery_fee, $total_amount, $order_status,
@@ -325,7 +327,8 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                             <option value="">-- Select Area --</option>
                             <?php foreach ($delivery_areas as $area): ?>
                                 <option value="<?php echo e($area['id']); ?>" data-charge="<?php echo e($area['base_charge']); ?>">
-                                    <?php echo e($area['area_name']); ?> (<?php echo e($area['base_charge']); ?> BDT)
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <?php echo e($area['area_name']); ?> (<?php echo number_format($area['base_charge'], 0); ?> BDT)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -347,7 +350,8 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                     </div>
                     <div>
                         <label for="discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
-                        <input type="number" step="0.01" id="discount_value" name="discount_value" value="0"
+                        <!-- (MODIFIED) step="1" -->
+                        <input type="number" step="1" id="discount_value" name="discount_value" value="0"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
@@ -385,16 +389,16 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                 <div class="mt-6 border-t pt-4 space-y-2">
                     <div class="flex justify-between text-gray-700">
                         <span>Subtotal</span>
-                        <span id="cart-subtotal">0.00 BDT</span>
+                        <span id="cart-subtotal">0 BDT</span>
                     </div>
                     <!-- (NEW) Discount Row -->
                     <div class="flex justify-between text-red-600">
                         <span>Discount</span>
-                        <span id="cart-discount">-0.00 BDT</span>
+                        <span id="cart-discount">-0 BDT</span>
                     </div>
                     <div class="flex justify-between text-gray-700">
                         <span>Delivery Fee</span>
-                        <span id="cart-delivery-fee">0.00 BDT</span>
+                        <span id="cart-delivery-fee">0 BDT</span>
                     </div>
 
                     <!-- (NEW) Surcharge Row for Manual Order Page -->
@@ -405,7 +409,7 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
 
                     <div class="flex justify-between font-bold text-gray-900 text-lg">
                         <span>Grand Total</span>
-                        <span id="cart-total">0.00 BDT</span>
+                        <span id="cart-total">0 BDT</span>
                     </div>
                 </div>
                 
@@ -443,7 +447,8 @@ The cart is managed by JavaScript and its data is stored in a hidden input.
                        class="w-20 px-3 py-1 border border-gray-300 rounded-lg shadow-sm">
             </div>
             <button id="modal-add-to-cart-btn" class="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
-                Add to Order (Total: <span id="modal-total-price">0.00</span>)
+                <!-- (MODIFIED) Removed decimals -->
+                Add to Order (Total: <span id="modal-total-price">0</span>)
             </button>
         </div>
     </div>
@@ -521,9 +526,10 @@ This is the "brain" of the manual order page.
             // (NEW) Show discounted price
             let priceHtml = '';
             if (item.has_discount) {
-                priceHtml = `${parseFloat(item.price).toFixed(2)} BDT <span class="text-gray-400 line-through ml-1">${parseFloat(item.original_price).toFixed(2)}</span>`;
+                // (MODIFIED) parseInt
+                priceHtml = `${parseInt(item.price)} BDT <span class="text-gray-400 line-through ml-1">${parseInt(item.original_price)}</span>`;
             } else {
-                priceHtml = `${parseFloat(item.price).toFixed(2)} BDT`;
+                priceHtml = `${parseInt(item.price)} BDT`;
             }
 
             searchResultsContainer.innerHTML += `
@@ -554,7 +560,8 @@ This is the "brain" of the manual order page.
             cart.forEach((item, index) => {
                 let optionsHtml = '<ul class="text-xs text-gray-500 list-disc list-inside pl-1">';
                 item.options.forEach(opt => {
-                    optionsHtml += `<li>${opt.name} (+${opt.price.toFixed(2)})</li>`;
+                    // (MODIFIED) parseInt
+                    optionsHtml += `<li>${opt.name} (+${parseInt(opt.price)})</li>`;
                 });
                 optionsHtml += '</ul>';
 
@@ -562,7 +569,8 @@ This is the "brain" of the manual order page.
                     <div class="border-b pb-2">
                         <div class="flex justify-between items-center">
                             <span class="font-medium text-gray-800">${item.quantity}x ${item.name}</span>
-                            <span class="font-medium">${item.totalPrice.toFixed(2)}</span>
+                            <!-- (MODIFIED) parseInt -->
+                            <span class="font-medium">${parseInt(item.totalPrice)}</span>
                         </div>
                         ${optionsHtml}
                         <button type="button" class="text-xs text-red-500 hover:text-red-700" onclick="removeFromCart(${index})">
@@ -583,13 +591,15 @@ This is the "brain" of the manual order page.
         
         // (NEW) Calculate Manual Discount
         const discountType = discountTypeSelect.value;
+        // (MODIFIED) parseFloat to handle text, but cast result to int
         const discountValue = parseFloat(discountValueInput.value) || 0;
         let discountAmount = 0;
         
         if (discountType === 'percentage') {
-            discountAmount = subtotal * (discountValue / 100);
+            // (MODIFIED) parseInt
+            discountAmount = parseInt(subtotal * (discountValue / 100));
         } else if (discountType === 'fixed') {
-            discountAmount = discountValue;
+            discountAmount = parseInt(discountValue);
         }
         if (discountAmount > subtotal) {
             discountAmount = subtotal;
@@ -602,13 +612,15 @@ This is the "brain" of the manual order page.
         let appliedSurcharge = 0;
         
         if (selectedArea && selectedArea.dataset.charge) {
-            deliveryFee = parseFloat(selectedArea.dataset.charge);
+            // (MODIFIED) parseInt
+            deliveryFee = parseInt(selectedArea.dataset.charge);
             
             // --- NIGHT SURCHARGE LOGIC (With Exemption) ---
             const isExempt = exemptAreas.includes(selectedAreaId);
             
             if (!isExempt) {
-                const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
+                // (MODIFIED) parseInt
+                const surchargeAmount = parseInt(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
                 const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
                 const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
                 const currentHour = new Date().getHours(); // Get current hour (0-23)
@@ -629,25 +641,25 @@ This is the "brain" of the manual order page.
         
         const total = (subtotal - discountAmount) + deliveryFee;
         
-        // Update the display
-        cartSubtotalEl.textContent = `${subtotal.toFixed(2)} BDT`;
-        cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`; // (NEW)
-        cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
-        cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
+        // Update the display (MODIFIED) No decimals
+        cartSubtotalEl.textContent = `${subtotal} BDT`;
+        cartDiscountEl.textContent = `-${discountAmount} BDT`; // (NEW)
+        cartDeliveryFeeEl.textContent = `${deliveryFee} BDT`;
+        cartTotalEl.textContent = `${total} BDT`;
 
         // (NEW) Show/Hide Surcharge Row
         if (appliedSurcharge > 0) {
-            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge.toFixed(2)} surcharge)`;
+            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge} surcharge)`;
             cartSurchargeRow.classList.remove('hidden');
         } else {
             cartSurchargeRow.classList.add('hidden');
         }
         
         // (MODIFIED) Update the JS-only hidden inputs
-        jsSubtotalInput.value = subtotal.toFixed(2);
-        jsDiscountInput.value = discountAmount.toFixed(2); // (NEW)
-        jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
-        jsTotalInput.value = total.toFixed(2);
+        jsSubtotalInput.value = subtotal;
+        jsDiscountInput.value = discountAmount; // (NEW)
+        jsDeliveryFeeInput.value = deliveryFee;
+        jsTotalInput.value = total;
     }
     
     /**
@@ -668,7 +680,8 @@ This is the "brain" of the manual order page.
         currentModalItem = {
             id: baseItem.id,
             name: baseItem.name,
-            basePrice: parseFloat(baseItem.price) // (MODIFIED) This is now the discounted price
+            // (MODIFIED) parseInt
+            basePrice: parseInt(baseItem.price) // (MODIFIED) This is now the discounted price
         };
 
         try {
@@ -687,13 +700,14 @@ This is the "brain" of the manual order page.
                     optionsHtml += `<legend class="text-sm font-medium text-gray-900">${group.name} (${group.type === 'radio' ? 'Choose 1' : 'Choose any'})</legend>`;
                     
                     group.options.forEach(option => {
+                        // (MODIFIED) parseInt for display
                         optionsHtml += `
                             <div class="flex items-center justify-between">
                                 <label for="option-${option.id}" class="text-sm text-gray-700">
                                     ${e(option.name)}
                                 </label>
                                 <div>
-                                    <span class="text-sm text-gray-600">+${parseFloat(option.price_increase).toFixed(2)} BDT</span>
+                                    <span class="text-sm text-gray-600">+${parseInt(option.price_increase)} BDT</span>
                                     <input 
                                         type="${group.type}" 
                                         id="option-${option.id}" 
@@ -730,13 +744,15 @@ This is the "brain" of the manual order page.
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
         
         selectedOptions.forEach(opt => {
-            optionsPrice += parseFloat(opt.dataset.price);
+            // (MODIFIED) parseInt
+            optionsPrice += parseInt(opt.dataset.price);
         });
         
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (currentModalItem.basePrice + optionsPrice) * quantity;
         
-        modalTotalPrice.textContent = total.toFixed(2);
+        // (MODIFIED) Remove decimals
+        modalTotalPrice.textContent = total;
     }
     
     /**
@@ -756,7 +772,8 @@ This is the "brain" of the manual order page.
         
         let optionsPrice = 0;
         selectedElements.forEach(opt => {
-            const price = parseFloat(opt.dataset.price);
+            // (MODIFIED) parseInt
+            const price = parseInt(opt.dataset.price);
             selectedOptions.push({
                 // (MODIFIED) Add the option ID for server-side verification
                 id: opt.value, 

@@ -2,7 +2,7 @@
 /*
  * admin/manage_delivery_areas.php
  * KitchCo: Cloud Kitchen Delivery Area Manager
- * Version 1.1 - Added CSRF Protection
+ * Version 1.2 - (MODIFIED) Integers Only for BDT
  *
  * This is an ADMIN-ONLY page.
  */
@@ -36,7 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
         $area_name = $_POST['area_name'];
-        $base_charge = $_POST['base_charge'];
+        // (MODIFIED) Cast to int
+        $base_charge = (int)$_POST['base_charge'];
         $is_active = isset($_POST['is_active']) ? 1 : 0;
         
         if (empty($area_name) || !is_numeric($base_charge)) {
@@ -47,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cat_id = $_POST['area_id'];
                 $sql = "UPDATE delivery_areas SET area_name = ?, base_charge = ?, is_active = ? WHERE id = ?";
                 $stmt = $db->prepare($sql);
+                // (MODIFIED) Bind charge as int ('i') or double ('d'). Logic ensures int.
                 $stmt->bind_param('sdii', $area_name, $base_charge, $is_active, $cat_id);
                 
                 if ($stmt->execute()) {
@@ -87,7 +89,8 @@ if ($action === 'edit' && $area_id) {
     if ($result->num_rows === 1) {
         $area = $result->fetch_assoc();
         $area_name = $area['area_name'];
-        $base_charge = $area['base_charge'];
+        // (MODIFIED) Cast to int
+        $base_charge = (int)$area['base_charge'];
         $is_active = $area['is_active'];
     } else {
         $error_message = 'Delivery area not found.';
@@ -170,7 +173,8 @@ if ($result) {
                     <label for="base_charge" class="block text-sm font-medium text-gray-700">
                         Base Charge (BDT)
                     </label>
-                    <input type="number" step="0.01" id="base_charge" name="base_charge" value="<?php echo e($base_charge); ?>" required
+                    <!-- (MODIFIED) step="1" for integer -->
+                    <input type="number" step="1" id="base_charge" name="base_charge" value="<?php echo e((int)$base_charge); ?>" required
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 
@@ -220,7 +224,8 @@ if ($result) {
                             <?php foreach ($areas as $area): ?>
                                 <tr>
                                     <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($area['area_name']); ?></div></td>
-                                    <td class="px-6 py-4"><div class="text-sm text-gray-700"><?php echo e(number_format($area['base_charge'], 2)); ?> BDT</div></td>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <td class="px-6 py-4"><div class="text-sm text-gray-700"><?php echo number_format($area['base_charge'], 0); ?> BDT</div></td>
                                     <td class="px-6 py-4">
                                         <?php if ($area['is_active']): ?>
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>

@@ -2,22 +2,19 @@
 /*
  * cart_actions.php
  * KitchCo: Cloud Kitchen Cart AJAX Handler
- * Version 1.4 - (MODIFIED) Added item image to session
+ * Version 1.5 - (MODIFIED) Integers Only for BDT
  *
  * This file handles all cart modifications (add, update, remove).
- * It is called via AJAX, validates data, updates the session,
- * and returns a JSON response.
  */
 
 // 1. CONFIGURATION
-// Start session, connect to DB
 require_once('config.php');
 header('Content-Type: application/json');
 
-// (NEW) Helper function to apply global discount
+// (NEW) Helper function to apply global discount (Returns Integer)
 function calculate_discounted_price($original_price, $settings) {
     if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
-        return $original_price;
+        return (int)$original_price;
     }
 
     $discount_type = $settings['global_discount_type'];
@@ -30,8 +27,8 @@ function calculate_discounted_price($original_price, $settings) {
         $new_price = $original_price - $discount_value;
     }
     
-    // Don't let price go below 0
-    return ($new_price > 0) ? $new_price : 0;
+    // Round to nearest whole number and ensure it's at least 0
+    return max(0, (int)round($new_price));
 }
 
 // 2. INITIALIZE SESSION CART
@@ -43,10 +40,9 @@ if (!isset($_SESSION['cart'])) {
 $action = $_POST['action'] ?? $_GET['action'] ?? null;
 
 try {
-    // (NEW) CSRF Check for all actions
+    // CSRF Check
     if ($action === 'add' || $action === 'update' || $action === 'remove') {
         if (!validate_csrf_token()) {
-            // For AJAX 'add', throw exception. For 'update'/'remove', just redirect.
             if ($action === 'add') {
                 throw new Exception('Invalid session. Please refresh the page and try again.');
             } else {
@@ -65,14 +61,13 @@ try {
             
             $item_id = $_POST['item_id'] ?? 0;
             $quantity = $_POST['quantity'] ?? 1;
-            $option_ids = $_POST['options'] ?? []; // Array of item_options IDs
+            $option_ids = $_POST['options'] ?? []; 
 
             if ($item_id <= 0 || $quantity <= 0) {
                 throw new Exception('Invalid item data.');
             }
 
             // --- SERVER-SIDE VALIDATION ---
-            // A. Get base item price and image
             $stmt_item = $db->prepare("SELECT name, price, image FROM menu_items WHERE id = ? AND is_available = 1");
             $stmt_item->bind_param('i', $item_id);
             $stmt_item->execute();
@@ -82,19 +77,17 @@ try {
             }
             $item_data = $result_item->fetch_assoc();
             
-            // (MODIFIED) Apply global discount
-            $original_base_price = (float)$item_data['price'];
+            // (MODIFIED) Apply global discount & Cast to Int
+            $original_base_price = $item_data['price'];
             $base_price = calculate_discounted_price($original_base_price, $settings);
             $item_name = $item_data['name'];
-            $item_image = $item_data['image']; // (NEW) Get the image
+            $item_image = $item_data['image'];
 
             // B. Get options and their prices
             $options_price = 0;
             $options_desc = [];
             if (!empty($option_ids)) {
-                // Create placeholders (?, ?, ?)
                 $placeholders = implode(',', array_fill(0, count($option_ids), '?'));
-                // Create types string (e.g., "iii")
                 $types = str_repeat('i', count($option_ids));
                 
                 $sql_opt = "SELECT name, price_increase FROM item_options WHERE id IN ($placeholders)";
@@ -104,20 +97,21 @@ try {
                 $result_opt = $stmt_opt->get_result();
                 
                 while ($row = $result_opt->fetch_assoc()) {
-                    $options_price += $row['price_increase'];
+                    // (MODIFIED) Cast option price to int
+                    $opt_price = (int)$row['price_increase'];
+                    $options_price += $opt_price;
                     $options_desc[] = [
                         'name' => $row['name'],
-                        'price' => $row['price_increase']
+                        'price' => $opt_price
                     ];
                 }
             }
             // --- END VALIDATION ---
             
-            // (MODIFIED) Calculate final price for a single item
+            // (MODIFIED) Calculate final integer price
             $single_item_price = $base_price + $options_price;
 
-            // Create a unique key for this item configuration
-            // This stacks items (e.g., 2x "Large Coke")
+            // Create a unique key
             $option_key = implode('-', $option_ids);
             $cart_key = $item_id . '_' . md5($option_key);
 
@@ -128,15 +122,14 @@ try {
                 $_SESSION['cart'][$cart_key] = [
                     'item_id' => $item_id,
                     'item_name' => $item_name,
-                    'image' => $item_image, // --- (MODIFIED) SAVE IMAGE TO SESSION ---
+                    'image' => $item_image,
                     'quantity' => (int)$quantity,
-                    'base_price' => (float)$base_price, // (MODIFIED) This is now the discounted base price
-                    'options' => $options_desc, // Store text description
-                    'single_item_price' => (float)$single_item_price, // (MODIFIED) This is the discounted price + options
+                    'base_price' => (int)$base_price, // Store as int
+                    'options' => $options_desc,
+                    'single_item_price' => (int)$single_item_price, // Store as int
                 ];
             }
             
-            // Return success response
             echo json_encode([
                 'success' => true,
                 'message' => 'Item added to cart!',
@@ -150,25 +143,21 @@ try {
             $quantity = $_POST['quantity'] ?? 1;
 
             if ($quantity <= 0) {
-                // If quantity is 0 or less, remove it
                 unset($_SESSION['cart'][$cart_key]);
             } elseif (isset($_SESSION['cart'][$cart_key])) {
                 $_SESSION['cart'][$cart_key]['quantity'] = (int)$quantity;
             }
             
-            // Redirect back to cart page
             header('Location: cart.php');
             exit;
             
         // --- ACTION: REMOVE ITEM ---
         case 'remove':
-            // (FIXED) Changed from $_GET to $_POST
             $cart_key = $_POST['cart_key'] ?? ''; 
             if (isset($_SESSION['cart'][$cart_key])) {
                 unset($_SESSION['cart'][$cart_key]);
             }
             
-            // Redirect back to cart page
             header('Location: cart.php');
             exit;
 
@@ -177,16 +166,12 @@ try {
     }
 
 } catch (Exception $e) {
-    // Return error response
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
 
-/**
- * Helper function to count cart items directly from session
- */
 function get_cart_count_from_session() {
     $count = 0;
     if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {

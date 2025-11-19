@@ -2,11 +2,9 @@
 /*
  * ajax_calculate_fee.php
  * KitchCo: Cloud Kitchen Fee Calculator AJAX Helper
- * Version 1.2 - (MODIFIED) Added Night Surcharge Exemption Logic
+ * Version 1.3 - (MODIFIED) Integers Only for BDT
  *
- * This file is called by checkout.php.
- * It takes a delivery_area_id, checks for night surcharges (ignoring exempt areas),
- * applies promotions, and returns the final delivery fee.
+ * This file calculates the delivery fee.
  */
 
 // 1. CONFIGURATION
@@ -33,34 +31,32 @@ try {
     }
     
     $area_data = $result->fetch_assoc();
-    $base_charge = (float)$area_data['base_charge'];
+    // (MODIFIED) Cast to int
+    $base_charge = (int)$area_data['base_charge'];
     $surcharge_amount = 0;
 
     // 4. --- CALCULATE NIGHT SURCHARGE ---
-    // Settings are loaded from config.php
     $enable_surcharge = true; 
-    $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
+    // (MODIFIED) Cast to int
+    $surcharge = (int)($settings['night_surcharge_amount'] ?? 0);
     
-    // (NEW) Check exemption list
+    // Check exemption list
     $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
     $exempt_areas = explode(',', $exempt_areas_str);
     $is_exempt = in_array($area_id, $exempt_areas);
     
     if ($enable_surcharge && $surcharge > 0 && !$is_exempt) {
-        // We use the timezone set in config.php
-        $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0); // e.g., 22 (10 PM)
-        $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6); // e.g., 6 (6 AM)
-        $current_hour = (int)date('G'); // Get current hour (0-23)
+        $start_hour = (int)($settings['night_surcharge_start_hour'] ?? 0);
+        $end_hour = (int)($settings['night_surcharge_end_hour'] ?? 6);
+        $current_hour = (int)date('G');
         
         $is_surcharge_time = false;
         
         if ($start_hour > $end_hour) {
-            // This is an overnight period (e.g., 22:00 to 06:00)
             if ($current_hour >= $start_hour || $current_hour < $end_hour) {
                 $is_surcharge_time = true;
             }
         } else {
-            // This is a same-day period (e.g., 00:00 to 06:00)
             if ($current_hour >= $start_hour && $current_hour < $end_hour) {
                 $is_surcharge_time = true;
             }
@@ -75,23 +71,19 @@ try {
     $total_delivery_fee = $base_charge + $surcharge_amount;
 
     // --- DELIVERY PROMOTION LOGIC ---
-    
-    // First, check for global "Free Delivery" (overrides everything)
     if (!empty($settings['free_delivery_active']) && $settings['free_delivery_active'] == '1') {
         $total_delivery_fee = 0;
-        $surcharge_amount = 0; // Free means free, so surcharge is also 0
+        $surcharge_amount = 0;
     } 
-    // ELSE, check for a percentage discount
     else if (!empty($settings['delivery_discount_active']) && $settings['delivery_discount_active'] == '1') {
         $discount_value = (float)($settings['delivery_discount_percentage'] ?? 0);
         
-        // Check for a valid percentage (1% to 100%)
         if ($discount_value > 0 && $discount_value <= 100) { 
             $discount_amount = $total_delivery_fee * ($discount_value / 100);
-            $total_delivery_fee = $total_delivery_fee - $discount_amount;
+            // (MODIFIED) Round to nearest int
+            $total_delivery_fee = (int)round($total_delivery_fee - $discount_amount);
         }
     }
-    // --- END OF LOGIC ---
     
     echo json_encode([
         'success' => true,

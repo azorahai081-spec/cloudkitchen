@@ -2,7 +2,7 @@
 /*
  * admin/live_orders.php
  * KitchCo: Cloud Kitchen Live Order Dashboard
- * Version 2.2 - Restored missing header and title
+ * Version 2.3 - (MODIFIED) Removed decimal points for BDT
  *
  * This is the main dashboard page. It's the "mission control" for the kitchen.
  */
@@ -28,7 +28,8 @@ $stmt_sales->bind_param('s', $today_start_mysql);
 $stmt_sales->execute();
 $result_sales = $stmt_sales->get_result();
 $sales_data = $result_sales->fetch_assoc();
-$todays_sales = number_format($sales_data['total_sales'] ?? 0, 2);
+// (MODIFIED) Removed decimals
+$todays_sales = number_format($sales_data['total_sales'] ?? 0, 0);
 $stmt_sales->close();
 
 // Query 2: Get Today's Orders
@@ -131,6 +132,7 @@ but for now, we'll just set it in PHP.
             </div>
             <div>
                 <div class="text-sm font-medium text-gray-500">Today's Sales</div>
+                <!-- (MODIFIED) Removed decimals -->
                 <div class="text-3xl font-bold text-gray-900"><?php echo e($todays_sales); ?> BDT</div>
             </div>
         </div>
@@ -208,7 +210,8 @@ but for now, we'll just set it in PHP.
                             <div class="text-sm text-gray-500">Address: <?php echo e($order['customer_address']); ?></div>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
-                            <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                            <!-- (MODIFIED) Removed decimals -->
+                            <span class="text-xl font-bold text-gray-900"><?php echo number_format($order['total_amount'], 0); ?> BDT</span>
                             <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
                                 View & Accept
                             </a>
@@ -245,7 +248,8 @@ but for now, we'll just set it in PHP.
                             <div class="text-sm text-gray-500">Rider: <?php echo e($order['rider_name'] ?? 'Not assigned'); ?></div>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
-                            <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                            <!-- (MODIFIED) Removed decimals -->
+                            <span class="text-xl font-bold text-gray-900"><?php echo number_format($order['total_amount'], 0); ?> BDT</span>
                             <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
                                 Mark as Ready
                             </a>
@@ -282,7 +286,8 @@ but for now, we'll just set it in PHP.
                             <div class="text-sm text-gray-500">Rider: <?php echo e($order['rider_name'] ?? 'Not assigned'); ?></div>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
-                            <span class="text-xl font-bold text-gray-900"><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                            <!-- (MODIFIED) Removed decimals -->
+                            <span class="text-xl font-bold text-gray-900"><?php echo number_format($order['total_amount'], 0); ?> BDT</span>
                             <a href="order_details.php?id=<?php echo e($order['id']); ?>" class="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700">
                                 Mark as Delivered
                             </a>
@@ -407,6 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function createOrderCard(order) {
         const time = new Date(order.order_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const cardId = `order-card-${order.id}`;
+        // (MODIFIED) Use parseInt for display
+        const totalAmount = parseInt(order.total_amount);
         
         if (order.order_status === 'Pending') {
             return `
@@ -423,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="text-sm text-gray-500">Address: ${order.customer_address}</div>
                 </div>
                 <div class="mt-3 flex justify-between items-center">
-                    <span class="text-xl font-bold text-gray-900">${parseFloat(order.total_amount).toFixed(2)} BDT</span>
+                    <span class="text-xl font-bold text-gray-900">${totalAmount} BDT</span>
                     <a href="order_details.php?id=${order.id}" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
                         View & Accept
                     </a>
@@ -446,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="text-sm text-gray-500">Rider: ${order.rider_name || 'Not assigned'}</div>
                 </div>
                 <div class="mt-3 flex justify-between items-center">
-                    <span class="text-xl font-bold text-gray-900">${parseFloat(order.total_amount).toFixed(2)} BDT</span>
+                    <span class="text-xl font-bold text-gray-900">${totalAmount} BDT</span>
                     <a href="order_details.php?id=${order.id}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
                         Mark as Ready
                     </a>
@@ -470,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="text-sm text-gray-500">Rider: ${order.rider_name || 'Not assigned'}</div>
                 </div>
                 <div class="mt-3 flex justify-between items-center">
-                    <span class="text-xl font-bold text-gray-900">${parseFloat(order.total_amount).toFixed(2)} BDT</span>
+                    <span class="text-xl font-bold text-gray-900">${totalAmount} BDT</span>
                     <a href="order_details.php?id=${order.id}" class="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700">
                         Mark as Delivered
                     </a>

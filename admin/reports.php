@@ -2,7 +2,7 @@
 /*
  * admin/reports.php
  * KitchCo: Cloud Kitchen Reports & Analytics
- * Version 3.0 - Added Dynamic Date Range Filter
+ * Version 3.1 - (MODIFIED) Removed decimal points for BDT
  *
  * This is an ADMIN-ONLY page.
  */
@@ -119,7 +119,8 @@ $chart_result = $chart_stmt->get_result();
 if ($chart_result) {
     while ($row = $chart_result->fetch_assoc()) {
         if (isset($sales_by_day[$row['sale_date']])) {
-            $sales_by_day[$row['sale_date']] = (float)$row['daily_sales'];
+            // (MODIFIED) Cast to int for chart
+            $sales_by_day[$row['sale_date']] = (int)$row['daily_sales'];
         }
     }
 }
@@ -226,7 +227,8 @@ $area_sales_stmt->close();
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Total Sales (in range)</div>
-        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($sales_in_range, 2)); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($sales_in_range, 0)); ?> BDT</div>
     </div>
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Total Orders (in range)</div>
@@ -234,11 +236,13 @@ $area_sales_stmt->close();
     </div>
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Avg. Order Value (in range)</div>
-        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($avg_order_value, 2)); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($avg_order_value, 0)); ?> BDT</div>
     </div>
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Today's Sales</div>
-        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($sales_today, 2)); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($sales_today, 0)); ?> BDT</div>
     </div>
 </div>
 
@@ -301,7 +305,8 @@ $area_sales_stmt->close();
                                     <div class="text-sm text-gray-700"><?php echo e($area['total_orders']); ?></div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <div class="text-sm font-medium text-gray-900"><?php echo e(number_format($area['total_sales'], 2)); ?> BDT</div>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <div class="text-sm font-medium text-gray-900"><?php echo e(number_format($area['total_sales'], 0)); ?> BDT</div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

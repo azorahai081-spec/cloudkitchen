@@ -2,7 +2,7 @@
 /*
  * admin/customer_reports.php
  * KitchCo: Cloud Kitchen Customer & Order Insights
- * Version 2.5 - Fixed Function Redeclaration Error
+ * Version 2.6 - (MODIFIED) Integers Only for BDT
  *
  * This page provides a 360-degree view of customer behavior:
  * 1. Loyal Customers (Delivered Orders)
@@ -29,7 +29,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'loyal') {
     }
 
     // If output buffering is active, clean it. 
-    // This removes any stray whitespace/output before headers are sent.
     if (ob_get_level()) {
         ob_end_clean();
     }
@@ -81,7 +80,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'loyal') {
                 $row['customer_name'],
                 $row['customer_phone'],
                 $row['total_orders'],
-                number_format($row['total_spent'], 2, '.', ''), 
+                // (MODIFIED) Removed decimals
+                number_format($row['total_spent'], 0, '.', ''), 
                 $row['last_order_date'],
                 $days_ago . ' days ago'
             ]);
@@ -93,7 +93,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'loyal') {
 }
 
 // 4. HEADER (Now it's safe to load header.php)
-// This file defines hasAdminAccess(), so we don't need to define it manually above.
 require_once('header.php');
 
 // Extra security check using the function from header.php
@@ -224,7 +223,8 @@ if ($tab === 'cancelled') {
     <!-- Card 3 -->
     <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-orange-500">
         <div class="text-sm font-medium text-gray-500">Lost Revenue (Cancelled)</div>
-        <div class="text-3xl font-bold text-gray-900"><?php echo number_format($stats['lost_revenue'], 2); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900"><?php echo number_format($stats['lost_revenue'], 0); ?> BDT</div>
     </div>
 </div>
 
@@ -325,7 +325,8 @@ if ($tab === 'cancelled') {
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                                    <?php echo number_format($c['total_spent'], 2); ?>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <?php echo number_format($c['total_spent'], 0); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
                                     <?php 
@@ -433,7 +434,8 @@ if ($tab === 'cancelled') {
                                             <?php echo e($order['area_name'] ?? 'N/A'); ?>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-right font-medium text-red-600">
-                                            <?php echo number_format($order['total_amount'], 2); ?>
+                                            <!-- (MODIFIED) Removed decimals -->
+                                            <?php echo number_format($order['total_amount'], 0); ?>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-right text-gray-500">
                                             <?php echo date('M d, H:i', strtotime($order['order_time'])); ?>

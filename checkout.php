@@ -2,7 +2,7 @@
 /*
  * checkout.php
  * KitchCo: Cloud Kitchen Checkout Page
- * Version 1.9 - (MODIFIED) Added Cooking & Delivery Time Info
+ * Version 2.0 - (MODIFIED) Removed decimal points for BDT
  *
  * This page:
  * 1. Requires a non-empty cart to view.
@@ -196,7 +196,8 @@ foreach ($cart as $item) {
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                            <span class="text-gray-700 font-medium"><?php echo e(number_format($item['single_item_price'] * $item['quantity'], 2)); ?></span>
+                            <!-- (MODIFIED) Removed decimals -->
+                            <span class="text-gray-700 font-medium"><?php echo e(number_format($item['single_item_price'] * $item['quantity'], 0)); ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -205,12 +206,14 @@ foreach ($cart as $item) {
                 <div class="mt-4 space-y-2">
                     <div class="flex justify-between text-gray-700">
                         <span>Subtotal</span>
-                        <span id="summary-subtotal"><?php echo e(number_format($subtotal, 2)); ?></span>
+                        <!-- (MODIFIED) Removed decimals -->
+                        <span id="summary-subtotal"><?php echo e(number_format($subtotal, 0)); ?></span>
                     </div>
                     <!-- Coupon Discount Row -->
                     <div id="summary-discount-row" class="hidden flex justify-between text-brand-red">
                         <span>Discount</span>
-                        <span id="summary-discount-fee">0.00</span>
+                        <!-- (MODIFIED) Removed decimals -->
+                        <span id="summary-discount-fee">0</span>
                     </div>
                     <div class="flex justify-between text-gray-700">
                         <span>Delivery Fee</span>
@@ -333,7 +336,8 @@ foreach ($cart as $item) {
             filteredAreas.forEach(area => {
                 const li = document.createElement('li');
                 li.className = 'cursor-pointer select-none relative p-3 text-sm text-gray-900 hover:bg-brand-red hover:text-white';
-                li.textContent = `${area.area_name} (${parseFloat(area.base_charge).toFixed(2)} BDT)`;
+                // (MODIFIED) Use parseInt for display logic
+                li.textContent = `${area.area_name} (${parseInt(area.base_charge)} BDT)`;
                 li.dataset.id = area.id;
                 li.dataset.name = area.area_name;
                 areaOptionsList.appendChild(li);
@@ -441,7 +445,8 @@ foreach ($cart as $item) {
                     finalDiscountCodeInput.value = code; // Save code for submission
                     finalDiscountAmountInput.value = currentDiscount;
                     
-                    summaryDiscountFee.textContent = `-${currentDiscount.toFixed(2)}`;
+                    // (MODIFIED) Remove decimals
+                    summaryDiscountFee.textContent = `-${currentDiscount.toFixed(0)}`;
                     summaryDiscountRow.classList.remove('hidden');
                     
                     couponMsg.textContent = data.message;
@@ -495,19 +500,19 @@ foreach ($cart as $item) {
                     const surcharge = data.surcharge_amount;
                     currentDeliveryFee = data.total_delivery_fee; // Store fee
 
-                    // Update summary
-                    summaryFee.textContent = `${currentDeliveryFee.toFixed(2)}`;
+                    // Update summary (MODIFIED) Remove decimals
+                    summaryFee.textContent = `${currentDeliveryFee.toFixed(0)}`;
 
-                    // Show surcharge row if applied
+                    // Show surcharge row if applied (MODIFIED) Remove decimals
                     if (surcharge > 0 && currentDeliveryFee > 0) {
-                        summarySurchargeFee.textContent = `+${surcharge.toFixed(2)}`;
+                        summarySurchargeFee.textContent = `+${surcharge.toFixed(0)}`;
                         summarySurchargeRow.classList.remove('hidden');
                     } else {
                         summarySurchargeRow.classList.add('hidden');
                     }
                     
-                    // Update hidden inputs
-                    finalDeliveryFeeInput.value = currentDeliveryFee.toFixed(2);
+                    // Update hidden inputs (MODIFIED) Remove decimals
+                    finalDeliveryFeeInput.value = currentDeliveryFee.toFixed(0);
                     
                     isFeeCalculated = true;
                     
@@ -530,8 +535,9 @@ foreach ($cart as $item) {
         function updateGrandTotal() {
             // Recalculate grand total
             const grandTotal = subtotal - currentDiscount + currentDeliveryFee;
-            summaryTotal.textContent = `${grandTotal.toFixed(2)} BDT`;
-            finalTotalInput.value = grandTotal.toFixed(2);
+            // (MODIFIED) Remove decimals
+            summaryTotal.textContent = `${grandTotal.toFixed(0)} BDT`;
+            finalTotalInput.value = grandTotal.toFixed(0);
             
             // Check validity to enable/disable button
             checkAllValidity();

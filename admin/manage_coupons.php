@@ -2,9 +2,9 @@
 /*
  * admin/manage_coupons.php
  * KitchCo: Cloud Kitchen Coupon Manager
+ * Version 1.2 - (MODIFIED) Integers Only for BDT
  *
  * This page handles full CRUD for coupons.
- * Based on manage_categories.php
  */
 
 // 1. HEADER
@@ -45,8 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = trim($_POST['code']);
         $description = trim($_POST['description']);
         $type = $_POST['type'];
-        $value = (float)$_POST['value'];
-        $min_order_amount = (float)$_POST['min_order_amount'];
+        
+        // (MODIFIED) Cast to int for fixed, allow generic for percentage
+        $value = ($type == 'fixed') ? (int)$_POST['value'] : (int)$_POST['value']; 
+        // We cast both to int for simplicity based on requirements (percentage is usually 10, 20, not 12.5)
+        
+        // (MODIFIED) Cast to int
+        $min_order_amount = (int)$_POST['min_order_amount'];
         $start_date = $_POST['start_date'];
         $end_date = $_POST['end_date'];
         $max_uses = (int)$_POST['max_uses'];
@@ -126,8 +131,9 @@ if ($action === 'edit' && $coupon_id) {
         $code = $coupon['code'];
         $description = $coupon['description'];
         $type = $coupon['type'];
-        $value = $coupon['value'];
-        $min_order_amount = $coupon['min_order_amount'];
+        // (MODIFIED) Cast to int
+        $value = (int)$coupon['value'];
+        $min_order_amount = (int)$coupon['min_order_amount'];
         // Format dates for datetime-local input
         $start_date = date('Y-m-d\TH:i', strtotime($coupon['start_date']));
         $end_date = date('Y-m-d\TH:i', strtotime($coupon['end_date']));
@@ -145,7 +151,6 @@ if ($action === 'delete' && $coupon_id) {
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
-        // We set coupon_id to NULL in `orders` table due to ON DELETE SET NULL
         $sql = "DELETE FROM coupons WHERE id = ?";
         $stmt = $db->prepare($sql);
         $stmt->bind_param('i', $coupon_id);
@@ -218,7 +223,8 @@ if ($result) {
                     </div>
                     <div>
                         <label for="value" class="block text-sm font-medium text-gray-700">Value</label>
-                        <input type="number" step="0.01" id="value" name="value" value="<?php echo e($value); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <!-- (MODIFIED) step="1" for integer -->
+                        <input type="number" step="1" id="value" name="value" value="<?php echo e((int)$value); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
 
@@ -226,7 +232,8 @@ if ($result) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="min_order_amount" class="block text-sm font-medium text-gray-700">Min. Order (BDT)</label>
-                        <input type="number" step="0.01" id="min_order_amount" name="min_order_amount" value="<?php echo e($min_order_amount); ?>" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <!-- (MODIFIED) step="1" for integer -->
+                        <input type="number" step="1" id="min_order_amount" name="min_order_amount" value="<?php echo e((int)$min_order_amount); ?>" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
                         <label for="max_uses" class="block text-sm font-medium text-gray-700">Max Uses</label>
@@ -306,8 +313,9 @@ if ($result) {
                                         <div class="text-sm font-medium text-gray-900"><?php echo e($coupon['code']); ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
+                                        <!-- (MODIFIED) Removed decimals -->
                                         <div class="text-sm text-gray-900">
-                                            <?php echo ($coupon['type'] == 'percentage') ? e($coupon['value']) . '%' : e(number_format($coupon['value'], 2)) . ' BDT'; ?>
+                                            <?php echo ($coupon['type'] == 'percentage') ? e((int)$coupon['value']) . '%' : e(number_format($coupon['value'], 0)) . ' BDT'; ?>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">

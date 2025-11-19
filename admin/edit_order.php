@@ -2,7 +2,7 @@
 /*
  * admin/edit_order.php
  * KitchCo: Cloud Kitchen Order Editor
- * Version 1.6 - Added Visual "Adjustment" Row to Summary
+ * Version 1.7 - (MODIFIED) Integers Only for BDT
  *
  * This page loads an existing order into the manual order interface
  * and allows an admin to modify and re-save it.
@@ -14,7 +14,7 @@ require_once('header.php');
 // (NEW) Helper function to apply global discount
 function calculate_discounted_price($original_price, $settings) {
     if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
-        return $original_price;
+        return (int)$original_price;
     }
 
     $discount_type = $settings['global_discount_type'];
@@ -28,7 +28,7 @@ function calculate_discounted_price($original_price, $settings) {
     }
     
     // Don't let price go below 0
-    return ($new_price > 0) ? $new_price : 0;
+    return max(0, (int)round($new_price));
 }
 
 
@@ -68,9 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
         
         // --- C. GET DISCOUNT & ADJ DATA ---
         $discount_type = $_POST['discount_type'] ?? 'none';
-        $discount_value = (float)($_POST['discount_value'] ?? 0);
-        // (NEW) Get Delivery Adjustment
-        $delivery_adjustment = (float)($_POST['delivery_adjustment'] ?? 0);
+        // (MODIFIED) Cast to int
+        $discount_value = (int)($_POST['discount_value'] ?? 0);
+        // (NEW) Get Delivery Adjustment (MODIFIED) int
+        $delivery_adjustment = (int)($_POST['delivery_adjustment'] ?? 0);
 
         $final_discount_amount = 0;
         
@@ -106,7 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $result_item = $stmt_item->get_result();
                     if ($result_item->num_rows == 0) throw new Exception("Item ID {$item_id} not found.");
                     $db_item = $result_item->fetch_assoc();
-                    $original_base_price = (float)$db_item['price'];
+                    // (MODIFIED) Cast to int logic
+                    $original_base_price = $db_item['price'];
                     $base_price = calculate_discounted_price($original_base_price, $settings);
                     
                     // 2. Get options prices
@@ -131,7 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                             if ($result_option->num_rows == 0) throw new Exception("Option {$option['name']} not found.");
                             
                             $db_option = $result_option->fetch_assoc();
-                            $price_increase = (float)$db_option['price_increase'];
+                            // (MODIFIED) Cast to int
+                            $price_increase = (int)$db_option['price_increase'];
                             
                             $options_price += $price_increase;
                             $verified_options_list[] = [
@@ -160,12 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
 
                 // 5. Calculate Manual Discount
                 if ($discount_type == 'percentage' && $discount_value > 0) {
-                    $final_discount_amount = $subtotal * ($discount_value / 100);
+                    // (MODIFIED) Round to int
+                    $final_discount_amount = (int)round($subtotal * ($discount_value / 100));
                 } elseif ($discount_type == 'fixed' && $discount_value > 0) {
                     $final_discount_amount = $discount_value;
                 }
                 if ($final_discount_amount > $subtotal) $final_discount_amount = $subtotal;
-                $final_discount_amount = (float)number_format($final_discount_amount, 2, '.', '');
 
                 // 6. Calculate Delivery Fee
                 $stmt_area = $db->prepare("SELECT base_charge FROM delivery_areas WHERE id = ? AND is_active = 1");
@@ -174,9 +177,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $result_area = $stmt_area->get_result();
                 if ($result_area->num_rows == 0) throw new Exception("Selected delivery area is not available.");
                 
-                $base_charge = (float)$result_area->fetch_assoc()['base_charge'];
+                // (MODIFIED) Cast to int
+                $base_charge = (int)$result_area->fetch_assoc()['base_charge'];
                 $surcharge_amount = 0;
-                $surcharge = (float)($settings['night_surcharge_amount'] ?? 0);
+                $surcharge = (int)($settings['night_surcharge_amount'] ?? 0);
                 
                 // Check exemption list
                 $exempt_areas_str = $settings['night_surcharge_exempt_areas'] ?? '';
@@ -219,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $stmt_update_order = $db->prepare($sql_update_order);
                 
                 // FIX: Corrected type string from 'sssidddddsdi' (12 chars) to 'sssiddddsdi' (11 chars)
+                // Note: using 'd' is fine for ints too
                 $stmt_update_order->bind_param('sssiddddsdi', 
                     $customer_name, $customer_phone, $customer_address, 
                     $delivery_area_id, $subtotal, $total_delivery_fee, $delivery_adjustment,
@@ -265,9 +270,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $customer_address = $order['customer_address'];
                 $delivery_area_id = $order['delivery_area_id'];
                 $discount_type = $order['discount_type'];
-                $delivery_adjustment = $order['delivery_adjustment']; // Reload adj
+                // (MODIFIED) Cast to int
+                $delivery_adjustment = (int)$order['delivery_adjustment']; 
                 
-                $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount'];
+                $discount_value = ($order['discount_type'] == 'percentage') ? 0 : (int)$order['discount_amount'];
                 if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
                      $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
                 }
@@ -300,17 +306,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                         $item_options[] = [
                             'id' => $option['id'] ?? 0,
                             'name' => $option['option_name'],
-                            'price' => (float)$option['option_price']
+                            // (MODIFIED) Cast to int
+                            'price' => (int)$option['option_price']
                         ];
                     }
             
                     $cart_for_js[] = [
                         'id' => $item['menu_item_id'],
                         'name' => $item['name'] ?? '[Deleted Item]',
-                        'basePrice' => (float)$item['base_price'],
+                        // (MODIFIED) Cast to int
+                        'basePrice' => (int)$item['base_price'],
                         'quantity' => (int)$item['quantity'],
                         'options' => $item_options,
-                        'totalPrice' => (float)$item['total_price']
+                        'totalPrice' => (int)$item['total_price']
                     ];
                 }
                 
@@ -342,10 +350,10 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $delivery_area_id = $order['delivery_area_id'];
     $discount_type = $order['discount_type'];
     
-    // (NEW) Load Adjustment
-    $delivery_adjustment = $order['delivery_adjustment'] ?? 0.00;
+    // (NEW) Load Adjustment (MODIFIED) int
+    $delivery_adjustment = (int)($order['delivery_adjustment'] ?? 0);
 
-    $discount_value = ($order['discount_type'] == 'percentage') ? 0 : $order['discount_amount']; 
+    $discount_value = ($order['discount_type'] == 'percentage') ? 0 : (int)$order['discount_amount']; 
     if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
          $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
     }
@@ -376,17 +384,19 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $item_options[] = [
                 'id' => $option['id'] ?? 0, 
                 'name' => $option['option_name'],
-                'price' => (float)$option['option_price']
+                // (MODIFIED) Cast to int
+                'price' => (int)$option['option_price']
             ];
         }
 
         $cart_for_js[] = [
             'id' => $item['menu_item_id'],
             'name' => $item['name'] ?? '[Deleted Item]',
-            'basePrice' => (float)$item['base_price'],
+            // (MODIFIED) Cast to int
+            'basePrice' => (int)$item['base_price'],
             'quantity' => (int)$item['quantity'],
             'options' => $item_options,
-            'totalPrice' => (float)$item['total_price']
+            'totalPrice' => (int)$item['total_price']
         ];
     }
 }
@@ -483,7 +493,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                                 <option value="<?php echo e($area['id']); ?>" 
                                         data-charge="<?php echo e($area['base_charge']); ?>"
                                         <?php echo ($area['id'] == $delivery_area_id) ? 'selected' : ''; ?>>
-                                    <?php echo e($area['area_name']); ?> (<?php echo e($area['base_charge']); ?> BDT)
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <?php echo e($area['area_name']); ?> (<?php echo number_format($area['base_charge'], 0); ?> BDT)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -505,7 +516,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                     </div>
                     <div>
                         <label for="discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
-                        <input type="number" step="0.01" id="discount_value" name="discount_value" value="<?php echo e(number_format($discount_value, 2, '.', '')); ?>"
+                        <!-- (MODIFIED) step="1" -->
+                        <input type="number" step="1" id="discount_value" name="discount_value" value="<?php echo e((int)$discount_value); ?>"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     
@@ -514,8 +526,9 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                          <label for="delivery_adjustment" class="block text-sm font-medium text-gray-700">
                              Delivery Fee Adjustment (+/-)
                          </label>
-                         <input type="number" step="0.01" id="delivery_adjustment" name="delivery_adjustment" 
-                                value="<?php echo e(number_format($delivery_adjustment, 2, '.', '')); ?>"
+                         <!-- (MODIFIED) step="1" -->
+                         <input type="number" step="1" id="delivery_adjustment" name="delivery_adjustment" 
+                                value="<?php echo e((int)$delivery_adjustment); ?>"
                                 placeholder="e.g., 50 or -20"
                                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                          <p class="text-xs text-gray-500 mt-1">Enter a positive number to increase fee, negative to decrease.</p>
@@ -555,15 +568,15 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                 <div class="mt-6 border-t pt-4 space-y-2">
                     <div class="flex justify-between text-gray-700">
                         <span>Subtotal</span>
-                        <span id="cart-subtotal">0.00 BDT</span>
+                        <span id="cart-subtotal">0 BDT</span>
                     </div>
                     <div class="flex justify-between text-red-600">
                         <span>Discount</span>
-                        <span id="cart-discount">-0.00 BDT</span>
+                        <span id="cart-discount">-0 BDT</span>
                     </div>
                     <div class="flex justify-between text-gray-700">
                         <span>Delivery Fee</span>
-                        <span id="cart-delivery-fee">0.00 BDT</span>
+                        <span id="cart-delivery-fee">0 BDT</span>
                     </div>
                     
                     <div id="cart-surcharge-row" class="hidden flex justify-between text-sm text-gray-600">
@@ -579,7 +592,7 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                     
                     <div class="flex justify-between font-bold text-gray-900 text-lg">
                         <span>Grand Total</span>
-                        <span id="cart-total">0.00 BDT</span>
+                        <span id="cart-total">0 BDT</span>
                     </div>
                 </div>
                 
@@ -604,7 +617,7 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         <div class="flex justify-between items-center p-6 border-b">
             <h2 id="modal-item-name" class="text-2xl font-bold text-gray-900">Item Options</h2>
             <button id="modal-close-btn" class="p-2 text-gray-500 hover:text-gray-800">
-                <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
         
@@ -620,7 +633,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                        class="w-20 px-3 py-1 border border-gray-300 rounded-lg shadow-sm">
             </div>
             <button id="modal-add-to-cart-btn" class="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
-                Add to Order (Total: <span id="modal-total-price">0.00</span>)
+                <!-- (MODIFIED) Removed decimals -->
+                Add to Order (Total: <span id="modal-total-price">0</span>)
             </button>
         </div>
     </div>
@@ -693,9 +707,10 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         itemsToRender.forEach(item => {
             let priceHtml = '';
             if (item.has_discount) {
-                priceHtml = `${parseFloat(item.price).toFixed(2)} BDT <span class="text-gray-400 line-through ml-1">${parseFloat(item.original_price).toFixed(2)}</span>`;
+                // (MODIFIED) parseInt
+                priceHtml = `${parseInt(item.price)} BDT <span class="text-gray-400 line-through ml-1">${parseInt(item.original_price)}</span>`;
             } else {
-                priceHtml = `${parseFloat(item.price).toFixed(2)} BDT`;
+                priceHtml = `${parseInt(item.price)} BDT`;
             }
 
             searchResultsContainer.innerHTML += `
@@ -724,7 +739,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                 let optionsHtml = '<ul class="text-xs text-gray-500 list-disc list-inside pl-1">';
                 if (item.options) {
                     item.options.forEach(opt => {
-                        optionsHtml += `<li>${e(opt.name)} (+${parseFloat(opt.price).toFixed(2)})</li>`;
+                        // (MODIFIED) parseInt
+                        optionsHtml += `<li>${e(opt.name)} (+${parseInt(opt.price)})</li>`;
                     });
                 }
                 optionsHtml += '</ul>';
@@ -733,7 +749,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                     <div class="border-b pb-2">
                         <div class="flex justify-between items-center">
                             <span class="font-medium text-gray-800">${item.quantity}x ${e(item.name)}</span>
-                            <span class="font-medium">${item.totalPrice.toFixed(2)}</span>
+                            <!-- (MODIFIED) parseInt -->
+                            <span class="font-medium">${parseInt(item.totalPrice)}</span>
                         </div>
                         ${optionsHtml}
                         <button type="button" class="text-xs text-red-500 hover:text-red-700" onclick="removeFromCart(${index})">
@@ -750,11 +767,13 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
         
         const discountType = discountTypeSelect.value;
-        const discountValue = parseFloat(discountValueInput.value) || 0;
+        // (MODIFIED) parseInt
+        const discountValue = parseInt(discountValueInput.value) || 0;
         let discountAmount = 0;
         
         if (discountType === 'percentage') {
-            discountAmount = subtotal * (discountValue / 100);
+            // (MODIFIED) parseInt
+            discountAmount = parseInt(subtotal * (discountValue / 100));
         } else if (discountType === 'fixed') {
             discountAmount = discountValue;
         }
@@ -767,17 +786,19 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         let deliveryFee = 0;
         let appliedSurcharge = 0;
         
-        // (NEW) Get manual adjustment
-        const adjustment = parseFloat(deliveryAdjustmentInput.value) || 0;
+        // (NEW) Get manual adjustment (int)
+        const adjustment = parseInt(deliveryAdjustmentInput.value) || 0;
         
         if (selectedArea && selectedArea.dataset.charge) {
-            deliveryFee = parseFloat(selectedArea.dataset.charge);
+            // (MODIFIED) parseInt
+            deliveryFee = parseInt(selectedArea.dataset.charge);
             
             // --- NIGHT SURCHARGE LOGIC ---
             const isExempt = exemptAreas.includes(selectedAreaId);
 
             if (!isExempt) {
-                const surchargeAmount = parseFloat(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
+                // (MODIFIED) parseInt
+                const surchargeAmount = parseInt(<?php echo json_encode($settings['night_surcharge_amount'] ?? 0); ?>);
                 const surchargeStart = parseInt(<?php echo json_encode($settings['night_surcharge_start_hour'] ?? 0); ?>);
                 const surchargeEnd = parseInt(<?php echo json_encode($settings['night_surcharge_end_hour'] ?? 6); ?>);
                 const currentHour = new Date().getHours(); 
@@ -802,15 +823,15 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         
         const total = (subtotal - discountAmount) + deliveryFee;
         
-        // Update display
-        cartSubtotalEl.textContent = `${subtotal.toFixed(2)} BDT`;
-        cartDiscountEl.textContent = `-${discountAmount.toFixed(2)} BDT`;
-        cartDeliveryFeeEl.textContent = `${deliveryFee.toFixed(2)} BDT`;
-        cartTotalEl.textContent = `${total.toFixed(2)} BDT`;
+        // Update display (MODIFIED) No decimals
+        cartSubtotalEl.textContent = `${subtotal} BDT`;
+        cartDiscountEl.textContent = `-${discountAmount} BDT`;
+        cartDeliveryFeeEl.textContent = `${deliveryFee} BDT`;
+        cartTotalEl.textContent = `${total} BDT`;
         
         // Surcharge visibility
         if (appliedSurcharge > 0) {
-            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge.toFixed(2)} surcharge)`;
+            cartSurchargeFee.textContent = `(Includes ${appliedSurcharge} surcharge)`;
             cartSurchargeRow.classList.remove('hidden');
         } else {
             cartSurchargeRow.classList.add('hidden');
@@ -819,16 +840,16 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         // (NEW) Adjustment visibility
         if (adjustment !== 0) {
             const sign = adjustment > 0 ? '+' : '';
-            cartAdjustmentFee.textContent = `${sign}${adjustment.toFixed(2)} BDT`;
+            cartAdjustmentFee.textContent = `${sign}${adjustment} BDT`;
             cartAdjustmentRow.classList.remove('hidden');
         } else {
             cartAdjustmentRow.classList.add('hidden');
         }
         
-        jsSubtotalInput.value = subtotal.toFixed(2);
-        jsDiscountInput.value = discountAmount.toFixed(2);
-        jsDeliveryFeeInput.value = deliveryFee.toFixed(2);
-        jsTotalInput.value = total.toFixed(2);
+        jsSubtotalInput.value = subtotal;
+        jsDiscountInput.value = discountAmount;
+        jsDeliveryFeeInput.value = deliveryFee;
+        jsTotalInput.value = total;
     }
     
     // ... (Rest of the JS functions: openItemModal, updateModalPrice, closeModal, addItemToCart, removeFromCart, e) ...
@@ -844,7 +865,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         currentModalItem = {
             id: baseItem.id,
             name: baseItem.name,
-            basePrice: parseFloat(baseItem.price)
+            // (MODIFIED) parseInt
+            basePrice: parseInt(baseItem.price)
         };
 
         try {
@@ -867,7 +889,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
                                     ${e(option.name)}
                                 </label>
                                 <div>
-                                    <span class="text-sm text-gray-600">+${parseFloat(option.price_increase).toFixed(2)} BDT</span>
+                                    <!-- (MODIFIED) parseInt -->
+                                    <span class="text-sm text-gray-600">+${parseInt(option.price_increase)} BDT</span>
                                     <input 
                                         type="${group.type}" 
                                         id="option-${option.id}" 
@@ -900,11 +923,14 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         let optionsPrice = 0;
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
         selectedOptions.forEach(opt => {
-            optionsPrice += parseFloat(opt.dataset.price);
+            // (MODIFIED) parseInt
+            optionsPrice += parseInt(opt.dataset.price);
         });
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (currentModalItem.basePrice + optionsPrice) * quantity;
-        modalTotalPrice.textContent = total.toFixed(2);
+        
+        // (MODIFIED) No decimals
+        modalTotalPrice.textContent = total;
     }
     
     function closeModal() {
@@ -917,7 +943,8 @@ $exempt_areas = json_encode(explode(',', $settings['night_surcharge_exempt_areas
         const selectedElements = modalOptionsContent.querySelectorAll('input:checked');
         let optionsPrice = 0;
         selectedElements.forEach(opt => {
-            const price = parseFloat(opt.dataset.price);
+            // (MODIFIED) parseInt
+            const price = parseInt(opt.dataset.price);
             selectedOptions.push({
                 id: opt.value, 
                 name: opt.dataset.name,

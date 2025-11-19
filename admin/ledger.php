@@ -2,7 +2,7 @@
 /*
  * admin/ledger.php
  * KitchCo: Cloud Kitchen Admin's Personal Ledger
- * Version 2.0 - Added Costs/Withdrawals
+ * Version 2.1 - (MODIFIED) Integers Only for BDT
  *
  * This is an ADMIN-ONLY page for logging personal savings and costs.
  * It is not connected to orders or sales data.
@@ -68,12 +68,13 @@ if ($action === 'edit' && $entry_id) {
     if ($result_edit->num_rows === 1) {
         $entry = $result_edit->fetch_assoc();
         $entry_date_form = $entry['entry_date'];
-        $type_form = $entry['type']; // (NEW) Load the type
-        $amount_form = $entry['amount'];
+        $type_form = $entry['type']; 
+        // (MODIFIED) Cast to int
+        $amount_form = (int)$entry['amount'];
         $description_form = $entry['description'];
     } else {
         $error_message = "Ledger entry not found.";
-        $form_mode = 'add'; // Revert to add mode
+        $form_mode = 'add'; 
     }
     $stmt_edit->close();
 }
@@ -84,8 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_entry'])) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
         $entry_date = $_POST['entry_date'];
-        $type = $_POST['type']; // (NEW) Get the type
-        $amount = (float)$_POST['amount'];
+        $type = $_POST['type']; 
+        // (MODIFIED) Cast to int
+        $amount = (int)$_POST['amount'];
         $description = trim($_POST['description']);
         $entry_id_to_update = (int)($_POST['entry_id'] ?? 0);
 
@@ -96,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_entry'])) {
                 // --- UPDATE ---
                 $sql = "UPDATE admin_ledger SET entry_date = ?, type = ?, amount = ?, description = ? WHERE id = ?";
                 $stmt = $db->prepare($sql);
-                // (FIX) Corrected bind_param types from 'ssdssi' (6 chars) to 'ssdsi' (5 chars)
+                // (MODIFIED) Bind as 'i' or 'd' (using d for general safety but logic is int)
                 $stmt->bind_param('ssdsi', $entry_date, $type, $amount, $description, $entry_id_to_update);
                 
                 if ($stmt->execute()) {
@@ -124,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_entry'])) {
                 $stmt->bind_param('ssds', $entry_date, $type, $amount, $description);
                 
                 if ($stmt->execute()) {
-                    $success_message = 'Entry of ' . number_format($amount, 2) . ' BDT recorded!';
+                    $success_message = 'Entry of ' . number_format($amount, 0) . ' BDT recorded!';
                 } else {
                     $error_message = 'Failed to save entry: ' . $stmt->error;
                 }
@@ -153,9 +155,9 @@ $result_total = $db->query("SELECT type, SUM(amount) as total FROM admin_ledger 
 if ($result_total) {
     while($row = $result_total->fetch_assoc()) {
         if ($row['type'] == 'deposit') {
-            $total_deposits_all = $row['total'];
+            $total_deposits_all = (int)$row['total'];
         } else {
-            $total_withdrawals_all = $row['total'];
+            $total_withdrawals_all = (int)$row['total'];
         }
     }
 }
@@ -171,9 +173,9 @@ $result_range = $stmt_range->get_result();
 if ($result_range) {
     while($row = $result_range->fetch_assoc()) {
         if ($row['type'] == 'deposit') {
-            $total_deposits_range = $row['total'];
+            $total_deposits_range = (int)$row['total'];
         } else {
-            $total_withdrawals_range = $row['total'];
+            $total_withdrawals_range = (int)$row['total'];
         }
     }
 }
@@ -261,9 +263,11 @@ if ($chart_result) {
     while ($row = $chart_result->fetch_assoc()) {
         if (isset($data_by_day[$row['e_date']])) {
             if ($row['type'] == 'deposit') {
-                $data_by_day[$row['e_date']]['deposits'] = (float)$row['daily_total'];
+                // (MODIFIED) Cast to int
+                $data_by_day[$row['e_date']]['deposits'] = (int)$row['daily_total'];
             } else {
-                $data_by_day[$row['e_date']]['withdrawals'] = (float)$row['daily_total'];
+                // (MODIFIED) Cast to int
+                $data_by_day[$row['e_date']]['withdrawals'] = (int)$row['daily_total'];
             }
         }
     }
@@ -326,16 +330,19 @@ $chart_withdrawals_json = json_encode($chart_withdrawals_data);
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Current Balance (All Time)</div>
         <div class="text-3xl font-bold <?php echo ($current_balance >= 0) ? 'text-green-600' : 'text-red-600'; ?>">
-            <?php echo e(number_format($current_balance, 2)); ?> BDT
+            <!-- (MODIFIED) Removed decimals -->
+            <?php echo e(number_format($current_balance, 0)); ?> BDT
         </div>
     </div>
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Deposits in Range</div>
-        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($total_deposits_range, 2)); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900"><?php echo e(number_format($total_deposits_range, 0)); ?> BDT</div>
     </div>
     <div class="bg-white p-6 rounded-2xl shadow-lg">
         <div class="text-sm font-medium text-gray-500">Costs in Range</div>
-        <div class="text-3xl font-bold text-gray-900">-<?php echo e(number_format($total_withdrawals_range, 2)); ?> BDT</div>
+        <!-- (MODIFIED) Removed decimals -->
+        <div class="text-3xl font-bold text-gray-900">-<?php echo e(number_format($total_withdrawals_range, 0)); ?> BDT</div>
     </div>
 </div>
 
@@ -388,7 +395,8 @@ $chart_withdrawals_json = json_encode($chart_withdrawals_data);
 
                 <div>
                     <label for="amount" class="block text-sm font-medium text-gray-700">Amount (BDT)</label>
-                    <input type="number" step="0.01" id="amount" name="amount" value="<?php echo e($amount_form); ?>" placeholder="e.g., 500.00" required
+                    <!-- (MODIFIED) step="1" -->
+                    <input type="number" step="1" id="amount" name="amount" value="<?php echo e($amount_form); ?>" placeholder="e.g., 500" required
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
 
@@ -438,9 +446,12 @@ $chart_withdrawals_json = json_encode($chart_withdrawals_data);
                             ?>
                                 <tr>
                                     <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($month['month_name']); ?></div></td>
-                                    <td class="px-6 py-4 text-right"><div class="text-sm text-green-600"><?php echo e(number_format($month['total_deposits'], 2)); ?></div></td>
-                                    <td class="px-6 py-4 text-right"><div class="text-sm text-red-600">-<?php echo e(number_format($month['total_withdrawals'], 2)); ?></div></td>
-                                    <td class="px-6 py-4 text-right"><div class="text-sm font-medium <?php echo ($net_change >= 0) ? 'text-green-600' : 'text-red-600'; ?>"><?php echo e(number_format($net_change, 2)); ?></div></td>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <td class="px-6 py-4 text-right"><div class="text-sm text-green-600"><?php echo number_format($month['total_deposits'], 0); ?></div></td>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <td class="px-6 py-4 text-right"><div class="text-sm text-red-600">-<?php echo number_format($month['total_withdrawals'], 0); ?></div></td>
+                                    <!-- (MODIFIED) Removed decimals -->
+                                    <td class="px-6 py-4 text-right"><div class="text-sm font-medium <?php echo ($net_change >= 0) ? 'text-green-600' : 'text-red-600'; ?>"><?php echo number_format($net_change, 0); ?></div></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -482,7 +493,8 @@ $chart_withdrawals_json = json_encode($chart_withdrawals_data);
                                     <td class="px-6 py-4"><div class="text-sm text-gray-500"><?php echo e($entry['description']); ?></div></td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="text-sm font-medium <?php echo ($entry['type'] == 'deposit') ? 'text-green-600' : 'text-red-600'; ?>">
-                                            <?php echo ($entry['type'] == 'deposit') ? '+' : '-'; ?><?php echo e(number_format($entry['amount'], 2)); ?>
+                                            <!-- (MODIFIED) Removed decimals -->
+                                            <?php echo ($entry['type'] == 'deposit') ? '+' : '-'; ?><?php echo number_format($entry['amount'], 0); ?>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-right text-sm font-medium space-x-2">

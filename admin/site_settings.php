@@ -2,10 +2,9 @@
 /*
  * admin/site_settings.php
  * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 2.1 - (MODIFIED) Improved Exempt Areas UI (Scrollable & Searchable)
+ * Version 2.2 - (MODIFIED) Integers Only for BDT
  *
  * This is an ADMIN-ONLY page.
- * It provides a UI to edit all values in the `site_settings` table.
  */
 
 // 1. HEADER
@@ -38,15 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'store_name' => $_POST['store_name'],
             'hero_title' => $_POST['hero_title'],
             'hero_subtitle' => $_POST['hero_subtitle'],
-            'night_surcharge_amount' => $_POST['night_surcharge_amount'],
+            // (MODIFIED) Cast to int
+            'night_surcharge_amount' => (int)$_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
-            // Save the exempt areas string
             'night_surcharge_exempt_areas' => $exempt_areas_string,
             
             'timezone' => $_POST['timezone'],
             'global_discount_type' => $_POST['global_discount_type'],
-            'global_discount_value' => $_POST['global_discount_value'] ?? 0,
+            // (MODIFIED) Cast to int if fixed, keep float if percent (but form uses step=1 now)
+            'global_discount_value' => (int)($_POST['global_discount_value'] ?? 0),
             'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0',
             'hero_image_style' => $_POST['hero_image_style'],
             'hero_image_card_color' => $_POST['hero_image_card_color'],
@@ -99,13 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Error preparing statement: " . $db->error;
         } else {
             foreach ($new_settings as $key => $value) {
-                if (array_key_exists($key, $settings) || isset($settings[$key])) { // Check if key exists
+                if (array_key_exists($key, $settings) || isset($settings[$key])) { 
                     $stmt->bind_param('ss', $value, $key);
                     if (!$stmt->execute()) {
                          $error_message = "Error updating setting: $key";
                     }
                 } else {
-                    // This handles new settings on first save
                     $insert_sql = "INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)";
                     $insert_stmt = $db->prepare($insert_sql);
                     $insert_stmt->bind_param('ss', $key, $value);
@@ -118,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($error_message)) {
             $success_message = 'Settings updated successfully!';
-            // IMPORTANT: Reload settings from DB
+            // Reload settings
             $settings_query = $db->query("SELECT setting_key, setting_value FROM site_settings");
             if ($settings_query) {
                 while ($row = $settings_query->fetch_assoc()) {
@@ -131,17 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 5. --- LOAD DATA FOR DROPDOWNS ---
 $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
-
-// Load Delivery Areas for the Multi-Select
 $delivery_areas = [];
 $area_result = $db->query("SELECT id, area_name FROM delivery_areas WHERE is_active = 1 ORDER BY area_name ASC");
 while ($row = $area_result->fetch_assoc()) {
     $delivery_areas[] = $row;
 }
-
-// Parse the current exempt list into an array
 $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? '');
-
 ?>
 
 <!-- Page Title -->
@@ -266,8 +260,9 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
             <div>
                 <label for="night_surcharge_amount" class="block text-sm font-medium text-gray-700">Night Surcharge Amount (BDT)</label>
-                <input type="number" step="0.01" id="night_surcharge_amount" name="night_surcharge_amount" 
-                       value="<?php echo e($settings['night_surcharge_amount'] ?? '0'); ?>"
+                <!-- (MODIFIED) step="1" -->
+                <input type="number" step="1" id="night_surcharge_amount" name="night_surcharge_amount" 
+                       value="<?php echo e((int)($settings['night_surcharge_amount'] ?? '0')); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             </div>
             
@@ -360,8 +355,9 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
             <div>
                 <label for="global_discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
-                <input type="number" step="0.01" id="global_discount_value" name="global_discount_value" 
-                       value="<?php echo e($settings['global_discount_value'] ?? '0'); ?>"
+                <!-- (MODIFIED) step="1" -->
+                <input type="number" step="1" id="global_discount_value" name="global_discount_value" 
+                       value="<?php echo e((int)($settings['global_discount_value'] ?? '0')); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             </div>
             
@@ -403,8 +399,9 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             </div>
             <div class="mt-2 w-full md:w-1/3">
                 <label for="delivery_discount_percentage" class="block text-sm font-medium text-gray-700">Delivery Discount Percentage (%)</label>
+                <!-- (MODIFIED) step="1" -->
                 <input type="number" step="1" min="0" max="100" id="delivery_discount_percentage" name="delivery_discount_percentage" 
-                       value="<?php echo e($settings['delivery_discount_percentage'] ?? '0'); ?>"
+                       value="<?php echo e((int)($settings['delivery_discount_percentage'] ?? '0')); ?>"
                        placeholder="e.g., 50 for 50% off"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             </div>

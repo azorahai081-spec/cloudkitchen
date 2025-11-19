@@ -2,19 +2,17 @@
 /*
  * admin/manage_complaints.php
  * KitchCo: Cloud Kitchen Complaint List
- * Version 1.2 - (FIXED) Corrected layout bug from v1.1
+ * Version 1.3 - (MODIFIED) Allowed Manager Access
  *
- * This is an ADMIN-ONLY page to list and manually add complaints.
+ * This page allows Admins AND Managers to list and add complaints.
  */
 
 // 1. HEADER
 require_once('header.php');
 
-// 2. SECURITY CHECK - ADMINS ONLY
-if (!hasAdminAccess()) {
-    header('Location: live_orders.php');
-    exit;
-}
+// 2. SECURITY CHECK
+// (MODIFIED) Removed strict Admin check. 
+// Since header.php ensures the user is logged in, both Admins and Managers can access this.
 
 // 3. PAGE TITLE
 $page_title = 'Manage Complaints';
@@ -98,8 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_complaint'])) {
 
 
 // 5. --- HANDLE DELETE ACTION (ADMIN ONLY) ---
+// (MODIFIED) We keep DELETE strictly for Admins to prevent managers from erasing history.
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-    if (!validate_csrf_token()) {
+    if (!hasAdminAccess()) {
+        $error_message = "Access Denied. Only Admins can delete records.";
+    } elseif (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
         $complaint_id_to_delete = (int)$_GET['id'];
@@ -143,15 +144,13 @@ if ($result) {
     </div>
 </div>
 
-<!-- (REMOVED) Original message block was here -->
-
-<!-- (NEW) Main grid layout -->
+<!-- Main grid layout -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-    <!-- (NEW) Column 1: Manual Add Form -->
+    <!-- Column 1: Manual Add Form -->
     <div class="lg:col-span-1">
     
-        <!-- (MOVED) Success & Error Messages -->
+        <!-- Success & Error Messages -->
         <?php if (!empty($success_message)): ?>
             <div class="mb-4 p-4 bg-green-100 border border-green-300 text-green-700 rounded-lg">
                 <?php echo e($success_message); ?>
@@ -174,8 +173,6 @@ if ($result) {
                            placeholder="e.g., PM-123" required
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
-                
-                <!-- (REMOVED) Duplicated message block was here -->
 
                 <div>
                     <label for="complaint_type" class="block text-sm font-medium text-gray-700">Category of Issue *</label>
@@ -216,7 +213,7 @@ if ($result) {
         </div>
     </div>
 
-    <!-- (NEW) Column 2: List of Complaints -->
+    <!-- Column 2: List of Complaints -->
     <div class="lg:col-span-2">
         <!-- Filter Bar -->
         <div class="bg-white p-4 rounded-2xl shadow-lg mb-8">
@@ -279,11 +276,14 @@ if ($result) {
                                     </td>
                                     <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                         <a href="complaint_details.php?id=<?php echo e($complaint['id']); ?>" class="text-orange-600 hover:text-orange-900">View/Manage</a>
+                                        
+                                        <?php if (hasAdminAccess()): ?>
                                         <a href="manage_complaints.php?action=delete&id=<?php echo e($complaint['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
                                            class="text-red-600 hover:text-red-900" 
                                            onclick="return confirm('Are you sure you want to permanently delete this complaint?');">
                                             Delete
                                         </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

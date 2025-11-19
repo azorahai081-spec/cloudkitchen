@@ -3,11 +3,11 @@
 {"type":"database","name":"cloud_kitchen"},
 {"type":"table","name":"admin_ledger","database":"cloud_kitchen","data":
 [
-{"id":"3","type":"deposit","entry_date":"2025-10-01","amount":"1000.00","description":"","created_at":"2025-11-16 22:42:56"},
-{"id":"4","type":"deposit","entry_date":"2025-10-02","amount":"10000.00","description":"","created_at":"2025-11-16 22:48:18"},
-{"id":"5","type":"deposit","entry_date":"2025-11-01","amount":"5000.00","description":"","created_at":"2025-11-16 22:48:43"},
-{"id":"6","type":"withdrawal","entry_date":"2025-11-16","amount":"20000.00","description":"","created_at":"2025-11-16 23:16:09"},
-{"id":"7","type":"deposit","entry_date":"2025-11-16","amount":"30000.00","description":"","created_at":"2025-11-16 23:16:16"}
+{"id":"3","type":"deposit","entry_date":"2025-10-01","amount":"1000","description":"","created_at":"2025-11-16 22:42:56"},
+{"id":"4","type":"deposit","entry_date":"2025-10-02","amount":"10000","description":"","created_at":"2025-11-16 22:48:18"},
+{"id":"5","type":"deposit","entry_date":"2025-11-01","amount":"5000","description":"","created_at":"2025-11-16 22:48:43"},
+{"id":"6","type":"withdrawal","entry_date":"2025-11-16","amount":"20000","description":"","created_at":"2025-11-16 23:16:09"},
+{"id":"7","type":"deposit","entry_date":"2025-11-16","amount":"30000","description":"","created_at":"2025-11-16 23:16:16"}
 ]
 }
 ,{"type":"table","name":"admin_reviews","database":"cloud_kitchen","data":
@@ -41,15 +41,15 @@
 }
 ,{"type":"table","name":"coupons","database":"cloud_kitchen","data":
 [
-{"id":"1","code":"EID50","description":"","type":"percentage","value":"50.00","min_order_amount":"0.00","start_date":"2025-11-15 19:44:00","end_date":"2025-12-15 19:44:00","max_uses":"1","current_uses":"1","is_active":"1"},
-{"id":"2","code":"EID501","description":"","type":"percentage","value":"50.00","min_order_amount":"0.00","start_date":"2025-11-16 11:50:00","end_date":"2025-12-16 11:50:00","max_uses":"1","current_uses":"1","is_active":"1"}
+{"id":"1","code":"EID50","description":"","type":"percentage","value":"50","min_order_amount":"0","start_date":"2025-11-15 19:44:00","end_date":"2025-12-15 19:44:00","max_uses":"1","current_uses":"1","is_active":"1"},
+{"id":"2","code":"EID501","description":"","type":"percentage","value":"50","min_order_amount":"0","start_date":"2025-11-16 11:50:00","end_date":"2025-12-16 11:50:00","max_uses":"1","current_uses":"1","is_active":"1"}
 ]
 }
 ,{"type":"table","name":"delivery_areas","database":"cloud_kitchen","data":
 [
-{"id":"1","area_name":"Chwakbazar","base_charge":"20.00","is_active":"1"},
-{"id":"2","area_name":"Agrabad","base_charge":"120.00","is_active":"1"},
-{"id":"3","area_name":"PICKUP POINT","base_charge":"0.00","is_active":"1"}
+{"id":"1","area_name":"Chwakbazar","base_charge":"20","is_active":"1"},
+{"id":"2","area_name":"Agrabad","base_charge":"120","is_active":"1"},
+{"id":"3","area_name":"PICKUP POINT","base_charge":"0","is_active":"1"}
 ]
 }
 ,{"type":"table","name":"faq","database":"cloud_kitchen","data":
@@ -71,88 +71,96 @@
 }
 ,{"type":"table","name":"item_options","database":"cloud_kitchen","data":
 [
-
+{"id":"7","group_id":"10","name":"10 Inch","price_increase":"100"},
+{"id":"8","group_id":"11","name":"Extra Cheese","price_increase":"50"},
+{"id":"9","group_id":"11","name":"Extra Sauce","price_increase":"10"}
 ]
 }
 ,{"type":"table","name":"item_options_groups","database":"cloud_kitchen","data":
 [
-
+{"id":"10","name":"Size","type":"radio"},
+{"id":"11","name":"Toppings","type":"checkbox"}
 ]
 }
 ,{"type":"table","name":"menu_items","database":"cloud_kitchen","data":
 [
-{"id":"4","category_id":"4","name":"CRISPY WINGS-6PCS","description":"Golden, crunchy chicken wings seasoned to perfection.","price":"190.00","image":"\/uploads\/menu_items\/1763281022_CRISPYWINGs.jpeg","is_available":"1","is_featured":"0"},
-{"id":"5","category_id":"4","name":"PERI PERI WINGS-6PCS","description":"Zesty peri peri wings bursting with spicy, citrusy flavours.","price":"220.00","image":"\/uploads\/menu_items\/1763281010_PERIPERIWINGs.jpeg","is_available":"1","is_featured":"0"},
-{"id":"6","category_id":"4","name":"BUFFALO WINGS-6PCS","description":"Tangy and spicy Buffalo-style wings with a bold kick.","price":"230.00","image":"\/uploads\/menu_items\/1763280989_BUFFALOWINGs.jpeg","is_available":"1","is_featured":"1"},
-{"id":"7","category_id":"4","name":"BBQ WINGS-6PCS","description":"Crispy chicken wings coated in sweet and smoky BBQ sauce.","price":"200.00","image":"\/uploads\/menu_items\/1763280977_BBQWINGSs.jpeg","is_available":"1","is_featured":"1"},
-{"id":"8","category_id":"5","name":"REGULAR MEAT BOX","description":"A classic meat box with perfectly seasoned chicken and a balanced flavour profile.","price":"180.00","image":"\/uploads\/menu_items\/1763280964_REGULARMEATBOx.jpeg","is_available":"1","is_featured":"0"},
-{"id":"9","category_id":"5","name":"BBQ MEAT BOX","description":"Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.","price":"200.00","image":"\/uploads\/menu_items\/1763280951_BBQMEAt.jpeg","is_available":"1","is_featured":"1"},
-{"id":"10","category_id":"5","name":"NAGA MEAT BOX","description":"A spicy meat box infused with bold Naga chilli flavour for heat lovers.","price":"200.00","image":"\/uploads\/menu_items\/1763280935_nagameatbox.jpeg","is_available":"1","is_featured":"0"},
-{"id":"11","category_id":"5","name":"CHEESY MEAT BOX","description":"A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.","price":"230.00","image":"\/uploads\/menu_items\/1763280918_cheesymeat.png","is_available":"1","is_featured":"0"},
-{"id":"12","category_id":"5","name":"MEAT BOX WITH DUMSTRIC (LARGE SIZE)","description":"A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.","price":"358.00","image":"\/uploads\/menu_items\/1763280673_MEATBOXWITHDUMSTRIC.png","is_available":"1","is_featured":"1"},
-{"id":"13","category_id":"8","name":"OVEN BAKED PASTA","description":"Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.","price":"200.00","image":"\/uploads\/menu_items\/1763280577_ovenbaked.png","is_available":"1","is_featured":"0"},
-{"id":"14","category_id":"8","name":"MASALA PASTA","description":"A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.","price":"200.00","image":"\/uploads\/menu_items\/1763280509_MASALAPASTA.png","is_available":"1","is_featured":"0"},
-{"id":"15","category_id":"8","name":"GREEN SAUCE PASTA","description":"Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.","price":"200.00","image":"\/uploads\/menu_items\/1763280463_GREENSAUCEPASTA.png","is_available":"1","is_featured":"0"},
-{"id":"16","category_id":"8","name":"WHITE SAUCE PASTA","description":"Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.","price":"230.00","image":"\/uploads\/menu_items\/1763280427_WHITESAUCEPASTA.png","is_available":"1","is_featured":"1"},
-{"id":"17","category_id":"8","name":"SPICY CREAMY PASTA","description":"A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.","price":"200.00","image":"\/uploads\/menu_items\/1763280352_SPICYCREAMYPASTA.png","is_available":"1","is_featured":"0"},
-{"id":"18","category_id":"6","name":"CHICKEN RICE BOWL (FRIED RICE)","description":"Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.","price":"200.00","image":"\/uploads\/menu_items\/1763280300_CHICKENRICEBOWL.png","is_available":"1","is_featured":"0"},
-{"id":"19","category_id":"6","name":"SAUSAGE RICE BOWL (FRIED RICE)","description":"Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.","price":"180.00","image":"\/uploads\/menu_items\/1763280225_SAUSAGERICEBOWL.png","is_available":"1","is_featured":"1"},
-{"id":"20","category_id":"6","name":"CHICKEN DUM BIRYANI","description":"Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.","price":"128.00","image":"\/uploads\/menu_items\/1763280186_chickendum.png","is_available":"1","is_featured":"1"},
-{"id":"21","category_id":"7","name":"Margherita","description":"A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese","price":"348.00","image":"\/uploads\/menu_items\/1763242197_1.webp","is_available":"1","is_featured":"1"},
-{"id":"22","category_id":"7","name":"Spicy Chicken","description":"A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n","price":"398.00","image":"\/uploads\/menu_items\/1763242190_7ab537159088a62156e09f8970289e79.webp","is_available":"1","is_featured":"1"},
-{"id":"23","category_id":"9","name":"Borhani","description":"1 glass of refreshing borhani as a perfect accompaniment to a meal","price":"70.00","image":"\/uploads\/menu_items\/1763286907_images.jfif","is_available":"1","is_featured":"0"},
-{"id":"24","category_id":"9","name":"Zafrani Sharbat","description":"A delectable sweet drink with the natural essence","price":"90.00","image":"\/uploads\/menu_items\/1763286952_images1.jfif","is_available":"1","is_featured":"0"}
+{"id":"4","category_id":"4","name":"CRISPY WINGS-6PCS","description":"Golden, crunchy chicken wings seasoned to perfection.","price":"190","image":"\/uploads\/menu_items\/1763281022_CRISPYWINGs.jpeg","is_available":"1","is_featured":"0"},
+{"id":"5","category_id":"4","name":"PERI PERI WINGS-6PCS","description":"Zesty peri peri wings bursting with spicy, citrusy flavours.","price":"220","image":"\/uploads\/menu_items\/1763281010_PERIPERIWINGs.jpeg","is_available":"1","is_featured":"0"},
+{"id":"6","category_id":"4","name":"BUFFALO WINGS-6PCS","description":"Tangy and spicy Buffalo-style wings with a bold kick.","price":"230","image":"\/uploads\/menu_items\/1763280989_BUFFALOWINGs.jpeg","is_available":"1","is_featured":"1"},
+{"id":"7","category_id":"4","name":"BBQ WINGS-6PCS","description":"Crispy chicken wings coated in sweet and smoky BBQ sauce.","price":"200","image":"\/uploads\/menu_items\/1763280977_BBQWINGSs.jpeg","is_available":"1","is_featured":"1"},
+{"id":"8","category_id":"5","name":"REGULAR MEAT BOX","description":"A classic meat box with perfectly seasoned chicken and a balanced flavour profile.","price":"180","image":"\/uploads\/menu_items\/1763280964_REGULARMEATBOx.jpeg","is_available":"1","is_featured":"0"},
+{"id":"9","category_id":"5","name":"BBQ MEAT BOX","description":"Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.","price":"200","image":"\/uploads\/menu_items\/1763280951_BBQMEAt.jpeg","is_available":"1","is_featured":"1"},
+{"id":"10","category_id":"5","name":"NAGA MEAT BOX","description":"A spicy meat box infused with bold Naga chilli flavour for heat lovers.","price":"200","image":"\/uploads\/menu_items\/1763280935_nagameatbox.jpeg","is_available":"1","is_featured":"0"},
+{"id":"11","category_id":"5","name":"CHEESY MEAT BOX","description":"A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.","price":"230","image":"\/uploads\/menu_items\/1763280918_cheesymeat.png","is_available":"1","is_featured":"0"},
+{"id":"12","category_id":"5","name":"MEAT BOX WITH DUMSTRIC (LARGE SIZE)","description":"A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.","price":"358","image":"\/uploads\/menu_items\/1763280673_MEATBOXWITHDUMSTRIC.png","is_available":"1","is_featured":"1"},
+{"id":"13","category_id":"8","name":"OVEN BAKED PASTA","description":"Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.","price":"200","image":"\/uploads\/menu_items\/1763280577_ovenbaked.png","is_available":"1","is_featured":"0"},
+{"id":"14","category_id":"8","name":"MASALA PASTA","description":"A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.","price":"200","image":"\/uploads\/menu_items\/1763280509_MASALAPASTA.png","is_available":"1","is_featured":"0"},
+{"id":"15","category_id":"8","name":"GREEN SAUCE PASTA","description":"Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.","price":"200","image":"\/uploads\/menu_items\/1763280463_GREENSAUCEPASTA.png","is_available":"1","is_featured":"0"},
+{"id":"16","category_id":"8","name":"WHITE SAUCE PASTA","description":"Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.","price":"230","image":"\/uploads\/menu_items\/1763280427_WHITESAUCEPASTA.png","is_available":"1","is_featured":"1"},
+{"id":"17","category_id":"8","name":"SPICY CREAMY PASTA","description":"A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.","price":"200","image":"\/uploads\/menu_items\/1763280352_SPICYCREAMYPASTA.png","is_available":"1","is_featured":"0"},
+{"id":"18","category_id":"6","name":"CHICKEN RICE BOWL (FRIED RICE)","description":"Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.","price":"200","image":"\/uploads\/menu_items\/1763280300_CHICKENRICEBOWL.png","is_available":"1","is_featured":"0"},
+{"id":"19","category_id":"6","name":"SAUSAGE RICE BOWL (FRIED RICE)","description":"Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.","price":"180","image":"\/uploads\/menu_items\/1763280225_SAUSAGERICEBOWL.png","is_available":"1","is_featured":"1"},
+{"id":"20","category_id":"6","name":"CHICKEN DUM BIRYANI","description":"Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.","price":"128","image":"\/uploads\/menu_items\/1763280186_chickendum.png","is_available":"1","is_featured":"1"},
+{"id":"21","category_id":"7","name":"Margherita","description":"A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese","price":"348","image":"\/uploads\/menu_items\/1763242197_1.webp","is_available":"1","is_featured":"1"},
+{"id":"22","category_id":"7","name":"Spicy Chicken","description":"A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n","price":"398","image":"\/uploads\/menu_items\/1763242190_7ab537159088a62156e09f8970289e79.webp","is_available":"1","is_featured":"1"},
+{"id":"23","category_id":"9","name":"Borhani","description":"1 glass of refreshing borhani as a perfect accompaniment to a meal","price":"70","image":"\/uploads\/menu_items\/1763286907_images.jfif","is_available":"1","is_featured":"0"},
+{"id":"24","category_id":"9","name":"Zafrani Sharbat","description":"A delectable sweet drink with the natural essence","price":"90","image":"\/uploads\/menu_items\/1763286952_images1.jfif","is_available":"1","is_featured":"0"}
 ]
 }
 ,{"type":"table","name":"menu_item_options_groups","database":"cloud_kitchen","data":
 [
-
+{"menu_item_id":"21","option_group_id":"10"},
+{"menu_item_id":"22","option_group_id":"10"},
+{"menu_item_id":"21","option_group_id":"11"},
+{"menu_item_id":"22","option_group_id":"11"}
 ]
 }
 ,{"type":"table","name":"orders","database":"cloud_kitchen","data":
 [
-{"id":"10","customer_name":"Arif","customer_phone":"01820331015","customer_address":"adasd","order_note":null,"delivery_area_id":"1","subtotal":"800.00","delivery_fee":"30.00","delivery_adjustment":"0.00","total_amount":"707.00","order_status":"Preparing","order_time":"2025-11-15 16:48:20","rider_name":"ikram","coupon_id":null,"discount_type":"fixed","discount_amount":"123.00"},
-{"id":"11","customer_name":"Nazrul Islam","customer_phone":"01420332015","customer_address":"asdasd","order_note":null,"delivery_area_id":"1","subtotal":"1950.00","delivery_fee":"30.00","delivery_adjustment":"0.00","total_amount":"1005.00","order_status":"Preparing","order_time":"2025-11-15 17:00:35","rider_name":null,"coupon_id":null,"discount_type":"percentage","discount_amount":"975.00"},
-{"id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","customer_address":"sdasdsa","order_note":null,"delivery_area_id":"1","subtotal":"200.00","delivery_fee":"20.00","delivery_adjustment":"0.00","total_amount":"220.00","order_status":"Delivered","order_time":"2025-11-15 17:01:49","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620.00","delivery_fee":"30.00","delivery_adjustment":"0.00","total_amount":"340.00","order_status":"Delivered","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310.00"},
-{"id":"14","customer_name":"Shahadat Hossain","customer_phone":"0000","customer_address":"abasb","order_note":null,"delivery_area_id":"2","subtotal":"720.00","delivery_fee":"130.00","delivery_adjustment":"0.00","total_amount":"490.00","order_status":"Delivered","order_time":"2025-11-15 19:45:40","rider_name":null,"coupon_id":"1","discount_type":"percentage","discount_amount":"360.00"},
-{"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"200.00","delivery_fee":"107.00","delivery_adjustment":"-13.00","total_amount":"307.00","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"26","customer_name":"Shahidul islam","customer_phone":"01813631864","customer_address":"দফফদফদ","order_note":"","delivery_area_id":"1","subtotal":"2470.00","delivery_fee":"10.00","delivery_adjustment":"0.00","total_amount":"2480.00","order_status":"Pending","order_time":"2025-11-17 13:26:11","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"27","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"dsfs","order_note":"wewer","delivery_area_id":"1","subtotal":"230.00","delivery_fee":"20.00","delivery_adjustment":"0.00","total_amount":"250.00","order_status":"Delivered","order_time":"2025-11-18 15:23:23","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"28","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"sdasd","order_note":"asd","delivery_area_id":"1","subtotal":"90.00","delivery_fee":"20.00","delivery_adjustment":"0.00","total_amount":"110.00","order_status":"Delivered","order_time":"2025-11-18 15:26:52","rider_name":"asdsad","coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"29","customer_name":"Safin","customer_phone":"01420332015","customer_address":"sadasd","order_note":"","delivery_area_id":"1","subtotal":"968.00","delivery_fee":"63.00","delivery_adjustment":"10.00","total_amount":"1031.00","order_status":"Delivered","order_time":"2025-11-18 22:01:38","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"30","customer_name":"Arif","customer_phone":"01820336015","customer_address":"dsdad","order_note":"","delivery_area_id":"2","subtotal":"200.00","delivery_fee":"120.00","delivery_adjustment":"0.00","total_amount":"320.00","order_status":"Delivered","order_time":"2025-11-18 22:40:31","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"},
-{"id":"31","customer_name":"Arif","customer_phone":"01820336015","customer_address":"asdasd","order_note":"","delivery_area_id":"2","subtotal":"748.00","delivery_fee":"120.00","delivery_adjustment":"0.00","total_amount":"868.00","order_status":"Cancelled","order_time":"2025-11-18 22:41:37","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0.00"}
+{"id":"10","customer_name":"Arif","customer_phone":"01820331015","customer_address":"adasd","order_note":null,"delivery_area_id":"1","subtotal":"800","delivery_fee":"30","delivery_adjustment":"0","total_amount":"707","order_status":"Preparing","order_time":"2025-11-15 16:48:20","rider_name":"ikram","coupon_id":null,"discount_type":"fixed","discount_amount":"123"},
+{"id":"11","customer_name":"Nazrul Islam","customer_phone":"01420332015","customer_address":"asdasd","order_note":null,"delivery_area_id":"1","subtotal":"1950","delivery_fee":"30","delivery_adjustment":"0","total_amount":"1005","order_status":"Preparing","order_time":"2025-11-15 17:00:35","rider_name":null,"coupon_id":null,"discount_type":"percentage","discount_amount":"975"},
+{"id":"12","customer_name":"Ziaul Hoque","customer_phone":"01420336015","customer_address":"sdasdsa","order_note":null,"delivery_area_id":"1","subtotal":"200","delivery_fee":"20","delivery_adjustment":"0","total_amount":"220","order_status":"Delivered","order_time":"2025-11-15 17:01:49","rider_name":"ikram","coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"13","customer_name":"Shahidul islam","customer_phone":"01820336015","customer_address":"676767f76","order_note":null,"delivery_area_id":"1","subtotal":"620","delivery_fee":"30","delivery_adjustment":"0","total_amount":"340","order_status":"Delivered","order_time":"2025-11-15 17:41:17","rider_name":"ikram","coupon_id":null,"discount_type":"percentage","discount_amount":"310"},
+{"id":"14","customer_name":"Shahadat Hossain","customer_phone":"0000","customer_address":"abasb","order_note":null,"delivery_area_id":"2","subtotal":"720","delivery_fee":"130","delivery_adjustment":"0","total_amount":"490","order_status":"Delivered","order_time":"2025-11-15 19:45:40","rider_name":null,"coupon_id":"1","discount_type":"percentage","discount_amount":"360"},
+{"id":"15","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"asdasdas","order_note":"Spicy","delivery_area_id":"2","subtotal":"200","delivery_fee":"107","delivery_adjustment":"-13","total_amount":"307","order_status":"Pending","order_time":"2025-11-15 20:22:32","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"26","customer_name":"Shahidul islam","customer_phone":"01813631864","customer_address":"দফফদফদ","order_note":"","delivery_area_id":"1","subtotal":"2470","delivery_fee":"10","delivery_adjustment":"0","total_amount":"2480","order_status":"Pending","order_time":"2025-11-17 13:26:11","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"27","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"dsfs","order_note":"wewer","delivery_area_id":"1","subtotal":"230","delivery_fee":"20","delivery_adjustment":"0","total_amount":"250","order_status":"Delivered","order_time":"2025-11-18 15:23:23","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"28","customer_name":"Shahidul islam","customer_phone":"01820331015","customer_address":"sdasd","order_note":"asd","delivery_area_id":"1","subtotal":"90","delivery_fee":"20","delivery_adjustment":"0","total_amount":"110","order_status":"Delivered","order_time":"2025-11-18 15:26:52","rider_name":"asdsad","coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"29","customer_name":"Safin","customer_phone":"01420332015","customer_address":"sadasd","order_note":"","delivery_area_id":"1","subtotal":"968","delivery_fee":"63","delivery_adjustment":"10","total_amount":"1031","order_status":"Delivered","order_time":"2025-11-18 22:01:38","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"30","customer_name":"Arif","customer_phone":"01820336015","customer_address":"dsdad","order_note":"","delivery_area_id":"2","subtotal":"200","delivery_fee":"120","delivery_adjustment":"0","total_amount":"320","order_status":"Delivered","order_time":"2025-11-18 22:40:31","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"31","customer_name":"Arif","customer_phone":"01820336015","customer_address":"asdasd","order_note":"","delivery_area_id":"2","subtotal":"748","delivery_fee":"120","delivery_adjustment":"0","total_amount":"868","order_status":"Cancelled","order_time":"2025-11-18 22:41:37","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"},
+{"id":"32","customer_name":"Neon","customer_phone":"01820336015","customer_address":"asvasvasv","order_note":"","delivery_area_id":"2","subtotal":"200","delivery_fee":"122","delivery_adjustment":"2","total_amount":"322","order_status":"Delivered","order_time":"2025-11-19 07:44:58","rider_name":null,"coupon_id":null,"discount_type":"none","discount_amount":"0"}
 ]
 }
 ,{"type":"table","name":"order_items","database":"cloud_kitchen","data":
 [
-{"id":"13","order_id":"12","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"29","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"30","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"31","order_id":"13","menu_item_id":"5","quantity":"1","base_price":"220.00","total_price":"220.00"},
-{"id":"32","order_id":"10","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"33","order_id":"10","menu_item_id":"7","quantity":"3","base_price":"200.00","total_price":"600.00"},
-{"id":"36","order_id":"11","menu_item_id":"7","quantity":"4","base_price":"200.00","total_price":"800.00"},
-{"id":"37","order_id":"11","menu_item_id":"6","quantity":"5","base_price":"230.00","total_price":"1150.00"},
-{"id":"38","order_id":"14","menu_item_id":"7","quantity":"4","base_price":"180.00","total_price":"720.00"},
-{"id":"57","order_id":"26","menu_item_id":"5","quantity":"3","base_price":"220.00","total_price":"660.00"},
-{"id":"58","order_id":"26","menu_item_id":"24","quantity":"3","base_price":"90.00","total_price":"270.00"},
-{"id":"59","order_id":"26","menu_item_id":"4","quantity":"2","base_price":"190.00","total_price":"380.00"},
-{"id":"60","order_id":"26","menu_item_id":"7","quantity":"2","base_price":"200.00","total_price":"400.00"},
-{"id":"61","order_id":"26","menu_item_id":"8","quantity":"2","base_price":"180.00","total_price":"360.00"},
-{"id":"62","order_id":"26","menu_item_id":"10","quantity":"2","base_price":"200.00","total_price":"400.00"},
-{"id":"63","order_id":"27","menu_item_id":"6","quantity":"1","base_price":"230.00","total_price":"230.00"},
-{"id":"68","order_id":"15","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"69","order_id":"28","menu_item_id":"24","quantity":"1","base_price":"90.00","total_price":"90.00"},
-{"id":"74","order_id":"29","menu_item_id":"4","quantity":"1","base_price":"190.00","total_price":"190.00"},
-{"id":"75","order_id":"29","menu_item_id":"5","quantity":"1","base_price":"220.00","total_price":"220.00"},
-{"id":"76","order_id":"29","menu_item_id":"12","quantity":"1","base_price":"358.00","total_price":"358.00"},
-{"id":"77","order_id":"29","menu_item_id":"15","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"78","order_id":"30","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"79","order_id":"31","menu_item_id":"7","quantity":"1","base_price":"200.00","total_price":"200.00"},
-{"id":"80","order_id":"31","menu_item_id":"4","quantity":"1","base_price":"190.00","total_price":"190.00"},
-{"id":"81","order_id":"31","menu_item_id":"12","quantity":"1","base_price":"358.00","total_price":"358.00"}
+{"id":"13","order_id":"12","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"29","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"30","order_id":"13","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"31","order_id":"13","menu_item_id":"5","quantity":"1","base_price":"220","total_price":"220"},
+{"id":"32","order_id":"10","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"33","order_id":"10","menu_item_id":"7","quantity":"3","base_price":"200","total_price":"600"},
+{"id":"36","order_id":"11","menu_item_id":"7","quantity":"4","base_price":"200","total_price":"800"},
+{"id":"37","order_id":"11","menu_item_id":"6","quantity":"5","base_price":"230","total_price":"1150"},
+{"id":"38","order_id":"14","menu_item_id":"7","quantity":"4","base_price":"180","total_price":"720"},
+{"id":"57","order_id":"26","menu_item_id":"5","quantity":"3","base_price":"220","total_price":"660"},
+{"id":"58","order_id":"26","menu_item_id":"24","quantity":"3","base_price":"90","total_price":"270"},
+{"id":"59","order_id":"26","menu_item_id":"4","quantity":"2","base_price":"190","total_price":"380"},
+{"id":"60","order_id":"26","menu_item_id":"7","quantity":"2","base_price":"200","total_price":"400"},
+{"id":"61","order_id":"26","menu_item_id":"8","quantity":"2","base_price":"180","total_price":"360"},
+{"id":"62","order_id":"26","menu_item_id":"10","quantity":"2","base_price":"200","total_price":"400"},
+{"id":"63","order_id":"27","menu_item_id":"6","quantity":"1","base_price":"230","total_price":"230"},
+{"id":"68","order_id":"15","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"69","order_id":"28","menu_item_id":"24","quantity":"1","base_price":"90","total_price":"90"},
+{"id":"74","order_id":"29","menu_item_id":"4","quantity":"1","base_price":"190","total_price":"190"},
+{"id":"75","order_id":"29","menu_item_id":"5","quantity":"1","base_price":"220","total_price":"220"},
+{"id":"76","order_id":"29","menu_item_id":"12","quantity":"1","base_price":"358","total_price":"358"},
+{"id":"77","order_id":"29","menu_item_id":"15","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"78","order_id":"30","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"79","order_id":"31","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"},
+{"id":"80","order_id":"31","menu_item_id":"4","quantity":"1","base_price":"190","total_price":"190"},
+{"id":"81","order_id":"31","menu_item_id":"12","quantity":"1","base_price":"358","total_price":"358"},
+{"id":"83","order_id":"32","menu_item_id":"7","quantity":"1","base_price":"200","total_price":"200"}
 ]
 }
 ,{"type":"table","name":"order_item_options","database":"cloud_kitchen","data":

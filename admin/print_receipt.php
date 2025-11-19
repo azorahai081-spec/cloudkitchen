@@ -2,7 +2,7 @@
 /*
  * admin/print_receipt.php
  * KitchCo: Cloud Kitchen Thermal Receipt
- * Version 1.3 - Added Surcharge Display
+ * Version 1.4 - (MODIFIED) Removed decimal points for BDT
  *
  * This page is STYLED FOR A 58mm THERMAL PRINTER.
  * It does NOT include the admin header or footer.
@@ -244,7 +244,8 @@ $surcharge = max(0, $saved_fee - $base - $adj);
                             <?php echo e($item['quantity']); ?>x <?php echo e($item['item_name']); ?>
 
                         </span>
-                        <span><?php echo e(number_format($item['total_price'], 2)); ?></span>
+                        <!-- (MODIFIED) Removed decimals -->
+                        <span><?php echo e(number_format($item['total_price'], 0)); ?></span>
                     </div>
                     <?php if (!empty($item['options'])): ?>
                     <div class="item-options">
@@ -260,26 +261,30 @@ $surcharge = max(0, $saved_fee - $base - $adj);
             <div class="totals">
                 <div class="total-row">
                     <span>Subtotal:</span>
-                    <span><?php echo e(number_format($order['subtotal'], 2)); ?></span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span><?php echo e(number_format($order['subtotal'], 0)); ?></span>
                 </div>
                 
                 <?php if ($order['discount_amount'] > 0): ?>
                 <div class="total-row">
                     <span>Discount:</span>
-                    <span>-<?php echo e(number_format($order['discount_amount'], 2)); ?></span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span>-<?php echo e(number_format($order['discount_amount'], 0)); ?></span>
                 </div>
                 <?php endif; ?>
 
                 <div class="total-row">
                     <span>Delivery Fee:</span>
                     <!-- Show the *Total* fee here, which includes the adjustment -->
-                    <span><?php echo e(number_format($order['delivery_fee'], 2)); ?></span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span><?php echo e(number_format($order['delivery_fee'], 0)); ?></span>
                 </div>
 
                 <!-- (NEW) Surcharge Display -->
                 <?php if ($surcharge > 0): ?>
                 <div class="total-row" style="font-style: italic; font-size: 9px;">
-                    <span>(Inc. Surcharge: <?php echo number_format($surcharge, 2); ?>)</span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span>(Inc. Surcharge: <?php echo number_format($surcharge, 0); ?>)</span>
                     <span></span>
                 </div>
                 <?php endif; ?>
@@ -287,14 +292,16 @@ $surcharge = max(0, $saved_fee - $base - $adj);
                 <!-- (NEW) Show adjustment explicitly if it exists -->
                 <?php if (isset($order['delivery_adjustment']) && $order['delivery_adjustment'] != 0): ?>
                 <div class="total-row" style="font-style: italic; font-size: 9px;">
-                    <span>(Inc. Adjustment: <?php echo ($order['delivery_adjustment'] > 0 ? '+' : '') . number_format($order['delivery_adjustment'], 2); ?>)</span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span>(Inc. Adjustment: <?php echo ($order['delivery_adjustment'] > 0 ? '+' : '') . number_format($order['delivery_adjustment'], 0); ?>)</span>
                     <span></span>
                 </div>
                 <?php endif; ?>
 
                 <div class="total-row grand-total">
                     <span>TOTAL:</span>
-                    <span><?php echo e(number_format($order['total_amount'], 2)); ?> BDT</span>
+                    <!-- (MODIFIED) Removed decimals -->
+                    <span><?php echo e(number_format($order['total_amount'], 0)); ?> BDT</span>
                 </div>
             </div>
             
