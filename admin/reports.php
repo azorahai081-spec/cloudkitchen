@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/reports.php
- * KitchCo: Cloud Kitchen Reports & Analytics
+ * PizzaMania: Cloud Kitchen Reports & Analytics
  * Version 3.1 - (MODIFIED) Removed decimal points for BDT
  *
  * This is an ADMIN-ONLY page.
@@ -70,7 +70,8 @@ if ($orders_in_range > 0) {
 $today_start = (new DateTime('today 00:00:00', $timezone))->format('Y-m-d H:i:s');
 $today_end = (new DateTime('today 23:59:59', $timezone))->format('Y-m-d H:i:s');
 
-function get_sales_total($db, $start, $end) {
+function get_sales_total($db, $start, $end)
+{
     $sql = "SELECT SUM(total_amount) as total
             FROM orders
             WHERE order_status != 'Cancelled'
@@ -120,7 +121,7 @@ if ($chart_result) {
     while ($row = $chart_result->fetch_assoc()) {
         if (isset($sales_by_day[$row['sale_date']])) {
             // (MODIFIED) Cast to int for chart
-            $sales_by_day[$row['sale_date']] = (int)$row['daily_sales'];
+            $sales_by_day[$row['sale_date']] = (int) $row['daily_sales'];
         }
     }
 }
@@ -188,35 +189,21 @@ $area_sales_stmt->close();
         <!-- CSRF is not needed for GET forms -->
         <div class="flex-1">
             <label for="date_from" class="block text-sm font-medium text-gray-700">From</label>
-            <input 
-                type="date" 
-                id="date_from" 
-                name="date_from"
-                value="<?php echo e($date_from_str); ?>"
-                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
+            <input type="date" id="date_from" name="date_from" value="<?php echo e($date_from_str); ?>"
+                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
         </div>
         <div class="flex-1">
             <label for="date_to" class="block text-sm font-medium text-gray-700">To</label>
-            <input 
-                type="date" 
-                id="date_to" 
-                name="date_to"
-                value="<?php echo e($date_to_str); ?>"
-                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
+            <input type="date" id="date_to" name="date_to" value="<?php echo e($date_to_str); ?>"
+                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
         </div>
         <div class="flex space-x-2 mt-auto">
-            <button 
-                type="submit" 
-                class="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700"
-            >
+            <button type="submit"
+                class="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
                 Filter
             </button>
-            <a 
-                href="reports.php"
-                class="px-6 py-3 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300"
-            >
+            <a href="reports.php"
+                class="px-6 py-3 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300">
                 Reset
             </a>
         </div>
@@ -294,7 +281,9 @@ $area_sales_stmt->close();
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($sales_by_area)): ?>
-                        <tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No sales data in this period.</td></tr>
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-center text-gray-500">No sales data in this period.</td>
+                        </tr>
                     <?php else: ?>
                         <?php foreach ($sales_by_area as $area): ?>
                             <tr>
@@ -306,7 +295,8 @@ $area_sales_stmt->close();
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <!-- (MODIFIED) Removed decimals -->
-                                    <div class="text-sm font-medium text-gray-900"><?php echo e(number_format($area['total_sales'], 0)); ?> BDT</div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <?php echo e(number_format($area['total_sales'], 0)); ?> BDT</div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -328,7 +318,7 @@ $area_sales_stmt->close();
             // Get the data we passed from PHP
             const chartLabels = <?php echo $chart_labels_json; ?>;
             const chartData = <?php echo $chart_data_json; ?>;
-            
+
             new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -354,7 +344,7 @@ $area_sales_stmt->close();
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     return `Sales: ${context.formattedValue} BDT`;
                                 }
                             }

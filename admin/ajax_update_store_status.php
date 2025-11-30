@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/ajax_update_store_status.php
- * KitchCo: Cloud Kitchen AJAX Helper
+ * PizzaMania: Cloud Kitchen AJAX Helper
  * Version 1.2 - Finalized JSON error handling
  *
  * This file is called by JavaScript from live_orders.php.
@@ -48,12 +48,12 @@ try {
     $stmt = $db->prepare($sql);
     $stmt->bind_param('s', $new_status);
     $stmt->execute();
-    
+
     // 6. SEND JSON RESPONSE (Success)
     // Clear buffer and send final JSON
     ob_end_clean();
     echo json_encode([
-        'success' => true, 
+        'success' => true,
         'new_status_text' => $new_status == '1' ? 'Open' : 'Closed'
     ]);
     $stmt->close();

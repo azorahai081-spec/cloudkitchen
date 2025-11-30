@@ -7,7 +7,7 @@
 require_once('../config.php');
 
 // (NEW) Generate a token for the login form
-generate_csrf_token(); 
+generate_csrf_token();
 
 // 2. INITIALIZATION
 $error_message = '';
@@ -20,7 +20,7 @@ if (isset($_SESSION['user_id'])) {
 
 // 4. HANDLE FORM SUBMISSION (POST REQUEST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     // (NEW) Validate CSRF Token
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // --- SECURITY: Use PREPARED STATEMENTS ---
             $sql = "SELECT id, username, password, role FROM admin_users WHERE username = ? LIMIT 1";
-            
+
             $stmt = $db->prepare($sql);
             $stmt->bind_param('s', $username);
             $stmt->execute();
@@ -42,16 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result->num_rows === 1) {
                 // User found. Now we verify the password.
                 $user = $result->fetch_assoc();
-                
+
                 if (password_verify($password, $user['password'])) {
                     // SUCCESS! Passwords match.
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['user_role'] = $user['role']; // This is 'admin' or 'manager'
-                    
+
                     // (NEW) Regenerate CSRF token after login
-                    generate_csrf_token(); 
-                    
+                    generate_csrf_token();
+
                     // Redirect to the main dashboard page
                     header('Location: live_orders.php');
                     exit;
@@ -72,18 +72,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - KitchCo</title>
+    <title>Admin Login - PizzaMania</title>
     <!-- 1. Load Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- 2. Load Google Font (Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- 3. Configure Tailwind -->
     <script>
         tailwind.config = {
@@ -97,15 +98,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         };
     </script>
 </head>
+
 <body class="bg-slate-100 font-sans antialiased">
 
     <div class="flex min-h-screen items-center justify-center">
-        
+
         <div class="w-full max-w-md p-8 bg-white shadow-xl rounded-2xl">
             <!-- Logo -->
             <div class="text-center mb-6">
                 <a href="#" class="text-3xl font-bold text-orange-600">
-                    KitchCo Admin
+                    PizzaMania Admin
                 </a>
                 <p class="text-gray-500 mt-2">Please sign in to your account</p>
             </div>
@@ -121,19 +123,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form action="login.php" method="POST" class="space-y-6">
                 <!-- (NEW) CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
-                
+
                 <!-- Username Field -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">
                         Username
                     </label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        required
-                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    >
+                    <input type="text" id="username" name="username" required
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                 </div>
 
                 <!-- Password Field -->
@@ -141,28 +138,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="password" class="block text-sm font-medium text-gray-700">
                         Password
                     </label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        required
-                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    >
+                    <input type="password" id="password" name="password" required
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                 </div>
 
                 <!-- Submit Button -->
                 <div>
-                    <button 
-                        type="submit" 
-                        class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-                    >
+                    <button type="submit"
+                        class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
                         Sign In
                     </button>
                 </div>
             </form>
-            
+
         </div>
     </div>
 
 </body>
+
 </html>

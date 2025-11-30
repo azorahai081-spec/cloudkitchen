@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/logout.php
- * KitchCo: Cloud Kitchen Logout Script
+ * PizzaMania: Cloud Kitchen Logout Script
  * Version 1.1 - Added CSRF Protection
  *
  * This script destroys the user's session and redirects to the login page.

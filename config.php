@@ -1,16 +1,17 @@
 <?php
 /*
  * config.php
- * KitchCo: Cloud Kitchen Master Configuration File
- * Version 1.6 - (FINAL FIX) Correct BASE_URL logic for WAMP/XAMPP
+ * PizzaMania: Cloud Kitchen Master Configuration File
+ * Version 1.8 - (UPDATED) Added Minute-Precise Auto-Scheduler
  *
  * This file is included at the top of almost all other PHP files.
  * It handles:
  * 1. Starting the PHP session
  * 2. Connecting to the MySQL database
- * 3. Loading all store settings from the `site_settings` table
+ * 3. Loading all store settings
  * 4. Setting the default timezone
- * 5. CSRF Protection Functions
+ * 5. CSRF Protection
+ * 6. Auto-Scheduling Store Status (Now supports minutes!)
  */
 
 // --- 1. SESSION ---
@@ -19,12 +20,14 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // --- 2. CSRF PROTECTION ---
-function generate_csrf_token() {
+function generate_csrf_token()
+{
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 }
-function validate_csrf_token() {
+function validate_csrf_token()
+{
     if (isset($_POST['csrf_token']) && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         return true;
     }
@@ -33,7 +36,8 @@ function validate_csrf_token() {
     }
     return false;
 }
-function get_csrf_token() {
+function get_csrf_token()
+{
     if (empty($_SESSION['csrf_token'])) {
         generate_csrf_token();
     }
@@ -46,7 +50,7 @@ generate_csrf_token();
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('DB_NAME', 'cloud_kitchen');
+define('DB_NAME', 'cloud_kitchen3');
 
 $db = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
@@ -71,10 +75,77 @@ if ($settings_query) {
 if (!empty($settings['timezone'])) {
     date_default_timezone_set($settings['timezone']);
 } else {
-    date_default_timezone_set('UTC');
+    date_default_timezone_set('UTC'); // Fallback
 }
 
-// --- 6. GLOBAL VARIABLES & HELPERS ---
+// --- 6. AUTO-SCHEDULE STORE STATUS (Minute Precise) ---
+// This logic runs on every page load to check if a scheduled status change is needed.
+try {
+    $now = new DateTime();
+
+    // Calculate current time as a float (e.g., 3:30 AM becomes 3.5)
+    // Equation: Hours + (Minutes / 60)
+    $current_time = (float) $now->format('G') + ((int) $now->format('i') / 60);
+    $today_date = $now->format('Y-m-d');
+
+    // --- DEFINE SCHEDULE HERE ---
+    // Use 24-hour format. For minutes, use decimals (30min = .5, 15min = .25)
+    // Example: To close at 3:30 AM, set $close_time = 3.5;
+
+    $open_time = 16.0; // 16:00 = 4:00 PM
+    $close_time = 4.0; // 04:00 = 4:00 AM
+
+    // --- LOGIC A: AUTO OPEN ---
+    // If current time is past the Open time...
+    if ($current_time >= $open_time) {
+        $last_open = $settings['last_auto_open_date'] ?? '';
+
+        // ...and we haven't run the auto-opener TODAY yet...
+        if ($last_open !== $today_date) {
+            // 1. Set Store to OPEN
+            $stmt = $db->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('store_is_open', '1') ON DUPLICATE KEY UPDATE setting_value='1'");
+            $stmt->execute();
+            $stmt->close();
+
+            // 2. Record that we did it today
+            $stmt = $db->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('last_auto_open_date', ?) ON DUPLICATE KEY UPDATE setting_value=?");
+            $stmt->bind_param('ss', $today_date, $today_date);
+            $stmt->execute();
+            $stmt->close();
+
+            // 3. Update current runtime variable
+            $settings['store_is_open'] = '1';
+        }
+    }
+
+    // --- LOGIC B: AUTO CLOSE ---
+    // If current time is past Close time BUT before Open time...
+    // (e.g. It's 3:31 AM, which is > 3.5 and < 16.0)
+    if ($current_time >= $close_time && $current_time < $open_time) {
+        $last_close = $settings['last_auto_close_date'] ?? '';
+
+        // ...and we haven't run the auto-closer TODAY yet...
+        if ($last_close !== $today_date) {
+            // 1. Set Store to CLOSED
+            $stmt = $db->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('store_is_open', '0') ON DUPLICATE KEY UPDATE setting_value='0'");
+            $stmt->execute();
+            $stmt->close();
+
+            // 2. Record that we did it today
+            $stmt = $db->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('last_auto_close_date', ?) ON DUPLICATE KEY UPDATE setting_value=?");
+            $stmt->bind_param('ss', $today_date, $today_date);
+            $stmt->execute();
+            $stmt->close();
+
+            // 3. Update current runtime variable
+            $settings['store_is_open'] = '0';
+        }
+    }
+} catch (Exception $e) {
+    // Fail silently on scheduler errors to keep the site running
+}
+
+// --- 7. GLOBAL VARIABLES & HELPERS ---
 
 // (!!!) (FIXED) This logic correctly finds your "cloud" folder.
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https:" : "http:";
@@ -105,7 +176,8 @@ define('ASSETS_PATH', BASE_URL . '/assets/');
  * @param string $data The data to sanitize.
  * @return string The sanitized data.
  */
-function e($data) {
+function e($data)
+{
     // (FIX) Coalesce null to an empty string to prevent deprecation warning in PHP 8.1+
     return htmlspecialchars($data ?? '', ENT_QUOTES, 'UTF-8');
 }

@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_delivery_areas.php
- * KitchCo: Cloud Kitchen Delivery Area Manager
+ * PizzaMania: Cloud Kitchen Delivery Area Manager
  * Version 1.2 - (MODIFIED) Integers Only for BDT
  *
  * This is an ADMIN-ONLY page.

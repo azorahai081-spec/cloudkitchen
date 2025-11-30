@@ -1,7 +1,7 @@
 <?php
 /*
  * ajax_apply_coupon.php
- * KitchCo: Cloud Kitchen Coupon AJAX Helper
+ * PizzaMania: Cloud Kitchen Coupon AJAX Helper
  * Version 1.1 - (MODIFIED) Integers Only for BDT
  */
 
@@ -25,7 +25,7 @@ try {
     // 4. GET INPUT
     $coupon_code = trim($_POST['coupon_code'] ?? '');
     // (MODIFIED) Accept subtotal
-    $subtotal = (float)($_POST['subtotal'] ?? 0); 
+    $subtotal = (float) ($_POST['subtotal'] ?? 0);
 
     if (empty($coupon_code)) {
         throw new Exception('Please enter a coupon code.');
@@ -54,7 +54,7 @@ try {
     if ($coupon['current_uses'] >= $coupon['max_uses']) {
         throw new Exception('This coupon has reached its maximum usage limit.');
     }
-    
+
     $now = time();
     $start_date = strtotime($coupon['start_date']);
     $end_date = strtotime($coupon['end_date']);
@@ -74,14 +74,14 @@ try {
     if ($coupon['type'] == 'percentage') {
         $raw = $subtotal * ($coupon['value'] / 100);
         // (MODIFIED) Round to int
-        $discount_amount = (int)round($raw);
+        $discount_amount = (int) round($raw);
     } else {
         // (MODIFIED) Cast to int
-        $discount_amount = (int)$coupon['value'];
+        $discount_amount = (int) $coupon['value'];
     }
-    
+
     if ($discount_amount > $subtotal) {
-        $discount_amount = (int)$subtotal;
+        $discount_amount = (int) $subtotal;
     }
 
     // 8. SUCCESS RESPONSE

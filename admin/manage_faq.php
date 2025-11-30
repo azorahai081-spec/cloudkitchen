@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_faq.php
- * KitchCo: Cloud Kitchen FAQ Manager
+ * PizzaMania: Cloud Kitchen FAQ Manager
  * Version 1.0 - New file
  *
  * This is an ADMIN-ONLY page.
@@ -32,15 +32,15 @@ $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
         $question = $_POST['question'];
         $answer = $_POST['answer'];
-        $display_order = (int)$_POST['display_order'];
+        $display_order = (int) $_POST['display_order'];
         $is_visible = isset($_POST['is_visible']) ? 1 : 0;
-        
+
         if (empty($question) || empty($answer)) {
             $error_message = 'Question and Answer are required.';
         } else {
@@ -50,23 +50,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql = "UPDATE faq SET question = ?, answer = ?, display_order = ?, is_visible = ? WHERE id = ?";
                 $stmt = $db->prepare($sql);
                 $stmt->bind_param('ssiii', $question, $answer, $display_order, $is_visible, $faq_id_to_update);
-                
+
                 if ($stmt->execute()) {
                     $success_message = 'FAQ updated successfully!';
                 } else {
                     $error_message = 'Failed to update FAQ.';
                 }
                 $stmt->close();
-                
+
             } else {
                 // --- CREATE new FAQ ---
                 $sql = "INSERT INTO faq (question, answer, display_order, is_visible) VALUES (?, ?, ?, ?)";
                 $stmt = $db->prepare($sql);
                 $stmt->bind_param('ssii', $question, $answer, $display_order, $is_visible);
-                
+
                 if ($stmt->execute()) {
                     $success_message = 'FAQ created successfully!';
-                    $question = ''; $answer = ''; $display_order = 0; $is_visible = 1; // Clear form
+                    $question = '';
+                    $answer = '';
+                    $display_order = 0;
+                    $is_visible = 1; // Clear form
                 } else {
                     $error_message = 'Failed to create FAQ.';
                 }
@@ -85,7 +88,7 @@ if ($action === 'edit' && $faq_id) {
     $stmt->bind_param('i', $faq_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $faq = $result->fetch_assoc();
         $question = $faq['question'];
@@ -106,7 +109,7 @@ if ($action === 'delete' && $faq_id) {
         $sql = "DELETE FROM faq WHERE id = ?";
         $stmt = $db->prepare($sql);
         $stmt->bind_param('i', $faq_id);
-        
+
         if ($stmt->execute()) {
             $success_message = 'FAQ deleted successfully!';
         } else {
@@ -150,10 +153,10 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4">
                 <?php echo ($action === 'edit') ? 'Edit FAQ' : 'Add New FAQ'; ?>
             </h2>
-            
+
             <form action="manage_faq.php" method="POST" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
-                
+
                 <?php if ($action === 'edit' && $faq_id): ?>
                     <input type="hidden" name="faq_id" value="<?php echo e($faq_id); ?>">
                 <?php endif; ?>
@@ -161,35 +164,38 @@ if ($result) {
                 <div>
                     <label for="question" class="block text-sm font-medium text-gray-700">Question</label>
                     <textarea id="question" name="question" rows="3" required
-                              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($question); ?></textarea>
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($question); ?></textarea>
                 </div>
 
                 <div>
                     <label for="answer" class="block text-sm font-medium text-gray-700">Answer</label>
                     <textarea id="answer" name="answer" rows="5" required
-                              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($answer); ?></textarea>
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($answer); ?></textarea>
                 </div>
 
                 <div>
                     <label for="display_order" class="block text-sm font-medium text-gray-700">Display Order</label>
-                    <input type="number" id="display_order" name="display_order" value="<?php echo e($display_order); ?>" required
-                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <input type="number" id="display_order" name="display_order"
+                        value="<?php echo e($display_order); ?>" required
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
-                
+
                 <div class="flex items-center">
                     <input type="checkbox" id="is_visible" name="is_visible" value="1" <?php echo ($is_visible) ? 'checked' : ''; ?>
-                           class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                        class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
                     <label for="is_visible" class="ml-2 block text-sm text-gray-900">
                         Visible on website
                     </label>
                 </div>
 
                 <div class="flex space-x-2">
-                    <button type="submit" class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
+                    <button type="submit"
+                        class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
                         <?php echo ($action === 'edit') ? 'Save Changes' : 'Add FAQ'; ?>
                     </button>
                     <?php if ($action === 'edit'): ?>
-                        <a href="manage_faq.php" class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300">
+                        <a href="manage_faq.php"
+                            class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300">
                             Cancel
                         </a>
                     <?php endif; ?>
@@ -204,7 +210,7 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4 p-6 border-b border-gray-200">
                 Existing FAQs (<?php echo count($faqs); ?>)
             </h2>
-            
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -217,24 +223,35 @@ if ($result) {
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if (empty($faqs)): ?>
-                            <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No FAQs found. Add one!</td></tr>
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No FAQs found. Add one!</td>
+                            </tr>
                         <?php else: ?>
                             <?php foreach ($faqs as $faq): ?>
                                 <tr>
-                                    <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($faq['display_order']); ?></div></td>
-                                    <td class="px-6 py-4"><div class="text-sm text-gray-900"><?php echo e(substr($faq['question'], 0, 50)); ?>...</div></td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900"><?php echo e($faq['display_order']); ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900"><?php echo e(substr($faq['question'], 0, 50)); ?>...
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <?php if ($faq['is_visible']): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Visible</span>
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Visible</span>
                                         <?php else: ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Hidden</span>
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Hidden</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                        <a href="manage_faq.php?action=edit&id=<?php echo e($faq['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_faq.php?action=delete&id=<?php echo e($faq['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
-                                           class="text-red-600 hover:text-red-900" 
-                                           onclick="return confirm('Are you sure you want to delete this FAQ?');">Delete</a>
+                                        <a href="manage_faq.php?action=edit&id=<?php echo e($faq['id']); ?>"
+                                            class="text-orange-600 hover:text-orange-900">Edit</a>
+                                        <a href="manage_faq.php?action=delete&id=<?php echo e($faq['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>"
+                                            class="text-red-600 hover:text-red-900"
+                                            onclick="return confirm('Are you sure you want to delete this FAQ?');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

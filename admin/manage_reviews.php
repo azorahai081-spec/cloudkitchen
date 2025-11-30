@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_reviews.php
- * KitchCo: Cloud Kitchen Manual Review Manager
+ * PizzaMania: Cloud Kitchen Manual Review Manager
  *
  * This is an ADMIN-ONLY page.
  */

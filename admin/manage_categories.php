@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_categories.php
- * KitchCo: Cloud Kitchen Category Manager
+ * PizzaMania: Cloud Kitchen Category Manager
  * Version 1.4 - (RESTORED) Admin Only Access
  *
  * This page handles full CRUD for food categories.

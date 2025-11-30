@@ -1,8 +1,8 @@
 <?php
 /*
  * menu.php
- * KitchCo: Cloud Kitchen Full Menu Page
- * Version 1.7 - (MODIFIED) Removed decimal points for BDT
+ * PizzaMania: Cloud Kitchen Full Menu Page
+ * Version 2.0 - (UPDATED) Added JS for Floating Cart Bar Update
  *
  * This page:
  * 1. Loads all visible categories for filtering.
@@ -19,14 +19,15 @@ $meta_description = 'Browse our full menu of delicious, fresh meals.';
 // 2. HEADER
 require_once('includes/header.php');
 
-// (NEW) Helper function to apply global discount
-function calculate_discounted_price($original_price, $settings) {
+// Helper function to apply global discount
+function calculate_discounted_price($original_price, $settings)
+{
     if (empty($settings['global_discount_active']) || $settings['global_discount_active'] == '0' || empty($settings['global_discount_value']) || $settings['global_discount_value'] <= 0) {
         return $original_price;
     }
 
     $discount_type = $settings['global_discount_type'];
-    $discount_value = (float)$settings['global_discount_value'];
+    $discount_value = (float) $settings['global_discount_value'];
     $new_price = $original_price;
 
     if ($discount_type == 'percentage') {
@@ -34,7 +35,7 @@ function calculate_discounted_price($original_price, $settings) {
     } elseif ($discount_type == 'fixed') {
         $new_price = $original_price - $discount_value;
     }
-    
+
     // Don't let price go below 0
     return ($new_price > 0) ? $new_price : 0;
 }
@@ -42,7 +43,6 @@ function calculate_discounted_price($original_price, $settings) {
 
 // 3. --- LOAD DATA FOR DISPLAY ---
 
-// (MODIFIED) Page heading is now static
 $page_heading = 'Our Full Menu';
 
 // --- A. Load Categories for Sidebar ---
@@ -57,7 +57,6 @@ if ($result_cat) {
 
 // --- B. Load All Menu Items (grouped by category) ---
 $menu = [];
-// (MODIFIED) Removed the "$filter_category_id" from the query. We always load all items.
 $sql_menu = "SELECT 
                 c.id as category_id, 
                 c.name as category_name, 
@@ -75,20 +74,20 @@ $sql_menu .= " ORDER BY c.name ASC, m.name ASC";
 $result_menu = $db->query($sql_menu);
 if ($result_menu) {
     while ($row = $result_menu->fetch_assoc()) {
-        // (NEW) Apply global discount logic
-        $original_price = (float)$row['item_price'];
+        // Apply global discount logic
+        $original_price = (float) $row['item_price'];
         $discounted_price = calculate_discounted_price($original_price, $settings);
-        
+
         $row['original_price'] = $original_price;
-        $row['item_price'] = $discounted_price; // Overwrite with new price
+        $row['item_price'] = $discounted_price;
         $row['has_discount'] = ($discounted_price < $original_price);
-        
+
         // Group items by their category name
         $menu[$row['category_name']][] = $row;
     }
 }
 
-// 4. --- (MODIFIED) Schema.org JSON-LD for Menu ---
+// 4. --- Schema.org JSON-LD for Menu ---
 $schema_menu_items = [];
 foreach ($menu as $category => $items) {
     foreach ($items as $item) {
@@ -99,7 +98,7 @@ foreach ($menu as $category => $items) {
             'image' => BASE_URL . ($item['item_image'] ?? ''),
             'offers' => [
                 '@type' => 'Offer',
-                'price' => $item['item_price'], // (MODIFIED) This now sends the discounted price
+                'price' => $item['item_price'],
                 'priceCurrency' => 'BDT'
             ]
         ];
@@ -114,97 +113,121 @@ $schema_menu = [
 ];
 ?>
 
-<!-- (MODIFIED) Schema.org Script -->
+<!-- Schema.org Script -->
 <script type="application/ld+json">
 <?php echo json_encode($schema_menu, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
 </script>
 
-<!-- (NEW) Add ID for scrolling -->
 <h1 id="menu-heading" class="text-3xl font-bold text-gray-900 mb-8"><?php echo e($page_heading); ?></h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-    
+
     <!-- Column 1: Category Filter Sidebar -->
-    <aside class="lg:col-span-1">
+    <aside class="lg:col-span-1 hidden lg:block">
         <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-24">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Categories</h2>
             <ul class="space-y-2">
                 <li>
-                    <!-- (FIX) Changed to hash link to scroll to top of menu -->
-                    <a href="#menu-heading" class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
+                    <a href="#menu-heading"
+                        class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
                         All Categories
                     </a>
                 </li>
                 <?php foreach ($categories as $category): ?>
-                <li>
-                    <!-- (FIX) Changed to hash link to scroll to section -->
-                    <a href="#category-<?php echo e($category['id']); ?>" class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
-                        <?php echo e($category['name']); ?>
-                    </a>
-                </li>
+                    <li>
+                        <a href="#category-<?php echo e($category['id']); ?>"
+                            class="block px-3 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
+                            <?php echo e($category['name']); ?>
+                        </a>
+                    </li>
                 <?php endforeach; ?>
             </ul>
         </div>
     </aside>
 
     <!-- Column 2: Menu Items -->
-    <div class="lg:col-span-3 space-y-12">
-        <?php if (empty($menu)): ?>
-            <div class="bg-white p-8 rounded-2xl shadow-lg text-center">
-                <h3 class="text-xl font-bold text-gray-900">No Items Found</h3>
-                <p class="text-gray-600 mt-2">
-                    Our menu is currently empty. Please check back later!
-                </p>
+    <div class="lg:col-span-3 space-y-8">
+
+        <!-- Search Bar -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 sticky top-20 z-30">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <input type="text" id="menu-search" placeholder="Search for pizza, burger, pasta..."
+                    class="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent bg-gray-50 focus:bg-white transition-all shadow-sm">
             </div>
-        <?php else: ?>
-            <!-- Loop through each Category -->
-            <?php foreach ($menu as $category_name => $items): ?>
-                <!-- (MODIFIED) This ID is the target for the scroll -->
-                <section id="category-<?php echo e($items[0]['category_id']); ?>">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-red">
-                        <?php echo e($category_name); ?>
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Loop through each Item in this Category -->
-                        <?php foreach ($items as $item): ?>
-                            <div id="item-<?php echo e($item['item_id']); ?>" class="bg-white rounded-2xl shadow-lg overflow-hidden flex">
-                                <img 
-                                    src="<?php echo e(BASE_URL . ($item['item_image'] ?? 'https://placehold.co/150x150/EFEFEF/AAAAAA?text=No+Image')); ?>" 
-                                    alt="<?php echo e($item['item_name']); ?>"
-                                    class="w-32 h-full object-cover"
-                                    onerror="this.src='https://placehold.co/150x150/EFEFEF/AAAAAA?text=No+Image'"
-                                >
-                                <div class="p-5 flex flex-col justify-between w-full">
-                                    <div>
-                                        <h3 class="text-lg font-bold text-gray-900"><?php echo e($item['item_name']); ?></h3>
-                                        <p class="text-sm text-gray-600 mt-1"><?php echo e($item['item_description']); ?></p>
-                                    </div>
-                                    <div class="flex justify-between items-center mt-4">
-                                        <!-- (NEW) Price display logic -->
-                                        <span class="text-xl font-bold text-brand-red">
-                                            <?php if ($item['has_discount']): ?>
-                                                <!-- (MODIFIED) Removed decimals -->
-                                                <?php echo e(number_format($item['item_price'], 0)); ?> BDT
-                                                <span class="text-sm text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 0)); ?></span>
-                                            <?php else: ?>
-                                                <!-- (MODIFIED) Removed decimals -->
-                                                <?php echo e(number_format($item['item_price'], 0)); ?> BDT
-                                            <?php endif; ?>
-                                        </span>
-                                        <!-- (MODIFIED) Pass the (potentially discounted) item_price to the modal -->
-                                        <button 
-                                            onclick="openItemModal(<?php echo e($item['item_id']); ?>, '<?php echo e(addslashes($item['item_name'])); ?>', <?php echo e($item['item_price']); ?>)"
-                                            class="px-4 py-2 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-all transform hover:scale-105 <?php echo ($store_is_open == '0') ? 'hidden' : ''; ?>">
-                                            Add
-                                        </button>
+        </div>
+
+        <div id="menu-container">
+            <?php if (empty($menu)): ?>
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-xl font-bold text-gray-900">No Items Found</h3>
+                    <p class="text-gray-600 mt-2">
+                        Our menu is currently empty. Please check back later!
+                    </p>
+                </div>
+            <?php else: ?>
+                <!-- Loop through each Category -->
+                <?php foreach ($menu as $category_name => $items): ?>
+                    <section id="category-<?php echo e($items[0]['category_id']); ?>" class="menu-section scroll-mt-32 mb-12">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-red">
+                            <?php echo e($category_name); ?>
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Loop through each Item in this Category -->
+                            <?php foreach ($items as $item): ?>
+                                <div id="item-<?php echo e($item['item_id']); ?>"
+                                    class="menu-item bg-white rounded-2xl shadow-lg overflow-hidden flex transform transition-all hover:shadow-xl">
+                                    <img src="<?php echo e(BASE_URL . ($item['item_image'] ?? 'https://placehold.co/150x150/EFEFEF/AAAAAA?text=No+Image')); ?>"
+                                        alt="<?php echo e($item['item_name']); ?>" class="w-32 h-full object-cover flex-shrink-0"
+                                        onerror="this.src='https://placehold.co/150x150/EFEFEF/AAAAAA?text=No+Image'">
+                                    <div class="p-5 flex flex-col justify-between w-full">
+                                        <div>
+                                            <h3 class="text-lg font-bold text-gray-900 item-name">
+                                                <?php echo e($item['item_name']); ?></h3>
+                                            <p class="text-sm text-gray-600 mt-1 item-desc line-clamp-2">
+                                                <?php echo e($item['item_description']); ?></p>
+                                        </div>
+                                        <div class="flex justify-between items-center mt-4">
+                                            <span class="text-xl font-bold text-brand-red">
+                                                <?php if ($item['has_discount']): ?>
+                                                    <?php echo e(number_format($item['item_price'], 0)); ?> BDT
+                                                    <span
+                                                        class="text-sm text-gray-500 line-through ml-1"><?php echo e(number_format($item['original_price'], 0)); ?></span>
+                                                <?php else: ?>
+                                                    <?php echo e(number_format($item['item_price'], 0)); ?> BDT
+                                                <?php endif; ?>
+                                            </span>
+                                            <button
+                                                onclick="openItemModal(<?php echo e($item['item_id']); ?>, '<?php echo e(addslashes($item['item_name'])); ?>', <?php echo e($item['item_price']); ?>)"
+                                                class="px-4 py-2 bg-brand-red text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition-all transform hover:scale-105 <?php echo ($store_is_open == '0') ? 'hidden' : ''; ?>">
+                                                Add
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endforeach; ?>
+
+                <!-- No Search Results Message -->
+                <div id="no-search-results" class="hidden text-center py-12">
+                    <div class="inline-block p-4 rounded-full bg-gray-100 mb-4 text-gray-400">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
                     </div>
-                </section>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                    <h3 class="text-xl font-bold text-gray-900">No items found</h3>
+                    <p class="text-gray-500">Try searching for something else.</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -215,35 +238,39 @@ $schema_menu = [
 =====================================================
 -->
 <div id="item-options-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg transform transition-all opacity-0 -translate-y-10" id="modal-content">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg transform transition-all opacity-0 -translate-y-10"
+        id="modal-content">
         <!-- Modal Header -->
         <div class="flex justify-between items-center p-5 border-b">
             <h2 id="modal-item-name" class="text-2xl font-bold text-gray-900">Item Options</h2>
             <button id="modal-close-btn" class="p-2 text-gray-500 hover:text-gray-800 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
             </button>
         </div>
-        
+
         <!-- Modal Body: Options -->
         <form id="item-options-form">
             <input type="hidden" id="modal-item-id" value="">
             <input type="hidden" id="modal-base-price" value="">
-            
+
             <div id="modal-options-content" class="p-6 max-h-[60vh] overflow-y-auto space-y-5">
                 <!-- JS will populate this -->
                 <p class="text-gray-500 text-center">Loading options...</p>
             </div>
-            
+
             <!-- Modal Footer: Quantity & Price -->
-            <div class="p-5 border-t bg-gray-50 rounded-b-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div
+                class="p-5 border-t bg-gray-50 rounded-b-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div class="flex items-center space-x-2">
                     <span class="text-sm font-medium text-gray-700">Quantity:</span>
                     <input id="modal-quantity" type="number" value="1" min="1"
-                           class="w-20 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+                        class="w-20 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                 </div>
-                <!-- (MODIFIED) Button styling updated from brand-orange to brand-red and added disabled state. (FIXED) Added closing parenthesis -->
-                <button id="modal-add-to-cart-btn" type="submit" class="w-full sm:w-auto px-6 py-3 bg-brand-red text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors disabled:bg-gray-400">
-                    <!-- (MODIFIED) Removed decimals from initial text -->
+                <button id="modal-add-to-cart-btn" type="submit"
+                    class="w-full sm:w-auto px-6 py-3 bg-brand-red text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors disabled:bg-gray-400">
                     Add to Cart (Total: <span id="modal-total-price">0</span>)
                 </button>
             </div>
@@ -257,15 +284,57 @@ $schema_menu = [
 =====================================================
 -->
 <script>
-    // --- GTM Data Layer (view_item_list) ---
+    // --- Menu Search Logic ---
+    const menuSearchInput = document.getElementById('menu-search');
+
+    if (menuSearchInput) {
+        menuSearchInput.addEventListener('input', function (e) {
+            const term = e.target.value.toLowerCase().trim();
+            const sections = document.querySelectorAll('.menu-section');
+            const noResultsMsg = document.getElementById('no-search-results');
+            let globalMatchCount = 0;
+
+            sections.forEach(section => {
+                const items = section.querySelectorAll('.menu-item');
+                let visibleItemsCount = 0;
+
+                items.forEach(item => {
+                    const name = item.querySelector('.item-name').textContent.toLowerCase();
+                    const desc = item.querySelector('.item-desc').textContent.toLowerCase();
+
+                    if (name.includes(term) || desc.includes(term)) {
+                        item.style.display = 'flex';
+                        visibleItemsCount++;
+                        globalMatchCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Hide category if no items match
+                if (visibleItemsCount > 0) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+
+            if (globalMatchCount === 0 && sections.length > 0) {
+                noResultsMsg.classList.remove('hidden');
+            } else {
+                noResultsMsg.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- GTM Data Layer ---
     window.dataLayer.push({
         event: 'view_item_list',
         ecommerce: {
             item_list_name: '<?php echo e($page_heading); ?>',
             items: [
-                <?php foreach($menu as $category => $items) {
-                    foreach($items as $item) {
-                        // (MODIFIED) Push the correct price
+                <?php foreach ($menu as $category => $items) {
+                    foreach ($items as $item) {
                         echo "{
                             item_id: '{$item['item_id']}',
                             item_name: '{$item['item_name']}',
@@ -285,71 +354,59 @@ $schema_menu = [
     const modalItemName = document.getElementById('modal-item-name');
     const modalOptionsContent = document.getElementById('modal-options-content');
     const modalForm = document.getElementById('item-options-form');
-    
+
     const modalItemId = document.getElementById('modal-item-id');
     const modalBasePrice = document.getElementById('modal-base-price');
     const modalQuantity = document.getElementById('modal-quantity');
     const modalAddToCartBtn = document.getElementById('modal-add-to-cart-btn');
-    // (NEW) Get CSRF token from config.php (via header.php)
     const csrfToken = '<?php echo e(get_csrf_token()); ?>';
 
-    /**
-     * Opens the Item Options modal
-     */
+    // --- (NEW) Floating Cart Elements ---
+    const floatCartBar = document.getElementById('floating-cart-bar');
+    const floatCartCount = document.getElementById('float-cart-count');
+    const floatCartTotal = document.getElementById('float-cart-total');
+
     async function openItemModal(itemId, itemName, basePrice) {
-        // 1. Reset and show modal
         modal.style.display = 'flex';
         modalItemName.textContent = itemName;
         modalOptionsContent.innerHTML = '<p class="text-gray-500 text-center">Loading options...</p>';
         modalQuantity.value = 1;
         modalItemId.value = itemId;
-        // (MODIFIED) This basePrice is now the *discounted* price
         modalBasePrice.value = basePrice;
-        
-        // --- (NEW) EXPLICITLY RESET BUTTON STATE ---
-        // This fixes the "Adding..." bug when opening a new modal
+
         modalAddToCartBtn.disabled = false;
-        // This rebuilds the button's inner HTML, restoring the span
-        // (MODIFIED) Removed decimals
         modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0</span>)';
-        // --- END OF NEW CODE ---
-        
-        // Modal animations
+
         setTimeout(() => {
             modalContent.classList.remove('opacity-0', '-translate-y-10');
             modalContent.classList.add('opacity-100', 'translate-y-0');
         }, 10);
 
-        // --- GTM Data Layer (view_item) ---
         window.dataLayer.push({
             event: 'view_item',
             ecommerce: {
                 items: [{
                     item_id: itemId,
                     item_name: itemName,
-                    price: basePrice // (MODIFIED) This is now the discounted price
+                    price: basePrice
                 }]
             }
         });
 
-        // 2. Fetch item options
         try {
-            // (MODIFIED) Point to the new public AJAX file
             const response = await fetch(`ajax_get_item_details.php?id=${itemId}`);
             if (!response.ok) throw new Error('Network error');
-            
+
             const data = await response.json();
-            
-            // 3. Build options HTML
+
             let optionsHtml = '';
             if (data.option_groups && data.option_groups.length > 0) {
                 data.option_groups.forEach(group => {
                     optionsHtml += `<fieldset class="space-y-2">`;
                     optionsHtml += `<legend class="text-sm font-medium text-gray-900 border-b pb-1 mb-2">${group.name} (${group.type === 'radio' ? 'Choose 1' : 'Choose any'})</legend>`;
-                    
+
                     group.options.forEach(option => {
                         const inputType = group.type === 'radio' ? 'radio' : 'checkbox';
-                        // (MODIFIED) Use parseInt for display logic in JS loop
                         optionsHtml += `
                             <div class="flex items-center justify-between">
                                 <label for="option-${option.id}" class="text-sm text-gray-700 flex-1">
@@ -376,72 +433,57 @@ $schema_menu = [
             } else {
                 optionsHtml = '<p class="text-gray-500 text-center">This item has no options.</p>';
             }
-            
+
             modalOptionsContent.innerHTML = optionsHtml;
-            updateModalPrice(); // Set initial price
+            updateModalPrice();
 
         } catch (error) {
             modalOptionsContent.innerHTML = `<p class="text-red-500 text-center">Error loading options: ${error.message}</p>`;
         }
     }
 
-    /**
-     * Closes the Item Options modal
-     */
     function closeModal() {
         modalContent.classList.add('opacity-0', '-translate-y-10');
         modalContent.classList.remove('opacity-100', 'translate-y-0');
         setTimeout(() => {
             modal.style.display = 'none';
-        }, 300); // Wait for animation
+        }, 300);
     }
 
-    /**
-     * Updates the total price in the modal based on selected options and quantity
-     */
     function updateModalPrice() {
         let optionsPrice = 0;
-        // (MODIFIED) Re-find the span element, as it might have been recreated
         const modalTotalPriceSpan = document.getElementById('modal-total-price');
         const selectedOptions = modalOptionsContent.querySelectorAll('input:checked');
-        
+
         selectedOptions.forEach(opt => {
-            // (MODIFIED) Use parseInt for calculation
             optionsPrice += parseInt(opt.dataset.price);
         });
-        
-        // (MODIFIED) Use parseInt for base calculation
+
         const basePrice = parseInt(modalBasePrice.value);
         const quantity = parseInt(modalQuantity.value) || 1;
         const total = (basePrice + optionsPrice) * quantity;
-        
-        // (MODIFIED) Update the span only if it was found, remove decimals
+
         if (modalTotalPriceSpan) {
             modalTotalPriceSpan.textContent = total;
         }
     }
-    
-    /**
-     * Handles the submission of the options form (Add to Cart)
-     */
+
     async function handleAddToCart(event) {
         event.preventDefault();
-        
+
         const itemId = modalItemId.value;
         const quantity = modalQuantity.value;
         const selectedOptions = [];
         const selectedElements = modalOptionsContent.querySelectorAll('input:checked');
-        
+
         selectedElements.forEach(el => {
             selectedOptions.push(el.value);
         });
-        
+
         modalAddToCartBtn.disabled = true;
-        // (MODIFIED) Only change the button's primary text node
-        // This preserves the <span> inside
         for (let node of modalAddToCartBtn.childNodes) {
             if (node.nodeType === Node.TEXT_NODE) {
-                node.textContent = 'Adding... '; // Set text to Adding...
+                node.textContent = 'Adding... ';
                 break;
             }
         }
@@ -451,36 +493,41 @@ $schema_menu = [
             formData.append('action', 'add');
             formData.append('item_id', itemId);
             formData.append('quantity', quantity);
-            
-            // Append options as an array
+
             selectedOptions.forEach(optId => {
                 formData.append('options[]', optId);
             });
-            
-            // (NEW) Add CSRF token to the form data
+
             formData.append('csrf_token', csrfToken);
 
             const response = await fetch('cart_actions.php', {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) throw new Error('Server error');
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
-                // Update cart bubble count
+                // 1. Update cart bubble count in header
                 document.getElementById('cart-count-bubble').textContent = result.cart_count;
-                // --- GTM Data Layer (add_to_cart) ---
+                
+                // 2. (NEW) Update Floating Cart Bar
+                if (floatCartBar && floatCartCount && floatCartTotal) {
+                    floatCartCount.textContent = result.cart_count;
+                    floatCartTotal.textContent = result.cart_total; // Note: cart_actions.php should return integer now
+                    floatCartBar.classList.remove('hidden');
+                }
+
+                // GTM Event
                 window.dataLayer.push({
                     event: 'add_to_cart',
                     ecommerce: {
                         items: [{
                             item_id: itemId,
                             item_name: modalItemName.textContent,
-                            // (MODIFIED) Use parseInt
-                            price: parseInt(modalBasePrice.value), 
+                            price: parseInt(modalBasePrice.value),
                             quantity: parseInt(quantity)
                         }]
                     }
@@ -494,16 +541,14 @@ $schema_menu = [
             alert('Error: ' + error.message);
         } finally {
             modalAddToCartBtn.disabled = false;
-            // (MODIFIED) Restore the button text with the span, remove decimals
             modalAddToCartBtn.innerHTML = 'Add to Cart (Total: <span id="modal-total-price">0</span>)';
-            updateModalPrice(); // Re-renders the price
+            updateModalPrice();
         }
     }
 
-    // --- Event Listeners ---
     modalCloseBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal(); // Close on backdrop click
+        if (e.target === modal) closeModal();
     });
     modalQuantity.addEventListener('input', updateModalPrice);
     modalForm.addEventListener('submit', handleAddToCart);

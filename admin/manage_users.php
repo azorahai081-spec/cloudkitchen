@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_users.php
- * KitchCo: Cloud Kitchen User Manager
+ * PizzaMania: Cloud Kitchen User Manager
  * Version 1.2 - Added "Last Admin" check
  *
  * This is an ADMIN-ONLY page.
@@ -29,7 +29,7 @@ $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     // (NEW) CSRF Token validation
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
@@ -37,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = $_POST['username'];
         $role = $_POST['role'];
         $password = $_POST['password'];
-        
+
         if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
             // --- UPDATE existing user ---
             $user_id_to_update = $_POST['user_id'];
-            
+
             if (!empty($password)) {
                 if (strlen($password) < 8) {
                     $error_message = "Password must be at least 8 characters long.";
@@ -57,14 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare($sql);
                 $stmt->bind_param('ssi', $username, $role, $user_id_to_update);
             }
-            
+
             if (empty($error_message) && $stmt->execute()) {
                 $success_message = 'User updated successfully!';
             } elseif (empty($error_message)) {
                 $error_message = 'Failed to update user. Username may already exist.';
             }
             $stmt->close();
-            
+
         } else {
             // --- CREATE new user ---
             if (empty($username) || empty($password) || empty($role)) {
@@ -76,10 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql = "INSERT INTO admin_users (username, password, role) VALUES (?, ?, ?)";
                 $stmt = $db->prepare($sql);
                 $stmt->bind_param('sss', $username, $hashed_password, $role);
-                
+
                 if ($stmt->execute()) {
                     $success_message = 'User created successfully!';
-                    $username = ''; $role = 'manager';
+                    $username = '';
+                    $role = 'manager';
                 } else {
                     $error_message = 'Failed to create user. Username may already exist.';
                 }
@@ -98,7 +99,7 @@ if ($action === 'edit' && $user_id) {
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         $username = $user['username'];
@@ -117,7 +118,7 @@ if ($action === 'delete' && $user_id) {
     } elseif ($user_id == $_SESSION['user_id']) {
         $error_message = "You cannot delete your own account.";
     } else {
-        
+
         // --- (MODIFIED) "LAST ADMIN" CHECK ---
         // First, check if this user is an admin
         $role_sql = "SELECT role FROM admin_users WHERE id = ?";
@@ -132,20 +133,20 @@ if ($action === 'delete' && $user_id) {
             $count_sql = "SELECT COUNT(*) as admin_count FROM admin_users WHERE role = 'admin'";
             $count_result = $db->query($count_sql);
             $admin_count = $count_result->fetch_assoc()['admin_count'];
-            
+
             if ($admin_count <= 1) {
                 $error_message = 'Cannot delete the last admin account.';
             }
         }
         $role_stmt->close();
         // --- END "LAST ADMIN" CHECK ---
-        
+
         // Only proceed if there is no error
         if (empty($error_message)) {
             $sql = "DELETE FROM admin_users WHERE id = ?";
             $stmt = $db->prepare($sql);
             $stmt->bind_param('i', $user_id);
-            
+
             if ($stmt->execute()) {
                 $success_message = 'User deleted successfully!';
             } else {
@@ -190,11 +191,11 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4">
                 <?php echo ($action === 'edit') ? 'Edit User' : 'Add New User'; ?>
             </h2>
-            
+
             <form action="manage_users.php" method="POST" class="space-y-4">
                 <!-- (NEW) CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
-                
+
                 <?php if ($action === 'edit' && $user_id): ?>
                     <input type="hidden" name="user_id" value="<?php echo e($user_id); ?>">
                 <?php endif; ?>
@@ -202,7 +203,7 @@ if ($result) {
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username" value="<?php echo e($username); ?>" required
-                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
 
                 <div>
@@ -213,23 +214,26 @@ if ($result) {
                         <?php endif; ?>
                     </label>
                     <input type="password" id="password" name="password" <?php echo ($action !== 'edit') ? 'required' : ''; ?>
-                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
 
                 <div>
                     <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-                    <select id="role" name="role" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <select id="role" name="role"
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                         <option value="manager" <?php echo ($role === 'manager') ? 'selected' : ''; ?>>Manager</option>
                         <option value="admin" <?php echo ($role === 'admin') ? 'selected' : ''; ?>>Admin (Owner)</option>
                     </select>
                 </div>
 
                 <div class="flex space-x-2">
-                    <button type="submit" class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
+                    <button type="submit"
+                        class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700">
                         <?php echo ($action === 'edit') ? 'Save Changes' : 'Create User'; ?>
                     </button>
                     <?php if ($action === 'edit'): ?>
-                        <a href="manage_users.php" class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300">
+                        <a href="manage_users.php"
+                            class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300">
                             Cancel
                         </a>
                     <?php endif; ?>
@@ -244,7 +248,7 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4 p-6 border-b border-gray-200">
                 Existing Users (<?php echo count($users); ?>)
             </h2>
-            
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -256,19 +260,26 @@ if ($result) {
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if (empty($users)): ?>
-                            <tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No users found.</td></tr>
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-gray-500">No users found.</td>
+                            </tr>
                         <?php else: ?>
                             <?php foreach ($users as $user): ?>
                                 <tr>
-                                    <td class="px-6 py-4"><div class="text-sm font-medium text-gray-900"><?php echo e($user['username']); ?></div></td>
-                                    <td class="px-6 py-4"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo ($user['role'] === 'admin' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'); ?> capitalize"><?php echo e($user['role']); ?></span></td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900"><?php echo e($user['username']); ?></div>
+                                    </td>
+                                    <td class="px-6 py-4"><span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo ($user['role'] === 'admin' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'); ?> capitalize"><?php echo e($user['role']); ?></span>
+                                    </td>
                                     <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                        <a href="manage_users.php?action=edit&id=<?php echo e($user['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
+                                        <a href="manage_users.php?action=edit&id=<?php echo e($user['id']); ?>"
+                                            class="text-orange-600 hover:text-orange-900">Edit</a>
                                         <?php if ($user['id'] != $_SESSION['user_id']): ?>
                                             <!-- (MODIFIED) Added CSRF token to delete link -->
-                                            <a href="manage_users.php?action=delete&id=<?php echo e($user['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
-                                               class="text-red-600 hover:text-red-900" 
-                                               onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
+                                            <a href="manage_users.php?action=delete&id=<?php echo e($user['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>"
+                                                class="text-red-600 hover:text-red-900"
+                                                onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

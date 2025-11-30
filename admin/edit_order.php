@@ -2,7 +2,7 @@
 /*
  * admin/edit_order.php
  * KitchCo: Cloud Kitchen Order Editor
- * Version 1.7 - (MODIFIED) Integers Only for BDT
+ * Version 1.7.1 - (MODIFIED) Safety Fixes & Integers Only
  *
  * This page loads an existing order into the manual order interface
  * and allows an admin to modify and re-save it.
@@ -274,8 +274,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                 $delivery_adjustment = (int)$order['delivery_adjustment']; 
                 
                 $discount_value = ($order['discount_type'] == 'percentage') ? 0 : (int)$order['discount_amount'];
-                if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
-                     $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+                
+                // FIX: Explicit check for subtotal > 0 to avoid division by zero
+                if ($order['discount_type'] == 'percentage') {
+                    if ($order['subtotal'] > 0) {
+                        $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+                    } else {
+                        $discount_value = 0;
+                    }
                 }
             
                 // Re-load items
@@ -354,8 +360,14 @@ else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $delivery_adjustment = (int)($order['delivery_adjustment'] ?? 0);
 
     $discount_value = ($order['discount_type'] == 'percentage') ? 0 : (int)$order['discount_amount']; 
-    if ($order['discount_type'] == 'percentage' && $order['subtotal'] > 0) {
-         $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+    
+    // FIX: Explicit check for subtotal > 0 to avoid division by zero
+    if ($order['discount_type'] == 'percentage') {
+        if ($order['subtotal'] > 0) {
+            $discount_value = ($order['discount_amount'] / $order['subtotal']) * 100;
+        } else {
+            $discount_value = 0;
+        }
     }
 
     $sql_items = "SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.base_price, oi.total_price 

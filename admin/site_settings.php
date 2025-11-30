@@ -1,8 +1,8 @@
 <?php
 /*
  * admin/site_settings.php
- * KitchCo: Cloud Kitchen Site & Store Settings
- * Version 2.2 - (MODIFIED) Integers Only for BDT
+ * PizzaMania: Cloud Kitchen Site & Store Settings
+ * Version 2.4 - (UPDATED) Added Marquee Animation Type
  *
  * This is an ADMIN-ONLY page.
  */
@@ -37,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'store_name' => $_POST['store_name'],
             'hero_title' => $_POST['hero_title'],
             'hero_subtitle' => $_POST['hero_subtitle'],
-            // (MODIFIED) Cast to int
             'night_surcharge_amount' => (int)$_POST['night_surcharge_amount'],
             'night_surcharge_start_hour' => $_POST['night_surcharge_start_hour'],
             'night_surcharge_end_hour' => $_POST['night_surcharge_end_hour'],
@@ -45,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             'timezone' => $_POST['timezone'],
             'global_discount_type' => $_POST['global_discount_type'],
-            // (MODIFIED) Cast to int if fixed, keep float if percent (but form uses step=1 now)
             'global_discount_value' => (int)($_POST['global_discount_value'] ?? 0),
             'global_discount_active' => isset($_POST['global_discount_active']) ? '1' : '0',
             'hero_image_style' => $_POST['hero_image_style'],
@@ -55,7 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'offer_text' => $_POST['offer_text'],
             'free_delivery_active' => isset($_POST['free_delivery_active']) ? '1' : '0',
             'delivery_discount_active' => isset($_POST['delivery_discount_active']) ? '1' : '0',
-            'delivery_discount_percentage' => $_POST['delivery_discount_percentage'] ?? '0'
+            'delivery_discount_percentage' => $_POST['delivery_discount_percentage'] ?? '0',
+            
+            // (NEW) Marquee Settings
+            'marquee_text' => $_POST['marquee_text'] ?? 'SALE % SALE',
+            'marquee_is_active' => isset($_POST['marquee_is_active']) ? '1' : '0',
+            'marquee_animation' => $_POST['marquee_animation'] ?? 'scroll' // New setting
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -169,6 +172,38 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                 <p class="text-xs text-gray-500 mt-1">This will appear on receipts and the site header.</p>
             </div>
 
+            <!-- Marquee Settings -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Notice Bar (Marquee)</h3>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="marquee_is_active" name="marquee_is_active" value="1" 
+                           <?php echo (($settings['marquee_is_active'] ?? '0') == '1') ? 'checked' : ''; ?>
+                           class="h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                    <label for="marquee_is_active" class="ml-2 block text-sm font-medium text-gray-900">
+                        Enable Notice Bar
+                    </label>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="marquee_text" class="block text-sm font-medium text-gray-700">Bar Text</label>
+                        <input type="text" id="marquee_text" name="marquee_text" 
+                               value="<?php echo e($settings['marquee_text'] ?? 'SALE % SALE'); ?>"
+                               placeholder="e.g. SALE % SALE"
+                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label for="marquee_animation" class="block text-sm font-medium text-gray-700">Animation</label>
+                        <select id="marquee_animation" name="marquee_animation" 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="scroll" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'scroll') ? 'selected' : ''; ?>>Scrolling (Marquee)</option>
+                            <option value="static" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'static') ? 'selected' : ''; ?>>Static (Centered)</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Choose "Scrolling" for long text or effects, "Static" for simple announcements.</p>
+            </div>
+
             <div>
                 <label for="hero_title" class="block text-sm font-medium text-gray-700">Homepage Title</label>
                 <input type="text" id="hero_title" name="hero_title" 
@@ -260,7 +295,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
             <div>
                 <label for="night_surcharge_amount" class="block text-sm font-medium text-gray-700">Night Surcharge Amount (BDT)</label>
-                <!-- (MODIFIED) step="1" -->
                 <input type="number" step="1" id="night_surcharge_amount" name="night_surcharge_amount" 
                        value="<?php echo e((int)($settings['night_surcharge_amount'] ?? '0')); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -295,12 +329,11 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
         </div>
 
-        <!-- (NEW) Improved Exempt Areas Selector -->
+        <!-- Improved Exempt Areas Selector -->
         <div class="mt-8 pt-6 border-t border-gray-200">
             <h3 class="text-lg font-bold text-gray-900 mb-2">Exclude Areas from Night Surcharge</h3>
             <p class="text-sm text-gray-500 mb-4">Search and select areas where the night surcharge should <strong>NOT</strong> apply.</p>
             
-            <!-- Search Input -->
             <div class="mb-3 relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -311,7 +344,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                        class="block w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
             </div>
 
-            <!-- Scrollable List Box -->
             <div class="border border-gray-300 rounded-lg bg-gray-50 p-4 max-h-64 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="exempt_area_list">
                     <?php foreach ($delivery_areas as $area): ?>
@@ -355,7 +387,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
             <div>
                 <label for="global_discount_value" class="block text-sm font-medium text-gray-700">Discount Value</label>
-                <!-- (MODIFIED) step="1" -->
                 <input type="number" step="1" id="global_discount_value" name="global_discount_value" 
                        value="<?php echo e((int)($settings['global_discount_value'] ?? '0')); ?>"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -373,7 +404,7 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             </div>
         </div>
 
-        <!-- (NEW) Delivery Discount -->
+        <!-- Delivery Discount -->
         <div class="pt-6 border-t mt-6">
             <h3 class="text-lg font-bold text-gray-900">Delivery Discount</h3>
             <p class="text-sm text-gray-500 mb-4">Apply a discount to the delivery fee. "Free Delivery" will override the percentage discount.</p>
@@ -399,7 +430,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             </div>
             <div class="mt-2 w-full md:w-1/3">
                 <label for="delivery_discount_percentage" class="block text-sm font-medium text-gray-700">Delivery Discount Percentage (%)</label>
-                <!-- (MODIFIED) step="1" -->
                 <input type="number" step="1" min="0" max="100" id="delivery_discount_percentage" name="delivery_discount_percentage" 
                        value="<?php echo e((int)($settings['delivery_discount_percentage'] ?? '0')); ?>"
                        placeholder="e.g., 50 for 50% off"
@@ -418,7 +448,7 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
     
 </form>
 
-<!-- CKEditor 5 Scripts -->
+<!-- Scripts -->
 <script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
 <script>
     ClassicEditor
@@ -429,7 +459,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             console.error('Error loading CKEditor:', error);
         });
 
-    // (NEW) Simple Filter Script for Exempt Areas
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('exempt_area_search');
         const areaItems = document.querySelectorAll('.area-item');
@@ -437,7 +466,6 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
         const checkboxes = document.querySelectorAll('input[name="night_surcharge_exempt_areas[]"]');
         const exemptCount = document.getElementById('exempt_count');
 
-        // Update count when checkboxes change
         function updateCount() {
             let count = 0;
             checkboxes.forEach(cb => {
@@ -446,9 +474,8 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             exemptCount.textContent = count;
         }
         checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
-        updateCount(); // Initial count
+        updateCount(); 
 
-        // Filter logic
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             let visibleCount = 0;

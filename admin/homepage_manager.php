@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/homepage_manager.php
- * KitchCo: Cloud Kitchen Homepage Section Manager
+ * PizzaMania: Cloud Kitchen Homepage Section Manager
  * Version 1.1 - Added CSRF Protection
  *
  * This page controls the `homepage_sections` table.

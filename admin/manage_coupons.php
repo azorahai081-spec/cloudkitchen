@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_coupons.php
- * KitchCo: Cloud Kitchen Coupon Manager
+ * PizzaMania: Cloud Kitchen Coupon Manager
  * Version 1.2 - (MODIFIED) Integers Only for BDT
  *
  * This page handles full CRUD for coupons.
@@ -37,7 +37,7 @@ $success_message = '';
 
 // 4. --- HANDLE POST REQUESTS (Create & Update) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     if (!validate_csrf_token()) {
         $error_message = 'Invalid or expired session. Please try again.';
     } else {
@@ -45,25 +45,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = trim($_POST['code']);
         $description = trim($_POST['description']);
         $type = $_POST['type'];
-        
+
         // (MODIFIED) Cast to int for fixed, allow generic for percentage
-        $value = ($type == 'fixed') ? (int)$_POST['value'] : (int)$_POST['value']; 
+        $value = ($type == 'fixed') ? (int) $_POST['value'] : (int) $_POST['value'];
         // We cast both to int for simplicity based on requirements (percentage is usually 10, 20, not 12.5)
-        
+
         // (MODIFIED) Cast to int
-        $min_order_amount = (int)$_POST['min_order_amount'];
+        $min_order_amount = (int) $_POST['min_order_amount'];
         $start_date = $_POST['start_date'];
         $end_date = $_POST['end_date'];
-        $max_uses = (int)$_POST['max_uses'];
+        $max_uses = (int) $_POST['max_uses'];
         $is_active = isset($_POST['is_active']) ? 1 : 0;
-        
+
         // Validation
         if (empty($code) || $value <= 0 || empty($start_date) || empty($end_date) || $max_uses <= 0) {
             $error_message = 'Coupon Code, Value, Start/End Dates, and Max Uses are required.';
         } elseif (strtotime($end_date) <= strtotime($start_date)) {
             $error_message = 'End date must be after the start date.';
         }
-        
+
         if (empty($error_message)) {
             if (isset($_POST['coupon_id']) && !empty($_POST['coupon_id'])) {
                 // --- UPDATE existing coupon ---
@@ -75,37 +75,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHERE id = ?";
                 $stmt = $db->prepare($sql);
                 // sssddssiii
-                $stmt->bind_param('sssddssiii', 
-                    $code, $description, $type, $value, 
-                    $min_order_amount, $start_date, $end_date, 
-                    $max_uses, $is_active, $coupon_id
+                $stmt->bind_param(
+                    'sssddssiii',
+                    $code,
+                    $description,
+                    $type,
+                    $value,
+                    $min_order_amount,
+                    $start_date,
+                    $end_date,
+                    $max_uses,
+                    $is_active,
+                    $coupon_id
                 );
-                
+
                 if ($stmt->execute()) {
                     $success_message = 'Coupon updated successfully!';
                 } else {
                     $error_message = 'Failed to update coupon. Code may already exist.';
                 }
                 $stmt->close();
-                
+
             } else {
                 // --- CREATE new coupon ---
                 $sql = "INSERT INTO coupons (code, description, type, value, min_order_amount, start_date, end_date, max_uses, is_active) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $db->prepare($sql);
                 // sssddssii
-                $stmt->bind_param('sssddssii', 
-                    $code, $description, $type, $value, 
-                    $min_order_amount, $start_date, $end_date, 
-                    $max_uses, $is_active
+                $stmt->bind_param(
+                    'sssddssii',
+                    $code,
+                    $description,
+                    $type,
+                    $value,
+                    $min_order_amount,
+                    $start_date,
+                    $end_date,
+                    $max_uses,
+                    $is_active
                 );
-                
+
                 if ($stmt->execute()) {
                     $success_message = 'Coupon created successfully!';
                     // Clear form
-                    $code = ''; $description = ''; $type = 'fixed'; $value = 0; $min_order_amount = 0;
-                    $start_date = date('Y-m-d\TH:i'); $end_date = date('Y-m-d\TH:i', strtotime('+30 days'));
-                    $max_uses = 100; $is_active = 1;
+                    $code = '';
+                    $description = '';
+                    $type = 'fixed';
+                    $value = 0;
+                    $min_order_amount = 0;
+                    $start_date = date('Y-m-d\TH:i');
+                    $end_date = date('Y-m-d\TH:i', strtotime('+30 days'));
+                    $max_uses = 100;
+                    $is_active = 1;
                 } else {
                     $error_message = 'Failed to create coupon. Code may already exist.';
                 }
@@ -125,15 +146,15 @@ if ($action === 'edit' && $coupon_id) {
     $stmt->bind_param('i', $coupon_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $coupon = $result->fetch_assoc();
         $code = $coupon['code'];
         $description = $coupon['description'];
         $type = $coupon['type'];
         // (MODIFIED) Cast to int
-        $value = (int)$coupon['value'];
-        $min_order_amount = (int)$coupon['min_order_amount'];
+        $value = (int) $coupon['value'];
+        $min_order_amount = (int) $coupon['min_order_amount'];
         // Format dates for datetime-local input
         $start_date = date('Y-m-d\TH:i', strtotime($coupon['start_date']));
         $end_date = date('Y-m-d\TH:i', strtotime($coupon['end_date']));
@@ -154,7 +175,7 @@ if ($action === 'delete' && $coupon_id) {
         $sql = "DELETE FROM coupons WHERE id = ?";
         $stmt = $db->prepare($sql);
         $stmt->bind_param('i', $coupon_id);
-        
+
         if ($stmt->execute()) {
             $success_message = 'Coupon deleted successfully!';
         } else {
@@ -199,7 +220,7 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4">
                 <?php echo ($action === 'edit') ? 'Edit Coupon' : 'Add New Coupon'; ?>
             </h2>
-            
+
             <form action="manage_coupons.php" method="POST" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="<?php echo e(get_csrf_token()); ?>">
                 <?php if ($action === 'edit' && $coupon_id): ?>
@@ -209,35 +230,44 @@ if ($result) {
                 <!-- Coupon Code -->
                 <div>
                     <label for="code" class="block text-sm font-medium text-gray-700">Coupon Code (e.g., EID50)</label>
-                    <input type="text" id="code" name="code" value="<?php echo e($code); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <input type="text" id="code" name="code" value="<?php echo e($code); ?>" required
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
 
                 <!-- Type & Value -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
-                        <select id="type" name="type" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <select id="type" name="type"
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                             <option value="fixed" <?php echo ($type == 'fixed') ? 'selected' : ''; ?>>Fixed (BDT)</option>
-                            <option value="percentage" <?php echo ($type == 'percentage') ? 'selected' : ''; ?>>Percentage (%)</option>
+                            <option value="percentage" <?php echo ($type == 'percentage') ? 'selected' : ''; ?>>Percentage
+                                (%)</option>
                         </select>
                     </div>
                     <div>
                         <label for="value" class="block text-sm font-medium text-gray-700">Value</label>
                         <!-- (MODIFIED) step="1" for integer -->
-                        <input type="number" step="1" id="value" name="value" value="<?php echo e((int)$value); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="number" step="1" id="value" name="value" value="<?php echo e((int) $value); ?>"
+                            required
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
 
                 <!-- Min Order & Max Uses -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="min_order_amount" class="block text-sm font-medium text-gray-700">Min. Order (BDT)</label>
+                        <label for="min_order_amount" class="block text-sm font-medium text-gray-700">Min. Order
+                            (BDT)</label>
                         <!-- (MODIFIED) step="1" for integer -->
-                        <input type="number" step="1" id="min_order_amount" name="min_order_amount" value="<?php echo e((int)$min_order_amount); ?>" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="number" step="1" id="min_order_amount" name="min_order_amount"
+                            value="<?php echo e((int) $min_order_amount); ?>"
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
                         <label for="max_uses" class="block text-sm font-medium text-gray-700">Max Uses</label>
-                        <input type="number" id="max_uses" name="max_uses" value="<?php echo e($max_uses); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="number" id="max_uses" name="max_uses" value="<?php echo e($max_uses); ?>" required
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
 
@@ -245,20 +275,26 @@ if ($result) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                        <input type="datetime-local" id="start_date" name="start_date" value="<?php echo e($start_date); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="datetime-local" id="start_date" name="start_date"
+                            value="<?php echo e($start_date); ?>" required
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
                         <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
-                        <input type="datetime-local" id="end_date" name="end_date" value="<?php echo e($end_date); ?>" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="datetime-local" id="end_date" name="end_date" value="<?php echo e($end_date); ?>"
+                            required
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                    <textarea id="description" name="description" rows="2" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($description); ?></textarea>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Description
+                        (Optional)</label>
+                    <textarea id="description" name="description" rows="2"
+                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"><?php echo e($description); ?></textarea>
                 </div>
-                
+
                 <!-- Active Toggle -->
                 <div class="flex items-center">
                     <input type="checkbox" id="is_active" name="is_active" value="1" <?php echo ($is_active) ? 'checked' : ''; ?> class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
@@ -267,11 +303,13 @@ if ($result) {
 
                 <!-- Submit Button -->
                 <div class="flex space-x-2">
-                    <button type="submit" class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
+                    <button type="submit"
+                        class="w-full py-3 px-4 bg-orange-600 text-white font-medium rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
                         <?php echo ($action === 'edit') ? 'Save Changes' : 'Add Coupon'; ?>
                     </button>
                     <?php if ($action === 'edit'): ?>
-                        <a href="manage_coupons.php" class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors">
+                        <a href="manage_coupons.php"
+                            class="w-full py-3 px-4 bg-gray-200 text-gray-700 text-center font-medium rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors">
                             Cancel
                         </a>
                     <?php endif; ?>
@@ -286,17 +324,29 @@ if ($result) {
             <h2 class="text-xl font-bold text-gray-900 mb-4 p-6 border-b border-gray-200">
                 Existing Coupons (<?php echo count($coupons); ?>)
             </h2>
-            
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Code</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Value</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Usage</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Expires</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -315,42 +365,49 @@ if ($result) {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <!-- (MODIFIED) Removed decimals -->
                                         <div class="text-sm text-gray-900">
-                                            <?php echo ($coupon['type'] == 'percentage') ? e((int)$coupon['value']) . '%' : e(number_format($coupon['value'], 0)) . ' BDT'; ?>
+                                            <?php echo ($coupon['type'] == 'percentage') ? e((int) $coupon['value']) . '%' : e(number_format($coupon['value'], 0)) . ' BDT'; ?>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500"><?php echo e($coupon['current_uses']); ?> / <?php echo e($coupon['max_uses']); ?></div>
+                                        <div class="text-sm text-gray-500"><?php echo e($coupon['current_uses']); ?> /
+                                            <?php echo e($coupon['max_uses']); ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500"><?php echo e(date('d M Y, h:i A', strtotime($coupon['end_date']))); ?></div>
+                                        <div class="text-sm text-gray-500">
+                                            <?php echo e(date('d M Y, h:i A', strtotime($coupon['end_date']))); ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php 
+                                        <?php
                                         $is_expired = strtotime($coupon['end_date']) < time();
                                         $is_used_up = $coupon['current_uses'] >= $coupon['max_uses'];
                                         if ($coupon['is_active'] && !$is_expired && !$is_used_up): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                 Active
                                             </span>
                                         <?php elseif (!$coupon['is_active']): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                                                 Inactive
                                             </span>
                                         <?php elseif ($is_expired): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                                 Expired
                                             </span>
                                         <?php elseif ($is_used_up): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                                 Used Up
                                             </span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <a href="manage_coupons.php?action=edit&id=<?php echo e($coupon['id']); ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                        <a href="manage_coupons.php?action=delete&id=<?php echo e($coupon['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>" 
-                                           class="text-red-600 hover:text-red-900" 
-                                           onclick="return confirm('Are you sure you want to delete this coupon? This cannot be undone.');">Delete</a>
+                                        <a href="manage_coupons.php?action=edit&id=<?php echo e($coupon['id']); ?>"
+                                            class="text-orange-600 hover:text-orange-900">Edit</a>
+                                        <a href="manage_coupons.php?action=delete&id=<?php echo e($coupon['id']); ?>&csrf_token=<?php echo e(get_csrf_token()); ?>"
+                                            class="text-red-600 hover:text-red-900"
+                                            onclick="return confirm('Are you sure you want to delete this coupon? This cannot be undone.');">Delete</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

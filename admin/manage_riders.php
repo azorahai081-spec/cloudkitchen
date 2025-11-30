@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_riders.php
- * KitchCo: Rider Management
+ * PizzaMania: Rider Management
  * Version 1.1 - Added Phone Validation
  */
 
@@ -25,22 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['add_rider'])) {
             $name = trim($_POST['name']);
             $phone = trim($_POST['phone']);
-            
+
             // Validation: Phone allows numbers, spaces, +, -, (, )
             if (!preg_match('/^[0-9\+\-\(\)\s]+$/', $phone)) {
                 $error_message = "Invalid phone number format. Only numbers and symbols (+, -, space) allowed.";
             } elseif (!empty($name) && !empty($phone)) {
                 $stmt = $db->prepare("INSERT INTO riders (name, phone) VALUES (?, ?)");
                 $stmt->bind_param('ss', $name, $phone);
-                if ($stmt->execute()) $success_message = "Rider added successfully.";
-                else $error_message = "Error adding rider.";
+                if ($stmt->execute())
+                    $success_message = "Rider added successfully.";
+                else
+                    $error_message = "Error adding rider.";
             } else {
-                 $error_message = "Name and Phone are required.";
+                $error_message = "Name and Phone are required.";
             }
         }
         // DELETE RIDER
         if (isset($_POST['delete_rider'])) {
-            $id = (int)$_POST['rider_id'];
+            $id = (int) $_POST['rider_id'];
             $db->query("DELETE FROM riders WHERE id = $id");
             $success_message = "Rider deleted.";
         }
@@ -50,7 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // FETCH RIDERS
 $riders = [];
 $res = $db->query("SELECT * FROM riders ORDER BY name ASC");
-while ($row = $res->fetch_assoc()) $riders[] = $row;
+while ($row = $res->fetch_assoc())
+    $riders[] = $row;
 ?>
 
 <div class="flex flex-col md:flex-row gap-8">
@@ -58,7 +61,7 @@ while ($row = $res->fetch_assoc()) $riders[] = $row;
     <div class="w-full md:w-1/3">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Add New Rider</h2>
-            
+
             <?php if ($success_message): ?>
                 <div class="p-3 mb-4 bg-green-100 text-green-700 rounded"><?php echo $success_message; ?></div>
             <?php endif; ?>
@@ -71,19 +74,19 @@ while ($row = $res->fetch_assoc()) $riders[] = $row;
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Rider Name</label>
-                        <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 border">
+                        <input type="text" name="name" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 border">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Phone Number</label>
                         <!-- Added pattern, inputmode, and type="tel" -->
-                        <input type="tel" name="phone" required 
-                               pattern="[0-9\+\-\(\)\s]+" 
-                               inputmode="numeric"
-                               title="Only numbers and +, -, (, ) are allowed"
-                               placeholder="e.g. 01700000000"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 border">
+                        <input type="tel" name="phone" required pattern="[0-9\+\-\(\)\s]+" inputmode="numeric"
+                            title="Only numbers and +, -, (, ) are allowed" placeholder="e.g. 01700000000"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 border">
                     </div>
-                    <button type="submit" name="add_rider" class="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700">Add Rider</button>
+                    <button type="submit" name="add_rider"
+                        class="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700">Add
+                        Rider</button>
                 </div>
             </form>
         </div>
@@ -104,21 +107,25 @@ while ($row = $res->fetch_assoc()) $riders[] = $row;
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php if(empty($riders)): ?>
-                        <tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No riders added yet.</td></tr>
+                    <?php if (empty($riders)): ?>
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-center text-gray-500">No riders added yet.</td>
+                        </tr>
                     <?php else: ?>
                         <?php foreach ($riders as $r): ?>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?php echo e($r['name']); ?></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo e($r['phone']); ?></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <form method="POST" onsubmit="return confirm('Delete this rider?');">
-                                    <input type="hidden" name="csrf_token" value="<?php echo get_csrf_token(); ?>">
-                                    <input type="hidden" name="rider_id" value="<?php echo $r['id']; ?>">
-                                    <button type="submit" name="delete_rider" class="text-red-600 hover:text-red-900">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <?php echo e($r['name']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo e($r['phone']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <form method="POST" onsubmit="return confirm('Delete this rider?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo get_csrf_token(); ?>">
+                                        <input type="hidden" name="rider_id" value="<?php echo $r['id']; ?>">
+                                        <button type="submit" name="delete_rider"
+                                            class="text-red-600 hover:text-red-900">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>

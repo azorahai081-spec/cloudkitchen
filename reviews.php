@@ -1,7 +1,7 @@
 <?php
 /*
  * reviews.php
- * KitchCo: Cloud Kitchen Full Reviews Page
+ * PizzaMania: Cloud Kitchen Full Reviews Page
  *
  * This page displays all visible, manually-added customer reviews.
  */
@@ -24,7 +24,8 @@ if ($result) {
 }
 
 // Helper function to render stars
-function render_stars($rating) {
+function render_stars($rating)
+{
     $html = '<div class="flex text-yellow-400">';
     for ($i = 0; $i < 5; $i++) {
         if ($i < $rating) {
@@ -43,17 +44,18 @@ function render_stars($rating) {
 <!-- Main Content -->
 <section class="py-16">
     <h1 class="text-3xl font-bold text-gray-900 mb-10 text-center">What Our Customers Say</h1>
-    
+
     <?php if (empty($reviews)): ?>
         <p class="text-center text-gray-600">No reviews yet. Be the first to leave one!</p>
     <?php else: ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
+
             <?php foreach ($reviews as $review): ?>
                 <!-- Review Card -->
                 <div class="bg-white rounded-2xl shadow-lg p-6 border-t-4 border-brand-red">
                     <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                        <div
+                            class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
                             <?php echo e(strtoupper(substr($review['customer_name'], 0, 2))); ?>
                         </div>
                         <div>
@@ -63,7 +65,11 @@ function render_stars($rating) {
                     </div>
                     <p class="text-gray-600 mt-4 italic">"<?php echo nl2br(e($review['review_text'])); ?>"</p>
                     <div class="flex items-center mt-4">
-                        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"></path>
+                        </svg>
                         <span class="ml-2 text-sm font-medium text-green-600">Verified Customer</span>
                     </div>
                 </div>
@@ -74,7 +80,8 @@ function render_stars($rating) {
 
     <!-- "See All Reviews" Button -->
     <div class="text-center mt-12">
-        <a href="<?php echo BASE_URL; ?>/menu.php" class="px-8 py-3 bg-brand-red text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors">
+        <a href="<?php echo BASE_URL; ?>/menu.php"
+            class="px-8 py-3 bg-brand-red text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors">
             &larr; Back to Menu
         </a>
     </div>

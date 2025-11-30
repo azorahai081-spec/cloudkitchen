@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_complaints.php
- * KitchCo: Cloud Kitchen Complaint List
+ * PizzaMania: Cloud Kitchen Complaint List
  * Version 1.3 - (MODIFIED) Allowed Manager Access
  *
  * This page allows Admins AND Managers to list and add complaints.

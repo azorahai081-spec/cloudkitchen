@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_item_options.php
- * KitchCo: Cloud Kitchen Item Options Manager
+ * PizzaMania: Cloud Kitchen Item Options Manager
  * Version 1.5 - (RESTORED) Admin Only Access
  *
  * This page handles full CRUD for:

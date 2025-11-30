@@ -1,7 +1,7 @@
 <?php
 /*
  * includes/fb_capi.php
- * KitchCo: Facebook Conversion API (CAPI) Helper
+ * PizzaMania: Facebook Conversion API (CAPI) Helper
  * Version 1.1 - Changed Order ID prefix to PM-
  *
  * This file contains the function to send server-side purchase events
@@ -15,12 +15,13 @@
  * @param array $items - The list of items from the 'order_items' table.
  * @param array $settings - The global $settings array containing API keys.
  */
-function fire_facebook_capi($order, $items, $settings) {
-    
+function fire_facebook_capi($order, $items, $settings)
+{
+
     // 1. --- Check for required keys ---
     $pixel_id = $settings['fb_pixel_id'] ?? '';
     $access_token = $settings['fb_capi_token'] ?? '';
-    
+
     if (empty($pixel_id) || empty($access_token)) {
         // Not configured, so we just return silently
         return;
@@ -56,7 +57,7 @@ function fire_facebook_capi($order, $items, $settings) {
 
     // 5. --- Build Final Payload ---
     $event_id = 'order_' . $order['order_id']; // Unique event ID
-    
+
     $payload = [
         'data' => [
             [
@@ -79,7 +80,7 @@ function fire_facebook_capi($order, $items, $settings) {
 
     // 7. --- Send with cURL ---
     $url = "https://graph.facebook.com/v15.0/{$pixel_id}/events?access_token={$access_token}";
-    
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
@@ -90,7 +91,7 @@ function fire_facebook_capi($order, $items, $settings) {
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     // 8. --- (Optional) Log the response ---
     // In a real app, you would log this to a file, not output it.
     // file_put_contents('capi_log.txt', "Event: $event_id, Status: $http_code, Response: $response\n", FILE_APPEND);

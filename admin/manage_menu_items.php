@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/manage_menu_items.php
- * KitchCo: Cloud Kitchen Menu Item Manager
+ * PizzaMania: Cloud Kitchen Menu Item Manager
  * Version 2.3 - (UPDATED) Added Custom Display Order
  *
  * Permissions:

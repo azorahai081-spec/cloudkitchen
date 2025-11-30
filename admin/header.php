@@ -1,8 +1,8 @@
 <?php
 /*
  * admin/header.php
- * KitchCo: Cloud Kitchen Master Admin Header
- * Version 2.6 - (MODIFIED) Restricted Categories/Options for Managers
+ * PizzaMania: Cloud Kitchen Master Admin Header
+ * Version 2.7 - (UPDATED) Ledger Access for Managers
  */
 
 // 1. CONFIGURATION
@@ -16,7 +16,8 @@ if (!isset($_SESSION['user_id'])) {
 
 // 3. ROLE-BASED ACCESS
 $user_role = $_SESSION['user_role'] ?? 'manager';
-function hasAdminAccess() {
+function hasAdminAccess()
+{
     return $_SESSION['user_role'] === 'admin';
 }
 $username = e($_SESSION['username']);
@@ -25,14 +26,15 @@ $user_initial = strtoupper(substr($username, 0, 1));
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e($page_title ?? 'PizzaMania Admin'); ?></title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -44,14 +46,35 @@ $user_initial = strtoupper(substr($username, 0, 1));
         };
     </script>
     <style>
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .nav-link-active { background-color: #ea580c; color: #ffffff; }
-        .nav-link-default { color: #d1d5db; }
-        .nav-link-default:hover { background-color: #4b5563; color: #ffffff; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .nav-link-active {
+            background-color: #ea580c;
+            color: #ffffff;
+        }
+
+        .nav-link-default {
+            color: #d1d5db;
+        }
+
+        .nav-link-default:hover {
+            background-color: #4b5563;
+            color: #ffffff;
+        }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans antialiased">
     <div class="relative min-h-screen lg:flex">
         <!-- Mobile Header -->
@@ -60,117 +83,213 @@ $user_initial = strtoupper(substr($username, 0, 1));
                 <a href="live_orders.php" class="text-2xl font-bold text-orange-600">PizzaMania Admin</a>
                 <div class="flex items-center">
                     <a href="<?php echo BASE_URL; ?>" target="_blank" class="p-2 text-gray-600 hover:bg-gray-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
                     </a>
                     <button id="mobile-menu-button" class="p-2 ml-2 text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
                     </button>
                 </div>
             </div>
         </header>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="bg-gray-900 text-white w-64 fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col h-screen shadow-lg">
+        <aside id="sidebar"
+            class="bg-gray-900 text-white w-64 fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col h-screen shadow-lg">
             <div class="h-16 flex items-center px-6 border-b border-gray-700">
                 <a href="live_orders.php" class="text-xl font-bold text-orange-500">PizzaMania Admin</a>
             </div>
 
             <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                <a href="<?php echo BASE_URL; ?>" target="_blank" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default bg-gray-800 hover:bg-orange-600 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                <a href="<?php echo BASE_URL; ?>" target="_blank"
+                    class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default bg-gray-800 hover:bg-orange-600 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
                     <span class="font-medium">Go to Website</span>
                 </a>
 
                 <p class="px-3 text-xs font-semibold text-gray-500 uppercase mt-2 mb-1">Orders</p>
                 <a href="live_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <span>Live Orders</span>
                 </a>
                 <a href="manage_orders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-5.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 17.25V12z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-5.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 17.25V12z" />
+                    </svg>
                     <span>Order History</span>
                 </a>
                 <a href="manual_order.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                    </svg>
                     <span>Manual Entry</span>
                 </a>
-                
-                <!-- (MOVED) Complaints is now available for all roles -->
-                <a href="manage_complaints.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+
+                <a href="manage_complaints.php"
+                    class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
                     <span>Complaints</span>
                 </a>
 
+                <!-- (MOVED) Ledger is now available for Managers too -->
+                <a href="ledger.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 6v12m-3-2.818l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659m-2.118-5.514l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659m-2.118-5.514l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-18 0h18" />
+                    </svg>
+                    <span>Personal Ledger</span>
+                </a>
+
                 <p class="px-3 text-xs font-semibold text-gray-500 uppercase mt-4 mb-1">Menu & Food</p>
-                <a href="manage_menu_items.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                <a href="manage_menu_items.php"
+                    class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
                     <span>Menu Items</span>
                 </a>
-                
+
                 <!-- Only for Admin -->
                 <?php if (hasAdminAccess()): ?>
-                    <!-- (RESTORED) Categories and Options are now Admin-only -->
-                    <a href="manage_categories.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V.75m0 6a2.25 2.25 0 01-2.25 2.25H2.25m0 0a2.25 2.25 0 01-2.25-2.25V.75m0 6l2.25 2.25m0 0l2.25 2.25m0 0l2.25 2.25m-2.25-2.25l-2.25 2.25m0 0l-2.25-2.25m6 0l2.25 2.25M9 15.75V21.75m0-6a2.25 2.25 0 00-2.25 2.25H2.25m0 0a2.25 2.25 0 00-2.25-2.25V15.75m0 6l2.25-2.25m0 0l2.25-2.25m0 0l2.25-2.25m-2.25 2.25l-2.25-2.25m0 0l-2.25-2.25m6 0l2.25-2.25" /></svg>
+                    <a href="manage_categories.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 6.75V.75m0 6a2.25 2.25 0 01-2.25 2.25H2.25m0 0a2.25 2.25 0 01-2.25-2.25V.75m0 6l2.25 2.25m0 0l2.25 2.25m0 0l2.25 2.25m-2.25-2.25l-2.25 2.25m0 0l-2.25-2.25m6 0l2.25 2.25M9 15.75V21.75m0-6a2.25 2.25 0 00-2.25 2.25H2.25m0 0a2.25 2.25 0 00-2.25-2.25V15.75m0 6l2.25-2.25m0 0l2.25-2.25m0 0l2.25-2.25m-2.25 2.25l-2.25-2.25m0 0l-2.25-2.25m6 0l2.25-2.25" />
+                        </svg>
                         <span>Categories</span>
                     </a>
-                    <a href="manage_item_options.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" /></svg>
+                    <a href="manage_item_options.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" />
+                        </svg>
                         <span>Options/Addons</span>
                     </a>
-                
+
                     <p class="px-3 text-xs font-semibold text-gray-500 uppercase mt-4 mb-1">Operations</p>
-                    <a href="customer_reports.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128V21a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 21V5.25A2.25 2.25 0 015.25 3h9.75a2.25 2.25 0 012.25 2.25v.192" /></svg>
+                    <a href="customer_reports.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128V21a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 21V5.25A2.25 2.25 0 015.25 3h9.75a2.25 2.25 0 012.25 2.25v.192" />
+                        </svg>
                         <span>Customer Insights</span>
                     </a>
                     <a href="reports.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3.75h16.5M3.75 12h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5M3.75 8.25h16.5" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3.75h16.5M3.75 12h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5M3.75 8.25h16.5" />
+                        </svg>
                         <span>Reports</span>
-                    </a>
-                    
-                    <!-- (NEW) ADDED LEDGER LINK HERE -->
-                    <a href="ledger.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659m-2.118-5.514l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659m-2.118-5.514l.879.659c.171.127.38.19.59.19s.419-.063.59-.19l.879-.659M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-18 0h18" /></svg>
-                        <span>Personal Ledger</span>
                     </a>
 
                     <a href="manage_riders.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        </svg>
                         <span>Manage Riders</span>
                     </a>
-                    <a href="manage_delivery_areas.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <a href="manage_delivery_areas.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <span>Delivery Areas</span>
                     </a>
                     <a href="manage_coupons.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-3m2.25-4.125c0-1.036.84-1.875 1.875-1.875h.375c1.036 0 1.875.84 1.875 1.875v.006c0 1.036-.84 1.875-1.875 1.875h-.375c-1.036 0-1.875-.84-1.875-1.875v-.006z" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-3m2.25-4.125c0-1.036.84-1.875 1.875-1.875h.375c1.036 0 1.875.84 1.875 1.875v.006c0 1.036-.84 1.875-1.875 1.875h-.375c-1.036 0-1.875-.84-1.875-1.875v-.006z" />
+                        </svg>
                         <span>Coupons</span>
                     </a>
 
                     <p class="px-3 text-xs font-semibold text-gray-500 uppercase mt-4 mb-1">Website & Settings</p>
-                    <a href="homepage_manager.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+                    <a href="homepage_manager.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
                         <span>Homepage Editor</span>
                     </a>
                     <a href="site_settings.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66m6.68 0a6.72 6.72 0 01-.668 1.66c-.677 1.02-1.952 1.66-3.34 1.66s-2.663-.64-3.34-1.66a6.72 6.72 0 01-.668-1.66m6.68 0c.677-1.02 1.952-1.66 3.34-1.66 1.388 0 2.663.64 3.34 1.66m-6.68 0a6.72 6.72 0 00.668 1.66c.677 1.02 1.952 1.66 3.34 1.66s2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0H6.75m6.68 0h6.68m0 0c.677 1.02 1.952 1.66 3.34 1.66 1.388 0 2.663-.64 3.34 1.66a6.72 6.72 0 00.668-1.66m-6.68 0c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66a6.72 6.72 0 00-.668-1.66" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M10.34 15.84c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66m6.68 0a6.72 6.72 0 01-.668 1.66c-.677 1.02-1.952 1.66-3.34 1.66s-2.663-.64-3.34-1.66a6.72 6.72 0 01-.668-1.66m6.68 0c.677-1.02 1.952-1.66 3.34-1.66 1.388 0 2.663.64 3.34 1.66m-6.68 0a6.72 6.72 0 00.668 1.66c.677 1.02 1.952 1.66 3.34 1.66s2.663-.64 3.34-1.66a6.72 6.72 0 00.668-1.66m-6.68 0H6.75m6.68 0h6.68m0 0c.677 1.02 1.952 1.66 3.34 1.66 1.388 0 2.663-.64 3.34 1.66a6.72 6.72 0 00.668-1.66m-6.68 0c-.677 1.02-1.952 1.66-3.34 1.66-1.388 0-2.663-.64-3.34-1.66a6.72 6.72 0 00-.668-1.66" />
+                        </svg>
                         <span>Store Settings</span>
                     </a>
-                    <a href="marketing_settings.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /></svg>
+                    <a href="marketing_settings.php"
+                        class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                        </svg>
                         <span>Marketing</span>
                     </a>
-                     <a href="manage_users.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128V21a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 21V5.25A2.25 2.25 0 015.25 3h9.75a2.25 2.25 0 012.25 2.25v.192" /></svg>
+                    <a href="manage_users.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128V21a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 21V5.25A2.25 2.25 0 015.25 3h9.75a2.25 2.25 0 012.25 2.25v.192" />
+                        </svg>
                         <span>Users</span>
                     </a>
                     <a href="manage_reviews.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.31h5.364c.518 0 .73.684.348 1.01l-4.338 3.165a.563.563 0 00-.18.518l1.636 4.993c.19.581-.42 1.05-1.002.64l-4.337-3.165a.563.563 0 00-.65 0L3.102 19.24c-.58.41-1.19-.06-1.002-.64l1.636-4.993a.563.563 0 00-.18-.518L.217 10.08c-.38-.278-.17-.1.348-1.01h5.364a.563.563 0 00.475-.31l2.125-5.111z" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.31h5.364c.518 0 .73.684.348 1.01l-4.338 3.165a.563.563 0 00-.18.518l1.636 4.993c.19.581-.42 1.05-1.002.64l-4.337-3.165a.563.563 0 00-.65 0L3.102 19.24c-.58.41-1.19-.06-1.002-.64l1.636-4.993a.563.563 0 00-.18-.518L.217 10.08c-.38-.278-.17-.1.348-1.01h5.364a.563.563 0 00.475-.31l2.125-5.111z" />
+                        </svg>
                         <span>Reviews</span>
                     </a>
-                     <a href="manage_faq.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+                    <a href="manage_faq.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg nav-link-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                        </svg>
                         <span>FAQ</span>
                     </a>
                 <?php endif; ?>
@@ -187,8 +306,13 @@ $user_initial = strtoupper(substr($username, 0, 1));
                             <div class="text-sm text-gray-400 capitalize"><?php echo e($user_role); ?></div>
                         </div>
                     </div>
-                    <a href="logout.php?csrf_token=<?php echo e(get_csrf_token()); ?>" title="Logout" class="p-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
+                    <a href="logout.php?csrf_token=<?php echo e(get_csrf_token()); ?>" title="Logout"
+                        class="p-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                        </svg>
                     </a>
                 </div>
             </div>

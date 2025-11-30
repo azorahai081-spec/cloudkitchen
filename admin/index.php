@@ -1,7 +1,7 @@
 <?php
 /*
  * admin/index.php
- * KitchCo: Cloud Kitchen Admin Entry Point
+ * PizzaMania: Cloud Kitchen Admin Entry Point
  * Version 1.0
  *
  * This file prevents directory listing of the /admin folder.

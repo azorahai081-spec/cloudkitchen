@@ -1,7 +1,7 @@
 <?php
 /*
  * sitemap.php
- * KitchCo: Cloud Kitchen Dynamic Sitemap Generator
+ * PizzaMania: Cloud Kitchen Dynamic Sitemap Generator
  * Version 1.1 - (FIXED) Added all static pages
  *
  * This file queries the database and generates a sitemap.xml
@@ -23,7 +23,8 @@ header('Content-Type: application/xml');
  * @param string $priority   The priority of this URL relative to other URLs on the site.
  * @return string            The formatted XML <url> block.
  */
-function create_url_entry($loc, $lastmod, $changefreq = 'weekly', $priority = '0.8') {
+function create_url_entry($loc, $lastmod, $changefreq = 'weekly', $priority = '0.8')
+{
     $loc_esc = e($loc); // Use our e() helper from config.php
     $lastmod_esc = e($lastmod);
     return "

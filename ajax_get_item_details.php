@@ -1,7 +1,7 @@
 <?php
 /*
  * ajax_get_item_details.php
- * KitchCo: Cloud Kitchen AJAX Helper (Public)
+ * PizzaMania: Cloud Kitchen AJAX Helper (Public)
  * Version 1.0
  *
  * This file is called by JavaScript (fetch) from menu.php.
@@ -40,12 +40,12 @@ try {
                    JOIN menu_item_options_groups mig ON g.id = mig.option_group_id
                    WHERE mig.menu_item_id = ?
                    ORDER BY g.name";
-                   
+
     $stmt_groups = $db->prepare($sql_groups);
     $stmt_groups->bind_param('i', $item_id);
     $stmt_groups->execute();
     $result_groups = $stmt_groups->get_result();
-    
+
     // --- PREPARE QUERY 2: Get all OPTIONS for a specific group ---
     $sql_options = "SELECT 
                         id, 
@@ -59,7 +59,7 @@ try {
     // --- LOOP 1: Process each group ---
     while ($group_row = $result_groups->fetch_assoc()) {
         $group_id = $group_row['id'];
-        
+
         $current_group = [
             'id' => $group_id,
             'name' => $group_row['name'],
@@ -71,7 +71,7 @@ try {
         $stmt_options->bind_param('i', $group_id);
         $stmt_options->execute();
         $result_options = $stmt_options->get_result();
-        
+
         while ($option_row = $result_options->fetch_assoc()) {
             $current_group['options'][] = [
                 'id' => $option_row['id'],
@@ -79,11 +79,11 @@ try {
                 'price_increase' => $option_row['price_increase']
             ];
         }
-        
+
         // Add this fully populated group to our response
         $response_data['option_groups'][] = $current_group;
     }
-    
+
     // 5. CLOSE STATEMENTS
     $stmt_groups->close();
     $stmt_options->close();
