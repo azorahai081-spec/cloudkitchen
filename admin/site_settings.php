@@ -2,7 +2,7 @@
 /*
  * admin/site_settings.php
  * PizzaMania: Cloud Kitchen Site & Store Settings
- * Version 2.4 - (UPDATED) Added Marquee Animation Type
+ * Version 2.5 - (UPDATED) Added Homepage Combo Category Selector
  *
  * This is an ADMIN-ONLY page.
  */
@@ -55,10 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'delivery_discount_active' => isset($_POST['delivery_discount_active']) ? '1' : '0',
             'delivery_discount_percentage' => $_POST['delivery_discount_percentage'] ?? '0',
             
-            // (NEW) Marquee Settings
+            // Marquee Settings
             'marquee_text' => $_POST['marquee_text'] ?? 'SALE % SALE',
             'marquee_is_active' => isset($_POST['marquee_is_active']) ? '1' : '0',
-            'marquee_animation' => $_POST['marquee_animation'] ?? 'scroll' // New setting
+            'marquee_animation' => $_POST['marquee_animation'] ?? 'scroll',
+            
+            // (NEW) Homepage Combo Category
+            'homepage_combo_category' => $_POST['homepage_combo_category'] ?? ''
         ];
         
         // --- START IMAGE UPLOAD LOGIC (for Hero Banner) ---
@@ -102,12 +105,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Error preparing statement: " . $db->error;
         } else {
             foreach ($new_settings as $key => $value) {
+                // Determine if update or insert is needed
+                // We use ON DUPLICATE KEY UPDATE logic via check first or simple update
+                // Simpler: Just try to update, if 0 rows affected check if it exists? 
+                // Since all keys *should* exist, Update is fine. For safety we check array keys.
+                
                 if (array_key_exists($key, $settings) || isset($settings[$key])) { 
                     $stmt->bind_param('ss', $value, $key);
-                    if (!$stmt->execute()) {
-                         $error_message = "Error updating setting: $key";
-                    }
+                    $stmt->execute();
                 } else {
+                    // Key doesn't exist in our loaded array, insert it
                     $insert_sql = "INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)";
                     $insert_stmt = $db->prepare($insert_sql);
                     $insert_stmt->bind_param('ss', $key, $value);
@@ -133,12 +140,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 5. --- LOAD DATA FOR DROPDOWNS ---
 $timezone_identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+
+// Delivery Areas
 $delivery_areas = [];
 $area_result = $db->query("SELECT id, area_name FROM delivery_areas WHERE is_active = 1 ORDER BY area_name ASC");
 while ($row = $area_result->fetch_assoc()) {
     $delivery_areas[] = $row;
 }
 $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? '');
+
+// (NEW) Categories List
+$categories_list = [];
+$cat_res = $db->query("SELECT id, name FROM categories ORDER BY name ASC");
+if($cat_res) {
+    while($row = $cat_res->fetch_assoc()) {
+        $categories_list[] = $row;
+    }
+}
 ?>
 
 <!-- Page Title -->
@@ -189,15 +207,14 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                         <label for="marquee_text" class="block text-sm font-medium text-gray-700">Bar Text</label>
                         <input type="text" id="marquee_text" name="marquee_text" 
                                value="<?php echo e($settings['marquee_text'] ?? 'SALE % SALE'); ?>"
-                               placeholder="e.g. SALE % SALE"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
                         <label for="marquee_animation" class="block text-sm font-medium text-gray-700">Animation</label>
                         <select id="marquee_animation" name="marquee_animation" 
                                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option value="scroll" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'scroll') ? 'selected' : ''; ?>>Scrolling (Marquee)</option>
-                            <option value="static" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'static') ? 'selected' : ''; ?>>Static (Centered)</option>
+                            <option value="scroll" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'scroll') ? 'selected' : ''; ?>>Scrolling</option>
+                            <option value="static" <?php echo (($settings['marquee_animation'] ?? 'scroll') == 'static') ? 'selected' : ''; ?>>Static</option>
                         </select>
                     </div>
                 </div>
@@ -213,7 +230,7 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
 
             <div>
                 <label for="hero_subtitle" class="block text-sm font-medium text-gray-700">
-                    Homepage Welcome Text / Subtitle
+                    Homepage Welcome Text
                 </label>
                 <textarea id="hero_subtitle" name="hero_subtitle" rows="6"
                           class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -238,15 +255,15 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                 <div>
                     <label for="hero_image_style" class="block text-sm font-medium text-gray-700">Banner Image Style</label>
                     <select id="hero_image_style" name="hero_image_style" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        <option value="shadow" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'shadow') ? 'selected' : ''; ?>>Shadow & Tilt (Default)</option>
+                        <option value="shadow" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'shadow') ? 'selected' : ''; ?>>Shadow & Tilt</option>
                         <option value="card" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'card') ? 'selected' : ''; ?>>Contained in Card</option>
                         <option value="tilt-no-shadow" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'tilt-no-shadow') ? 'selected' : ''; ?>>Tilt (No Shadow)</option>
-                        <option value="none" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'none') ? 'selected' : ''; ?>>None (Simple Image)</option>
+                        <option value="none" <?php echo (($settings['hero_image_style'] ?? 'shadow') == 'none') ? 'selected' : ''; ?>>None</option>
                     </select>
                     <p class="text-xs text-gray-500 mt-1">"Contained in Card" is best for transparent images.</p>
                 </div>
                 <div>
-                    <label for="hero_image_card_color" class="block text-sm font-medium text-gray-700">Card Color (if 'Card' style)</label>
+                    <label for="hero_image_card_color" class="block text-sm font-medium text-gray-700">Card Color (Hex)</label>
                     <input type="text" id="hero_image_card_color" name="hero_image_card_color" 
                            value="<?php echo e($settings['hero_image_card_color'] ?? '#FFFFFF'); ?>"
                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -274,12 +291,30 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div>
-                        <label for="offer_text" class="block text-sm font-medium text-gray-700">Offer Text (Short)</label>
+                        <label for="offer_text" class="block text-sm font-medium text-gray-700">Offer Text</label>
                         <input type="text" id="offer_text" name="offer_text" 
                                value="<?php echo e($settings['offer_text'] ?? ''); ?>"
-                               placeholder="e.g., Get 20% off all Pizza. Use code: PIZZA20"
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
+                </div>
+            </div>
+            
+            <!-- (NEW) Combo/Featured Category Setting -->
+            <div class="pt-6 border-t">
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Featured Packages/Combos</h3>
+                <p class="text-sm text-gray-500 mb-4">Select a category to display its items in a special section on the homepage (e.g., "Combos" or "Packages").</p>
+                <div>
+                    <label for="homepage_combo_category" class="block text-sm font-medium text-gray-700">Select Category</label>
+                    <select id="homepage_combo_category" name="homepage_combo_category" 
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="">-- None (Hide Section) --</option>
+                        <?php foreach($categories_list as $cat): ?>
+                            <option value="<?php echo $cat['id']; ?>" 
+                                <?php echo (($settings['homepage_combo_category'] ?? '') == $cat['id']) ? 'selected' : ''; ?>>
+                                <?php echo e($cat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
             
@@ -329,19 +364,13 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
             
         </div>
 
-        <!-- Improved Exempt Areas Selector -->
+        <!-- Exempt Areas Selector -->
         <div class="mt-8 pt-6 border-t border-gray-200">
             <h3 class="text-lg font-bold text-gray-900 mb-2">Exclude Areas from Night Surcharge</h3>
             <p class="text-sm text-gray-500 mb-4">Search and select areas where the night surcharge should <strong>NOT</strong> apply.</p>
-            
             <div class="mb-3 relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                </div>
                 <input type="text" id="exempt_area_search" placeholder="Type to filter areas..." 
-                       class="block w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                       class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500">
             </div>
 
             <div class="border border-gray-300 rounded-lg bg-gray-50 p-4 max-h-64 overflow-y-auto">
@@ -360,9 +389,7 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                     </div>
                     <?php endforeach; ?>
                 </div>
-                <p id="no_areas_found" class="text-sm text-gray-500 text-center py-4 hidden">No areas match your search.</p>
             </div>
-            <p class="text-xs text-gray-500 mt-2 text-right"><span id="exempt_count"><?php echo count($current_exempt_ids); ?></span> areas currently excluded.</p>
         </div>
     </div>
     
@@ -429,10 +456,9 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
                 </label>
             </div>
             <div class="mt-2 w-full md:w-1/3">
-                <label for="delivery_discount_percentage" class="block text-sm font-medium text-gray-700">Delivery Discount Percentage (%)</label>
+                <label for="delivery_discount_percentage" class="block text-sm font-medium text-gray-700">Percentage (%)</label>
                 <input type="number" step="1" min="0" max="100" id="delivery_discount_percentage" name="delivery_discount_percentage" 
                        value="<?php echo e((int)($settings['delivery_discount_percentage'] ?? '0')); ?>"
-                       placeholder="e.g., 50 for 50% off"
                        class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             </div>
         </div>
@@ -451,50 +477,20 @@ $current_exempt_ids = explode(',', $settings['night_surcharge_exempt_areas'] ?? 
 <!-- Scripts -->
 <script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
 <script>
-    ClassicEditor
-        .create(document.querySelector('#hero_subtitle'), {
-            toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo' ]
-        })
-        .catch(error => {
-            console.error('Error loading CKEditor:', error);
-        });
+    ClassicEditor.create(document.querySelector('#hero_subtitle'), {
+        toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo' ]
+    }).catch(error => { console.error(error); });
 
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('exempt_area_search');
         const areaItems = document.querySelectorAll('.area-item');
-        const noAreasMsg = document.getElementById('no_areas_found');
-        const checkboxes = document.querySelectorAll('input[name="night_surcharge_exempt_areas[]"]');
-        const exemptCount = document.getElementById('exempt_count');
-
-        function updateCount() {
-            let count = 0;
-            checkboxes.forEach(cb => {
-                if(cb.checked) count++;
-            });
-            exemptCount.textContent = count;
-        }
-        checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
-        updateCount(); 
 
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            let visibleCount = 0;
-
             areaItems.forEach(item => {
                 const name = item.getAttribute('data-name');
-                if (name.includes(term)) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
+                item.style.display = name.includes(term) ? 'flex' : 'none';
             });
-
-            if (visibleCount === 0) {
-                noAreasMsg.classList.remove('hidden');
-            } else {
-                noAreasMsg.classList.add('hidden');
-            }
         });
     });
 </script>

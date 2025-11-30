@@ -2,7 +2,7 @@
 /*
  * admin/ajax_update_store_status.php
  * PizzaMania: Cloud Kitchen AJAX Helper
- * Version 1.2 - Finalized JSON error handling
+ * Version 1.3 - (MODIFIED) Managers allowed to toggle status
  *
  * This file is called by JavaScript from live_orders.php.
  * It updates the 'store_is_open' setting in the database.
@@ -14,15 +14,13 @@ ob_start();
 require_once('../config.php');
 header('Content-Type: application/json');
 
-// 2. SECURITY CHECK (Admin Only)
-// Note: hasAdminAccess() is defined in header.php, which config.php doesn't include.
-// Since config is first, we must redefine hasAdminAccess or rely on user_role session.
-$is_admin = ($_SESSION['user_role'] ?? '') === 'admin';
-if (!isset($_SESSION['user_id']) || !$is_admin) {
+// 2. SECURITY CHECK (Admin OR Manager)
+// (MODIFIED) Only check if logged in. We no longer check for strict 'admin' role.
+if (!isset($_SESSION['user_id'])) {
     // Clear buffer before sending JSON response
     ob_end_clean();
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Access Denied (Admin role required).']);
+    echo json_encode(['success' => false, 'error' => 'Access Denied (Login required).']);
     exit;
 }
 

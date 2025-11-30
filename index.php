@@ -2,9 +2,7 @@
 /*
  * index.php
  * PizzaMania: Cloud Kitchen Homepage
- * Version 2.8 - (UPDATED) Custom Sorting for Fan Favorites
- *
- * This is the main customer-facing homepage.
+ * Version 3.1 - (FIXED) Improved Description Layout & Combo Section
  */
 
 // 1. PAGE SETUP
@@ -36,7 +34,6 @@ function calculate_discounted_price($original_price, $settings)
 
 // --- A. Load Featured Items (Fan Favorites) ---
 $featured_items = [];
-// (MODIFIED) Added 'ORDER BY m.display_order ASC'
 $sql_featured = "SELECT m.id, m.name, m.price, m.image, m.description, c.name as category_name
                  FROM menu_items m
                  JOIN categories c ON m.category_id = c.id
@@ -88,6 +85,41 @@ $result_faq = $db->query($sql_faq);
 if ($result_faq) {
     while ($row = $result_faq->fetch_assoc()) {
         $faqs[] = $row;
+    }
+}
+
+// --- E. (NEW) Load Feature/Combo Items ---
+$combo_items = [];
+$combo_category_name = 'Special Offers'; // Default
+$show_combos = false;
+
+if (!empty($settings['homepage_combo_category'])) {
+    $combo_cat_id = (int)$settings['homepage_combo_category'];
+    
+    // Get Category Name
+    $cat_name_q = $db->query("SELECT name FROM categories WHERE id = $combo_cat_id");
+    if($cat_name_q && $cat_name_q->num_rows > 0) {
+        $combo_category_name = $cat_name_q->fetch_assoc()['name'];
+    }
+    
+    // Get Items in this category
+    $sql_combos = "SELECT m.id, m.name, m.price, m.image, m.description 
+                   FROM menu_items m 
+                   WHERE m.category_id = $combo_cat_id AND m.is_available = 1 
+                   ORDER BY m.display_order ASC, m.id DESC
+                   LIMIT 4"; // Limit to 4 for a nice row
+    
+    $result_combos = $db->query($sql_combos);
+    if ($result_combos && $result_combos->num_rows > 0) {
+        $show_combos = true;
+        while ($row = $result_combos->fetch_assoc()) {
+            $original_price = (float) $row['price'];
+            $discounted_price = calculate_discounted_price($original_price, $settings);
+            $row['original_price'] = $original_price;
+            $row['price'] = $discounted_price;
+            $row['has_discount'] = ($discounted_price < $original_price);
+            $combo_items[] = $row;
+        }
     }
 }
 
@@ -244,7 +276,65 @@ $schema_restaurant = [
 <?php endif; ?>
 
 
-<!-- NEW OFFER SECTION -->
+<!-- (NEW) COMBO / PACKAGE SECTION -->
+<?php if ($show_combos): ?>
+    <section class="py-16 bg-gradient-to-b from-red-50 to-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <span class="text-brand-red font-bold uppercase tracking-wider text-sm">Best Value</span>
+                <h2 class="text-4xl font-extrabold text-gray-900 mt-2 font-bangla"><?php echo e($combo_category_name); ?></h2>
+                <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Don't miss out on our exclusive deals and packages.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <?php foreach ($combo_items as $item): ?>
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all hover:-translate-y-2 border border-gray-100 flex flex-col h-full">
+                        <div class="relative flex-shrink-0">
+                            <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>">
+                                <img src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image')); ?>"
+                                    alt="<?php echo e($item['name']); ?>" class="w-full h-56 object-cover"
+                                    onerror="this.src='https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image'">
+                            </a>
+                            <?php if ($item['has_discount']): ?>
+                                <div class="absolute top-4 right-4 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    SAVE!
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="p-6 flex flex-col flex-grow">
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 truncate"><?php echo e($item['name']); ?></h3>
+                            
+                            <!-- DESCRIPTION FIX: Line Clamp 2 lines, Fixed Height -->
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-2 h-10 overflow-hidden leading-snug">
+                                <?php echo e($item['description']); ?>
+                            </p>
+                            
+                            <div class="mt-auto flex items-end justify-between">
+                                <div>
+                                    <?php if ($item['has_discount']): ?>
+                                        <p class="text-gray-400 text-sm line-through font-medium"><?php echo number_format($item['original_price'], 0); ?></p>
+                                    <?php endif; ?>
+                                    <p class="text-2xl font-extrabold text-gray-900"><?php echo number_format($item['price'], 0); ?> <span class="text-sm font-normal text-gray-500">BDT</span></p>
+                                </div>
+                                <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>"
+                                    class="inline-flex justify-center items-center w-10 h-10 bg-brand-red text-white rounded-full hover:bg-red-700 transition-colors shadow-md">
+                                    <i class="fa-solid fa-plus"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="text-center mt-10">
+                <a href="<?php echo BASE_URL; ?>/menu#category-<?php echo $combo_cat_id; ?>" class="text-brand-red font-bold hover:underline">View All Combos &rarr;</a>
+            </div>
+        </div>
+    </section>
+<?php endif; ?>
+
+
+<!-- OLD OFFER SECTION (Banner) -->
 <?php if (!empty($settings['offer_is_active']) && $settings['offer_is_active'] == '1'): ?>
     <section class="py-16">
         <div
@@ -274,17 +364,21 @@ $schema_restaurant = [
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <?php foreach ($featured_items as $item): ?>
                     <div
-                        class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl hover:-translate-y-1">
-                        <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="block">
+                        class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col h-full">
+                        <a href="<?php echo BASE_URL; ?>/menu#item-<?php echo e($item['id']); ?>" class="block flex-shrink-0">
                             <img src="<?php echo e(BASE_URL . ($item['image'] ?? 'https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image')); ?>"
                                 alt="<?php echo e($item['name']); ?>" class="w-full h-48 object-cover"
                                 onerror="this.src='https://placehold.co/400x300/EFEFEF/AAAAAA?text=No+Image'">
                         </a>
-                        <div class="p-5">
+                        <div class="p-5 flex flex-col flex-grow">
                             <h3 class="text-xl font-bold text-gray-900 truncate"><?php echo e($item['name']); ?></h3>
-                            <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden"><?php echo e($item['description']); ?>
+                            
+                            <!-- DESCRIPTION FIX: Line Clamp 2 lines, Fixed Height -->
+                            <p class="text-gray-600 text-sm mt-2 line-clamp-2 h-10 overflow-hidden leading-snug">
+                                <?php echo e($item['description']); ?>
                             </p>
-                            <div class="flex justify-between items-center mt-4">
+                            
+                            <div class="mt-auto pt-4 flex justify-between items-center">
                                 <p class="text-2xl font-bold text-gray-900">
                                     <?php if ($item['has_discount']): ?>
                                         <?php echo number_format($item['price'], 0); ?>

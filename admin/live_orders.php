@@ -2,7 +2,7 @@
 /*
  * admin/live_orders.php
  * PizzaMania: Cloud Kitchen Live Order Dashboard
- * Version 2.5 - (UPDATED) 4PM to 5AM Business Day Logic
+ * Version 2.6 - (MODIFIED) Manager Allowed to Toggle Store Status
  *
  * This is the main dashboard page. It's the "mission control" for the kitchen.
  */
@@ -111,19 +111,14 @@ but for now, we'll just set it in PHP.
     </div>
 
     <!-- (MODIFIED) Store Open/Closed Toggle -->
-    <!-- This now uses Tailwind's "peer" system to style itself -->
+    <!-- Removed 'hasAdminAccess' checks so Managers can use this too -->
     <div class="flex items-center space-x-3 mt-4 sm:mt-0">
         <span class="font-medium text-gray-700">Store Status:</span>
-        <label for="store-toggle"
-            class="relative inline-flex items-center <?php echo hasAdminAccess() ? 'cursor-pointer' : 'cursor-not-allowed'; ?>">
-            <input type="checkbox" id="store-toggle" class="sr-only peer" <?php echo $store_is_open ? 'checked' : ''; ?>
-                <?php echo hasAdminAccess() ? '' : 'disabled'; ?>>
+        <label for="store-toggle" class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="store-toggle" class="sr-only peer" <?php echo $store_is_open ? 'checked' : ''; ?>>
 
             <!-- This is the track -->
-            <div class="w-14 h-8 bg-gray-300 rounded-full transition-colors 
-                        peer-checked:bg-green-600 
-                        <?php echo hasAdminAccess() ? '' : 'opacity-50'; ?>">
-            </div>
+            <div class="w-14 h-8 bg-gray-300 rounded-full transition-colors peer-checked:bg-green-600"></div>
 
             <!-- This is the thumb -->
             <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform 
