@@ -2,23 +2,20 @@
 /*
  * checkout.php
  * PizzaMania: Cloud Kitchen Checkout Page
- * Version 2.0 - (MODIFIED) Removed decimal points for BDT
- *
- * This page:
- * 1. Requires a non-empty cart to view.
- * 2. Displays the final order summary.
- * 3. Collects customer info (name, phone, address).
- * 4. Validates customer name and phone number.
- * 5. Loads delivery areas for a custom searchable component.
- * 6. Uses AJAX to calculate delivery fees live.
- * 7. Uses AJAX to apply coupon codes.
+ * Version 2.1 - Added specific SEO Variables
  */
 
-// 1. CONFIGURATION
+// 1. CONFIGURATION (Load first to get DB settings)
 require_once('config.php');
 
-// 2. --- SECURITY CHECK ---
-// This check MUST happen before any HTML is output (i.e., before header.php)
+// 2. PAGE SPECIFIC SEO VARIABLES
+$page_title = 'Checkout - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'Securely complete your order. Enter delivery details and confirm payment.';
+
+// 3. HEADER
+require_once('includes/header.php');
+
+// 4. --- SECURITY CHECK ---
 $cart = $_SESSION['cart'] ?? [];
 $store_is_open = $settings['store_is_open'] ?? '1'; // Get store status from config
 
@@ -27,13 +24,6 @@ if (empty($cart) || $store_is_open == '0') {
     header('Location: menu.php');
     exit;
 }
-
-// 3. PAGE SETUP
-$page_title = 'Checkout - PizzaMania';
-$meta_description = 'Complete your order and get your food delivered.';
-
-// 4. HEADER (HTML output starts here)
-require_once('includes/header.php');
 
 // Check for server-side validation errors
 $checkout_error = $_SESSION['checkout_error'] ?? '';

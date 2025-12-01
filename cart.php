@@ -2,14 +2,17 @@
 /*
  * cart.php
  * PizzaMania: Cloud Kitchen View Cart Page
- * Version 2.2 - (FIXED) Seamless Cross-Sell Add
+ * Version 2.3 - Added specific SEO Variables
  */
 
-// 1. PAGE SETUP
-$page_title = 'Your Shopping Cart - PizzaMania';
-$meta_description = 'Review your order and proceed to checkout.';
+// 1. CONFIGURATION (Load first to get DB settings)
+require_once('config.php');
 
-// 2. HEADER
+// 2. PAGE SPECIFIC SEO VARIABLES
+$page_title = 'Your Cart - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'Review your selection of delicious food and proceed to checkout. Secure and fast ordering.';
+
+// 3. HEADER
 require_once('includes/header.php');
 
 // 3. --- LOAD CART & CALCULATE TOTALS ---

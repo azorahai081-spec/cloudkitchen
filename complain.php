@@ -2,18 +2,17 @@
 /*
  * complain.php
  * PizzaMania: Cloud Kitchen Customer Complaint Page
- * Version 1.0
- *
- * This page allows a customer to:
- * 1. Verify a delivered order using Order ID and Phone.
- * 2. Submit a complaint for that verified order.
+ * Version 1.1 - Added specific SEO Variables
  */
 
-// 1. PAGE SETUP
-$page_title = 'File a Complaint - ' . ($settings['store_name'] ?? 'Pizza Mania');
-$meta_description = 'Submit a complaint or feedback about your order.';
+// 1. CONFIGURATION (Load first to get DB settings)
+require_once('config.php');
 
-// 2. HEADER
+// 2. PAGE SPECIFIC SEO VARIABLES
+$page_title = 'File a Complaint - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'We are sorry if you had a bad experience. Please file a complaint here so we can resolve it.';
+
+// 3. HEADER
 require_once('includes/header.php');
 
 // 3. --- PAGE LOGIC ---

@@ -1,0 +1,654 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.0
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1:3306
+-- Generation Time: Nov 30, 2025 at 09:59 PM
+-- Server version: 8.0.31
+-- PHP Version: 8.1.13
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `cloud_kitchen3`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_ledger`
+--
+
+DROP TABLE IF EXISTS `admin_ledger`;
+CREATE TABLE IF NOT EXISTS `admin_ledger` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type` enum('deposit','withdrawal') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entry_date` date NOT NULL,
+  `amount` decimal(10,0) NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_saving_date` (`entry_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_ledger`
+--
+
+INSERT INTO `admin_ledger` (`id`, `type`, `entry_date`, `amount`, `description`, `created_at`) VALUES
+(3, 'deposit', '2025-10-01', '1000', '', '2025-11-16 16:42:56'),
+(4, 'deposit', '2025-10-02', '10000', '', '2025-11-16 16:48:18'),
+(5, 'deposit', '2025-11-01', '5000', '', '2025-11-16 16:48:43'),
+(6, 'withdrawal', '2025-11-16', '20000', '', '2025-11-16 17:16:09'),
+(7, 'deposit', '2025-11-16', '30000', '', '2025-11-16 17:16:16'),
+(8, 'withdrawal', '2025-11-20', '1000', 'ডিম ১ডজন,চিনি ২কেজি,সয়াবিন ২ কেজি', '2025-11-19 19:15:57'),
+(9, 'withdrawal', '2025-11-20', '5000', 'hamza store', '2025-11-20 16:16:17'),
+(10, 'deposit', '2025-11-20', '5000', '', '2025-11-20 16:16:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_reviews`
+--
+
+DROP TABLE IF EXISTS `admin_reviews`;
+CREATE TABLE IF NOT EXISTS `admin_reviews` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `customer_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rating` int NOT NULL DEFAULT '5',
+  `review_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_reviews`
+--
+
+INSERT INTO `admin_reviews` (`id`, `customer_name`, `rating`, `review_text`, `is_visible`) VALUES
+(1, 'Rakib Islam', 5, 'Great pizza, fast delivery! The crust was perfect and the toppings were fresh. Will be ordering again!', 1),
+(2, 'Sanjida Ahmed', 5, 'The BBQ Meat Box was amazing. So much food for the price, and everything was delicious. Highly recommend', 1),
+(3, 'Fahmida Rahman', 5, 'Best pizza in Dhaka, hands down. We tried the Margherita and it was just perfect. Simple and tasty', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_users`
+--
+
+DROP TABLE IF EXISTS `admin_users`;
+CREATE TABLE IF NOT EXISTS `admin_users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('admin','manager') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manager',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_users`
+--
+
+INSERT INTO `admin_users` (`id`, `username`, `password`, `role`, `created_at`) VALUES
+(1, 'admin', '$2y$10$8K8zPgN/YKDYfsOGuACun.GUolvvAT0KCnE8PJtAotena6EiVh6oe', 'admin', '2025-11-14 14:43:44'),
+(2, 'manager', '$2y$10$dAP/GHAjDQs0G6FbEUMkdOWJVqJWsBOEQDylpoEW2wRuScx/JOBsi', 'manager', '2025-11-15 08:32:20');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `categories`
+--
+
+DROP TABLE IF EXISTS `categories`;
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `svg_icon` text COLLATE utf8mb4_unicode_ci,
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`id`, `name`, `description`, `image`, `svg_icon`, `is_visible`) VALUES
+(4, 'Appetizers', '', '', '', 1),
+(5, 'Meat Box', '', '', '', 1),
+(6, 'Rice Bowl & Biryani', '', '', '', 1),
+(7, 'Pizza', '', '', '', 1),
+(8, 'Pasta', '', '', '', 1),
+(9, 'Beverage', '', '', '', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `complaints`
+--
+
+DROP TABLE IF EXISTS `complaints`;
+CREATE TABLE IF NOT EXISTS `complaints` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `customer_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_phone` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `complaint_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `complaint_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('Submitted','In Review','Resolved') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Submitted',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `order_id` (`order_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `complaints`
+--
+
+INSERT INTO `complaints` (`id`, `order_id`, `customer_name`, `customer_phone`, `complaint_type`, `complaint_text`, `status`, `created_at`) VALUES
+(2, 12, 'Ziaul Hoque', '01420336015', 'Food Quality (e.g., cold, not tasty)', 'asdsad', 'Submitted', '2025-11-16 19:14:57'),
+(3, 13, 'Shahidul islam', '01820336015', 'Missing Item(s)', 'avsva', 'Submitted', '2025-11-16 19:19:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `coupons`
+--
+
+DROP TABLE IF EXISTS `coupons`;
+CREATE TABLE IF NOT EXISTS `coupons` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `type` enum('percentage','fixed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'fixed',
+  `value` decimal(10,0) NOT NULL,
+  `min_order_amount` decimal(10,0) NOT NULL,
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `max_uses` int NOT NULL DEFAULT '100',
+  `current_uses` int NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `coupons`
+--
+
+INSERT INTO `coupons` (`id`, `code`, `description`, `type`, `value`, `min_order_amount`, `start_date`, `end_date`, `max_uses`, `current_uses`, `is_active`) VALUES
+(1, 'EID50', '', 'percentage', '50', '0', '2025-11-15 19:44:00', '2025-12-15 19:44:00', 1, 1, 1),
+(2, 'EID501', '', 'percentage', '50', '0', '2025-11-16 11:50:00', '2025-12-16 11:50:00', 1, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `delivery_areas`
+--
+
+DROP TABLE IF EXISTS `delivery_areas`;
+CREATE TABLE IF NOT EXISTS `delivery_areas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `area_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `base_charge` decimal(10,0) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `delivery_areas`
+--
+
+INSERT INTO `delivery_areas` (`id`, `area_name`, `base_charge`, `is_active`) VALUES
+(1, 'Chwakbazar', '20', 1),
+(2, 'Agrabad', '120', 1),
+(3, 'PICKUP POINT', '0', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faq`
+--
+
+DROP TABLE IF EXISTS `faq`;
+CREATE TABLE IF NOT EXISTS `faq` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `question` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `answer` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_order` int NOT NULL DEFAULT '0',
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `faq`
+--
+
+INSERT INTO `faq` (`id`, `question`, `answer`, `display_order`, `is_visible`) VALUES
+(1, 'What are your delivery hours?', 'We are open and deliver from 11:00 AM to 10:00 PM, seven days a week. Please note that a night surcharge may apply for orders placed after 8:00 PM.', 10, 1),
+(2, 'How do I track my order?', 'After you place your order, you will get an Order ID (e.g., PM-123). You can enter this ID on our Track Order page to see its live status, from \"Preparing\" to \"Delivered\".', 20, 1),
+(3, 'What areas do you deliver to?', 'During checkout, you can select your area from the \"Delivery Area\" dropdown list. If your area is not on the list, we unfortunately do not deliver there at this time. The delivery fee for your area will be calculated automatically.', 30, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `homepage_sections`
+--
+
+DROP TABLE IF EXISTS `homepage_sections`;
+CREATE TABLE IF NOT EXISTS `homepage_sections` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `category_id` int NOT NULL,
+  `display_order` int NOT NULL DEFAULT '0',
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  KEY `category_id` (`category_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `homepage_sections`
+--
+
+INSERT INTO `homepage_sections` (`id`, `category_id`, `display_order`, `is_visible`) VALUES
+(4, 8, 2, 1),
+(5, 4, 1, 1),
+(6, 5, 3, 1),
+(7, 7, 4, 1),
+(8, 6, 5, 1),
+(9, 9, 6, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `item_options`
+--
+
+DROP TABLE IF EXISTS `item_options`;
+CREATE TABLE IF NOT EXISTS `item_options` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `group_id` int NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `price_increase` decimal(10,0) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `group_id` (`group_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `item_options`
+--
+
+INSERT INTO `item_options` (`id`, `group_id`, `name`, `price_increase`) VALUES
+(8, 11, 'Extra Cheese', '50'),
+(9, 11, 'Extra Sauce', '10'),
+(12, 13, '8', '0'),
+(13, 13, '10', '70'),
+(14, 14, 'Small', '0'),
+(15, 14, 'Medium', '30'),
+(16, 14, 'Large', '160');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `item_options_groups`
+--
+
+DROP TABLE IF EXISTS `item_options_groups`;
+CREATE TABLE IF NOT EXISTS `item_options_groups` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('radio','checkbox') COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `item_options_groups`
+--
+
+INSERT INTO `item_options_groups` (`id`, `name`, `type`) VALUES
+(11, 'Toppings', 'checkbox'),
+(13, 'Margherita Pizza Size', 'radio'),
+(14, 'OVEN BAKED PASTA Size', 'radio');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menu_items`
+--
+
+DROP TABLE IF EXISTS `menu_items`;
+CREATE TABLE IF NOT EXISTS `menu_items` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `category_id` int NOT NULL,
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `price` decimal(10,0) NOT NULL,
+  `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_available` tinyint(1) NOT NULL DEFAULT '1',
+  `is_featured` tinyint(1) NOT NULL DEFAULT '0',
+  `display_order` int DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `category_id` (`category_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `menu_items`
+--
+
+INSERT INTO `menu_items` (`id`, `category_id`, `name`, `description`, `price`, `image`, `is_available`, `is_featured`, `display_order`) VALUES
+(4, 4, 'CRISPY WINGS-6PCS', 'Golden, crunchy chicken wings seasoned to perfection.', '190', '/uploads/menu_items/1763281022_CRISPYWINGs.jpeg', 1, 0, 0),
+(5, 4, 'PERI PERI WINGS-6PCS', 'Zesty peri peri wings bursting with spicy, citrusy flavours.', '220', '/uploads/menu_items/1763281010_PERIPERIWINGs.jpeg', 1, 0, 0),
+(6, 4, 'BUFFALO WINGS-6PCS', 'Tangy and spicy Buffalo-style wings with a bold kick.', '230', '/uploads/menu_items/1763280989_BUFFALOWINGs.jpeg', 1, 1, 8),
+(7, 4, 'BBQ WINGS-6PCS', 'Crispy chicken wings coated in sweet and smoky BBQ sauce.', '200', '/uploads/menu_items/1763280977_BBQWINGSs.jpeg', 0, 1, 7),
+(8, 5, 'REGULAR MEAT BOX', 'A classic meat box with perfectly seasoned chicken and a balanced flavour profile.', '180', '/uploads/menu_items/1763280964_REGULARMEATBOx.jpeg', 1, 0, 0),
+(9, 5, 'BBQ MEAT BOX', 'Juicy chicken tossed in smoky BBQ sauce, served in a hearty meat box.', '200', '/uploads/menu_items/1763280951_BBQMEAt.jpeg', 1, 0, 0),
+(10, 5, 'NAGA MEAT BOX', 'A spicy meat box infused with bold Naga chilli flavour for heat lovers.', '200', '/uploads/menu_items/1763280935_nagameatbox.jpeg', 1, 0, 0),
+(11, 5, 'CHEESY MEAT BOX', 'A rich and satisfying meat box topped with melted cheese for extra creaminess and flavour.', '230', '/uploads/menu_items/1763280918_cheesymeat.png', 1, 0, 0),
+(12, 5, 'MEAT BOX WITH DUMSTRIC (LARGE SIZE)', 'A large, loaded meat box filled with tender chicken pieces, crispy dumstric strips, and signature seasonings.', '358', '/uploads/menu_items/1763280673_MEATBOXWITHDUMSTRIC.png', 1, 1, 6),
+(13, 8, 'OVEN BAKED PASTA', 'Cheesy, layered pasta baked to perfection with creamy sauce, herbs, and a golden crust on top.', '200', '/uploads/menu_items/1763280577_ovenbaked.png', 1, 0, 0),
+(14, 8, 'MASALA PASTA', 'A fusion-style pasta cooked with Indian masala, veggies, and bold spices for a vibrant flavour.', '200', '/uploads/menu_items/1763280509_MASALAPASTA.png', 1, 0, 0),
+(15, 8, 'GREEN SAUCE PASTA', 'Pasta tossed in a fresh, herb-based green sauce made with basil, coriander, and a touch of cream.', '200', '/uploads/menu_items/1763280463_GREENSAUCEPASTA.png', 1, 0, 0),
+(16, 8, 'WHITE SAUCE PASTA', 'Smooth and creamy white sauce coated over perfectly cooked pasta, finished with herbs and cheese.', '230', '/uploads/menu_items/1763280427_WHITESAUCEPASTA.png', 1, 1, 5),
+(17, 8, 'SPICY CREAMY PASTA', 'A rich and creamy pasta with a spicy kick, perfectly blended with herbs, cheese, and flavorful seasonings.', '200', '/uploads/menu_items/1763280352_SPICYCREAMYPASTA.png', 1, 0, 0),
+(18, 6, 'CHICKEN RICE BOWL (FRIED RICE)', 'Classic fried rice mixed with tender chicken pieces, fresh vegetables, and balanced Asian spices.', '200', '/uploads/menu_items/1763280300_CHICKENRICEBOWL.png', 1, 0, 0),
+(19, 6, 'SAUSAGE RICE BOWL (FRIED RICE)', 'Flavourful fried rice tossed with juicy sausage slices, veggies, and light seasoning for a satisfying meal.', '180', '/uploads/menu_items/1763280225_SAUSAGERICEBOWL.png', 1, 1, 4),
+(20, 6, 'CHICKEN DUM BIRYANI', 'Slow-cooked aromatic basmati rice layered with tender chicken, blended with rich dum masala and traditional spices.', '128', '/uploads/menu_items/1763280186_chickendum.png', 1, 1, 3),
+(21, 7, 'Margherita', 'A cheesy pizza with herby Californian Tomato sauce topped with loads of Mozzarella Cheese', '280', '/uploads/menu_items/1763242197_1.webp', 1, 1, 2),
+(22, 7, 'Spicy Chicken', 'A combination of tender & Spicy Chicken, crunchy Capsicum, and zesty Red Onions for a flavor-packed experience\r\n\r\n', '398', '/uploads/menu_items/1763242190_7ab537159088a62156e09f8970289e79.webp', 1, 1, 1),
+(23, 9, 'Borhani', '1 glass of refreshing borhani as a perfect accompaniment to a meal', '70', '/uploads/menu_items/1763286907_images.jfif', 1, 0, 2),
+(24, 9, 'Zafrani Sharbat', 'A delectable sweet drink with the natural essence', '90', '/uploads/menu_items/1763286952_images1.jfif', 1, 0, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menu_item_options_groups`
+--
+
+DROP TABLE IF EXISTS `menu_item_options_groups`;
+CREATE TABLE IF NOT EXISTS `menu_item_options_groups` (
+  `menu_item_id` int NOT NULL,
+  `option_group_id` int NOT NULL,
+  PRIMARY KEY (`menu_item_id`,`option_group_id`),
+  KEY `fk_group_id` (`option_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `menu_item_options_groups`
+--
+
+INSERT INTO `menu_item_options_groups` (`menu_item_id`, `option_group_id`) VALUES
+(13, 11),
+(22, 11),
+(21, 13),
+(13, 14);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `orders`
+--
+
+DROP TABLE IF EXISTS `orders`;
+CREATE TABLE IF NOT EXISTS `orders` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `customer_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_phone` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_address` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_note` text COLLATE utf8mb4_unicode_ci,
+  `delivery_area_id` int NOT NULL,
+  `subtotal` decimal(10,0) NOT NULL,
+  `delivery_fee` decimal(10,0) NOT NULL,
+  `delivery_adjustment` decimal(10,0) NOT NULL DEFAULT '0',
+  `total_amount` decimal(10,0) NOT NULL,
+  `order_status` enum('Pending','Preparing','Ready','Delivered','Cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Pending',
+  `order_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `rider_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `coupon_id` int DEFAULT NULL,
+  `discount_type` enum('none','percentage','fixed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'none',
+  `discount_amount` decimal(10,0) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `delivery_area_id` (`delivery_area_id`),
+  KEY `fk_order_coupon` (`coupon_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `customer_name`, `customer_phone`, `customer_address`, `order_note`, `delivery_area_id`, `subtotal`, `delivery_fee`, `delivery_adjustment`, `total_amount`, `order_status`, `order_time`, `rider_name`, `coupon_id`, `discount_type`, `discount_amount`) VALUES
+(10, 'Arif', '01820331015', 'adasd', NULL, 1, '800', '30', '0', '707', 'Preparing', '2025-11-15 10:48:20', 'ikram', NULL, 'fixed', '123'),
+(11, 'Nazrul Islam', '01420332015', 'asdasd', NULL, 1, '1950', '30', '0', '1005', 'Preparing', '2025-11-15 11:00:35', NULL, NULL, 'percentage', '975'),
+(12, 'Ziaul Hoque', '01420336015', 'sdasdsa', NULL, 1, '200', '20', '0', '220', 'Delivered', '2025-11-15 11:01:49', 'ikram', NULL, 'none', '0'),
+(13, 'Shahidul islam', '01820336015', '676767f76', NULL, 1, '620', '30', '0', '340', 'Delivered', '2025-11-15 11:41:17', 'ikram', NULL, 'percentage', '310'),
+(14, 'Shahadat Hossain', '0000', 'abasb', NULL, 2, '720', '130', '0', '490', 'Delivered', '2025-11-15 13:45:40', NULL, 1, 'percentage', '360'),
+(15, 'Shahidul islam', '01820331015', 'asdasdas', 'Spicy', 2, '200', '107', '-13', '307', 'Preparing', '2025-11-15 14:22:32', NULL, NULL, 'none', '0'),
+(26, 'Shahidul islam', '01813631864', 'দফফদফদ', '', 1, '2470', '10', '0', '2480', 'Delivered', '2025-11-17 07:26:11', NULL, NULL, 'none', '0'),
+(27, 'Shahidul islam', '01820331015', 'dsfs', 'wewer', 1, '230', '20', '0', '250', 'Delivered', '2025-11-18 09:23:23', NULL, NULL, 'none', '0'),
+(28, 'Shahidul islam', '01820331015', 'sdasd', 'asd', 1, '90', '20', '0', '110', 'Delivered', '2025-11-18 09:26:52', 'asdsad', NULL, 'none', '0'),
+(29, 'Safin', '01420332015', 'sadasd', '', 1, '968', '63', '10', '1031', 'Delivered', '2025-11-18 16:01:38', NULL, NULL, 'none', '0'),
+(30, 'Arif', '01820336015', 'dsdad', '', 2, '200', '120', '0', '320', 'Delivered', '2025-11-18 16:40:31', NULL, NULL, 'none', '0'),
+(31, 'Arif', '01820336015', 'asdasd', '', 2, '748', '120', '0', '868', 'Cancelled', '2025-11-18 16:41:37', NULL, NULL, 'none', '0'),
+(32, 'Neon', '01820336015', 'asvasvasv', '', 2, '200', '122', '2', '322', 'Delivered', '2025-11-19 01:44:58', NULL, NULL, 'none', '0'),
+(33, 'Jahid', '01820331915', 'ahhah', '', 1, '90', '53', '0', '143', 'Preparing', '2025-11-19 15:30:53', NULL, NULL, 'none', '0'),
+(34, 'Rafi', '01865128879', 'rashulbgag', 'ঝাল বেশি হবে।', 1, '190', '20', '0', '210', 'Preparing', '2025-11-19 18:15:14', NULL, NULL, 'none', '0'),
+(35, 'Rafiq', '01886600866', 'chomuhani', 'Crust thick', 2, '328', '120', '0', '448', 'Preparing', '2025-11-19 21:02:44', NULL, NULL, 'none', '0'),
+(36, 'S. M. IKRAM', '01865129950', 'barek building', 'less sweet', 2, '1130', '120', '0', '1250', 'Ready', '2025-11-20 16:27:42', NULL, NULL, 'none', '0');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_items`
+--
+
+DROP TABLE IF EXISTS `order_items`;
+CREATE TABLE IF NOT EXISTS `order_items` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `menu_item_id` int DEFAULT NULL,
+  `quantity` int NOT NULL,
+  `base_price` decimal(10,0) NOT NULL,
+  `total_price` decimal(10,0) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `order_id` (`order_id`),
+  KEY `menu_item_id` (`menu_item_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `base_price`, `total_price`) VALUES
+(13, 12, 7, 1, '200', '200'),
+(29, 13, 7, 1, '200', '200'),
+(30, 13, 7, 1, '200', '200'),
+(31, 13, 5, 1, '220', '220'),
+(32, 10, 7, 1, '200', '200'),
+(33, 10, 7, 3, '200', '600'),
+(36, 11, 7, 4, '200', '800'),
+(37, 11, 6, 5, '230', '1150'),
+(38, 14, 7, 4, '180', '720'),
+(57, 26, 5, 3, '220', '660'),
+(58, 26, 24, 3, '90', '270'),
+(59, 26, 4, 2, '190', '380'),
+(60, 26, 7, 2, '200', '400'),
+(61, 26, 8, 2, '180', '360'),
+(62, 26, 10, 2, '200', '400'),
+(63, 27, 6, 1, '230', '230'),
+(68, 15, 7, 1, '200', '200'),
+(69, 28, 24, 1, '90', '90'),
+(74, 29, 4, 1, '190', '190'),
+(75, 29, 5, 1, '220', '220'),
+(76, 29, 12, 1, '358', '358'),
+(77, 29, 15, 1, '200', '200'),
+(78, 30, 7, 1, '200', '200'),
+(79, 31, 7, 1, '200', '200'),
+(80, 31, 4, 1, '190', '190'),
+(81, 31, 12, 1, '358', '358'),
+(83, 32, 7, 1, '200', '200'),
+(84, 33, 24, 1, '90', '90'),
+(85, 34, 4, 1, '190', '190'),
+(86, 35, 20, 1, '128', '128'),
+(87, 35, 15, 1, '200', '200'),
+(92, 36, 13, 1, '200', '280'),
+(93, 36, 24, 2, '90', '180'),
+(94, 36, 5, 2, '220', '440'),
+(95, 36, 6, 1, '230', '230');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_item_options`
+--
+
+DROP TABLE IF EXISTS `order_item_options`;
+CREATE TABLE IF NOT EXISTS `order_item_options` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_item_id` int NOT NULL,
+  `option_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `option_price` decimal(10,0) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `order_item_id` (`order_item_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `order_item_options`
+--
+
+INSERT INTO `order_item_options` (`id`, `order_item_id`, `option_name`, `option_price`) VALUES
+(7, 92, 'Extra Cheese', '50'),
+(8, 92, 'Medium', '30');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `riders`
+--
+
+DROP TABLE IF EXISTS `riders`;
+CREATE TABLE IF NOT EXISTS `riders` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `site_settings`
+--
+
+DROP TABLE IF EXISTS `site_settings`;
+CREATE TABLE IF NOT EXISTS `site_settings` (
+  `setting_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `setting_value` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `site_settings`
+--
+
+INSERT INTO `site_settings` (`setting_key`, `setting_value`) VALUES
+('capi_pixel_id', ''),
+('capi_token', ''),
+('delivery_discount_active', '0'),
+('delivery_discount_percentage', '50'),
+('fb_pixel_id', ''),
+('free_delivery_active', '0'),
+('global_discount_active', '0'),
+('global_discount_type', 'percentage'),
+('global_discount_value', '50'),
+('gtm_id', ''),
+('hero_image_card_color', '#FFFFFF'),
+('hero_image_style', 'tilt-no-shadow'),
+('hero_image_url', '/uploads/banners/hero_banner_1763283791_1.png'),
+('hero_subtitle', '<p><strong>Hand-tossed dough, fresh ingredients, and lightning-fast delivery. What are you waiting for?</strong></p>'),
+('hero_title', 'The Best Pizza in Town'),
+('homepage_combo_category', ''),
+('last_auto_close_date', '2025-11-26'),
+('last_auto_open_date', '2025-11-24'),
+('marquee_animation', 'static'),
+('marquee_is_active', '1'),
+('marquee_text', 'অফার! অফার! অফার!'),
+('night_surcharge_amount', '33'),
+('night_surcharge_end_hour', '23'),
+('night_surcharge_exempt_areas', '2,3'),
+('night_surcharge_start_hour', '15'),
+('offer_is_active', '0'),
+('offer_text', 'Get 20% off all Pizza orders. Use code: PIZZA20'),
+('offer_title', 'Weekend\'s Special'),
+('store_is_open', '1'),
+('store_name', 'Pizza Mania'),
+('timezone', 'Asia/Dhaka');
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `complaints`
+--
+ALTER TABLE `complaints`
+  ADD CONSTRAINT `fk_complaint_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `homepage_sections`
+--
+ALTER TABLE `homepage_sections`
+  ADD CONSTRAINT `fk_hs_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `item_options`
+--
+ALTER TABLE `item_options`
+  ADD CONSTRAINT `fk_option_group` FOREIGN KEY (`group_id`) REFERENCES `item_options_groups` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `menu_items`
+--
+ALTER TABLE `menu_items`
+  ADD CONSTRAINT `fk_menu_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `menu_item_options_groups`
+--
+ALTER TABLE `menu_item_options_groups`
+  ADD CONSTRAINT `fk_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_option_group_id` FOREIGN KEY (`option_group_id`) REFERENCES `item_options_groups` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `orders`
+--
+ALTER TABLE `orders`
+  ADD CONSTRAINT `fk_order_coupon` FOREIGN KEY (`coupon_id`) REFERENCES `coupons` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_order_delivery_area` FOREIGN KEY (`delivery_area_id`) REFERENCES `delivery_areas` (`id`);
+
+--
+-- Constraints for table `order_items`
+--
+ALTER TABLE `order_items`
+  ADD CONSTRAINT `fk_oi_menu_item` FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_oi_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `order_item_options`
+--
+ALTER TABLE `order_item_options`
+  ADD CONSTRAINT `fk_oio_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

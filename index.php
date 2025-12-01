@@ -2,14 +2,29 @@
 /*
  * index.php
  * PizzaMania: Cloud Kitchen Homepage
- * Version 3.1 - (FIXED) Improved Description Layout & Combo Section
+ * Version 3.2 - Added specific SEO Variables
  */
 
-// 1. PAGE SETUP
-$page_title = $settings['hero_title'] ?? 'Pizza Mania - Hot & Fresh';
-$meta_description = strip_tags($settings['hero_subtitle'] ?? 'Order the best pizza in town, delivered fast.');
+// 1. CONFIGURATION (Load first to get DB settings)
+require_once('config.php');
 
-// 2. HEADER
+// 2. PAGE SPECIFIC SEO VARIABLES
+// Using the hero title from database as the main page title
+//$page_title = $settings['hero_title'] ?? 'Pizza Mania - The Best Food in Town';
+$page_title = 'Pizza Mania - Best Pizza Delivery in Chittagong | Order Online';
+
+
+// Using the subtitle as the meta description (stripping HTML tags)
+//$meta_description = strip_tags($settings['hero_subtitle'] ?? 'Order fresh pizza, pasta, and burgers online. Fast delivery and hot food guaranteed.');
+$meta_description = 'Order the best pizza in Chittagong from Pizza Mania. Enjoy hand-tossed dough, creamy pasta, and loaded meat boxes delivered hot to your doorstep. Order online today!';
+
+// Using the Hero Image as the Social Share Image (OG:Image)
+if (!empty($settings['hero_image_url'])) {
+    $meta_image = BASE_URL . $settings['hero_image_url'];
+    //$meta_image = BASE_URL . '/uploads/special-offer.jpg';
+}
+
+// 3. HEADER (Now loads with the variables set above)
 require_once('includes/header.php');
 
 // Helper function to apply global discount

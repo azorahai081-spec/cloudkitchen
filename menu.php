@@ -2,21 +2,19 @@
 /*
  * menu.php
  * PizzaMania: Cloud Kitchen Full Menu Page
- * Version 2.0 - (UPDATED) Added JS for Floating Cart Bar Update
- *
- * This page:
- * 1. Loads all visible categories for filtering.
- * 2. Loads ALL visible items, grouped by category.
- * 3. Calculates and displays global discounts.
- * 4. Includes the "Item Options" modal popup.
- * 5. Handles adding items to the cart via AJAX.
+ * Version 2.1 - Added specific SEO Variables
  */
 
-// 1. PAGE SETUP
-$page_title = 'Full Menu - ' . ($settings['store_name'] ?? 'Pizza Mania');
-$meta_description = 'Browse our full menu of delicious, fresh meals.';
+// 1. CONFIGURATION (Load first to get DB settings)
+require_once('config.php');
 
-// 2. HEADER
+// 2. PAGE SPECIFIC SEO VARIABLES
+$page_title = 'Full Menu - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'Browse our complete menu. From hot pizzas to juicy burgers and creamy pastas. Order your favorite food online for delivery.';
+// Optional: You could pick a featured image for the menu page specifically
+// $meta_image = BASE_URL . '/uploads/menu-cover.jpg'; 
+
+// 3. HEADER (Now loads with the variables set above)
 require_once('includes/header.php');
 
 // Helper function to apply global discount

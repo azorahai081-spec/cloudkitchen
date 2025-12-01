@@ -2,20 +2,20 @@
 /*
  * track_order.php
  * PizzaMania: Cloud Kitchen Customer Order Tracking
- * Version 1.2 - (MODIFIED) Redesigned buttons and status colors
- *
- * This page allows a customer to check their order status
- * by entering their Order ID.
+ * Version 1.3 - Added specific SEO Variables
  */
 
-// 1. PAGE SETUP
-$page_title = 'Track Your Order - PizzaMania';
-$meta_description = 'Check the status of your PizzaMania food order.';
+// 1. CONFIGURATION (Load first to get DB settings)
+require_once('config.php');
 
-// 2. HEADER
+// 2. PAGE SPECIFIC SEO VARIABLES
+$page_title = 'Track Your Order - ' . ($settings['store_name'] ?? 'Pizza Mania');
+$meta_description = 'Check your food delivery status in real-time. See if your order is preparing, ready, or on its way.';
+
+// 3. HEADER (Now loads with the variables set above)
 require_once('includes/header.php');
 
-// 3. --- INITIALIZE VARIABLES ---
+// 4. --- INITIALIZE VARIABLES ---
 $order_id_raw = $_GET['order_id'] ?? '';
 $order_id_clean = null;
 $error_message = '';
@@ -23,7 +23,7 @@ $order_status = null;
 $customer_name = null;
 $order_time = null;
 
-// 4. --- CHECK FOR ORDER ID ---
+// 5. --- CHECK FOR ORDER ID ---
 if (!empty($order_id_raw)) {
     // Sanitize the input.
     // Customers might enter "PM-123" or just "123".
@@ -54,7 +54,7 @@ if (!empty($order_id_raw)) {
     }
 }
 
-// 5. --- HELPER FUNCTION FOR STATUS MESSAGE ---
+// 6. --- HELPER FUNCTION FOR STATUS MESSAGE ---
 function getStatusDetails($status)
 {
     switch ($status) {

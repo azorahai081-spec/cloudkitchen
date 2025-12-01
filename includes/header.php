@@ -2,13 +2,14 @@
 /*
  * includes/header.php
  * PizzaMania: Cloud Kitchen Public Header
- * Version 2.2 - (UPDATED) Added Hind Siliguri Font for Bangla Marquee
+ * Version 2.4 - Added Favicon
  *
  * This file is included at the top of ALL public-facing pages.
  */
 
 // 1. CONFIGURATION
-require_once('config.php');
+// Use require_once to ensure config is loaded, but not twice if the page already loaded it.
+require_once(__DIR__ . '/../config.php');
 
 // 2. HELPER FUNCTION - Get Cart Count
 function get_cart_count()
@@ -23,14 +24,47 @@ function get_cart_count()
 }
 $cart_count = get_cart_count();
 
-// 3. Check if store is open
+// 3. GLOBAL SETTINGS
 $store_is_open = $settings['store_is_open'] ?? '1';
 $gtm_id = $settings['gtm_id'] ?? '';
+$store_name = $settings['store_name'] ?? 'Pizza Mania';
 
 // (NEW) Marquee Settings
 $marquee_active = $settings['marquee_is_active'] ?? '0';
 $marquee_text = $settings['marquee_text'] ?? 'SALE % SALE';
 $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
+
+// --- SEO & META TAG LOGIC ---
+
+// 1. Title Construction
+// If $page_title isn't set, default to Store Name.
+$seo_title = $page_title ?? $store_name;
+// If the title doesn't already contain the store name, append it for better SEO.
+if (strpos($seo_title, $store_name) === false) {
+    $seo_title .= " | " . $store_name;
+}
+
+// 2. Description
+$seo_desc = $meta_description ?? $settings['hero_subtitle'] ?? 'Order delicious food online for delivery or pickup.';
+$seo_desc = strip_tags($seo_desc); // Remove HTML tags from description
+// Limit length to ~160 chars for SEO
+if (strlen($seo_desc) > 160) {
+    $seo_desc = substr($seo_desc, 0, 157) . '...';
+}
+
+// 3. Image (OG:Image)
+// Use specific page image if set, otherwise fallback to Hero Banner, otherwise fallback to a placeholder.
+if (!empty($meta_image)) {
+    $seo_image = $meta_image;
+} elseif (!empty($settings['hero_image_url'])) {
+    $seo_image = BASE_URL . $settings['hero_image_url'];
+} else {
+    // Fallback placeholder if nothing else exists
+    $seo_image = BASE_URL . '/uploads/logo.png'; 
+}
+
+// 4. URL (Canonical)
+$seo_url = $meta_url ?? (BASE_URL . $_SERVER['REQUEST_URI']);
 
 ?>
 <!DOCTYPE html>
@@ -40,9 +74,33 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title><?php echo e($page_title ?? 'Pizza Mania - Hot & Fresh'); ?></title>
-    <meta name="description"
-        content="<?php echo e($meta_description ?? 'Order your favorite meals from Pizza Mania, delivered fast and fresh.'); ?>">
+    <!-- Primary Meta Tags -->
+    <title><?php echo e($seo_title); ?></title>
+    <meta name="title" content="<?php echo e($seo_title); ?>">
+    <meta name="description" content="<?php echo e($seo_desc); ?>">
+
+    <!-- (NEW) Favicon -->
+    <!-- Ideally upload a 'favicon.png' to your 'uploads' folder -->
+    <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>/uploads/favicon.png">
+    <link rel="apple-touch-icon" href="<?php echo BASE_URL; ?>/uploads/favicon.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?php echo e($seo_url); ?>">
+    <meta property="og:title" content="<?php echo e($seo_title); ?>">
+    <meta property="og:description" content="<?php echo e($seo_desc); ?>">
+    <meta property="og:image" content="<?php echo e($seo_image); ?>">
+    <meta property="og:site_name" content="<?php echo e($store_name); ?>">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="<?php echo e($seo_url); ?>">
+    <meta property="twitter:title" content="<?php echo e($seo_title); ?>">
+    <meta property="twitter:description" content="<?php echo e($seo_desc); ?>">
+    <meta property="twitter:image" content="<?php echo e($seo_image); ?>">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<?php echo e($seo_url); ?>">
 
     <!-- 1. Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -55,7 +113,6 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <!-- (UPDATED) Correct import for Hind Siliguri -->
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" 
         rel="stylesheet">
 
@@ -66,21 +123,19 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
-                        // (UPDATED) Defined 'bangla' font family
                         bangla: ['"Hind Siliguri"', 'sans-serif'],
                     },
                     colors: {
                         'brand-red': '#dc2626',
                         'brand-yellow': '#facc15',
                     },
-                    // (NEW) Custom Animation for Marquee
                     animation: {
                         marquee: 'marquee 20s linear infinite',
                     },
                     keyframes: {
                         marquee: {
                             '0%': { transform: 'translateX(0)' },
-                            '100%': { transform: 'translateX(-50%)' }, // Move half way (because we double the content)
+                            '100%': { transform: 'translateX(-50%)' },
                         }
                     }
                 },
@@ -134,7 +189,7 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
                     <a href="<?php echo BASE_URL; ?>/" class="text-2xl font-extrabold text-brand-red">
-                        <?php echo e($settings['store_name'] ?? 'Pizza Mania'); ?>
+                        <?php echo e($store_name); ?>
                     </a>
                 </div>
 
@@ -205,7 +260,6 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
                 <div class="flex animate-marquee whitespace-nowrap items-center">
                     <div class="flex items-center">
                         <?php for($i=0; $i<8; $i++): ?>
-                            <!-- (UPDATED) Added 'font-bangla' class -->
                             <span class="text-xl font-black uppercase mx-8 tracking-widest opacity-90 font-bangla">
                                 <?php echo e($marquee_text); ?> <i class="fa-solid fa-percent text-base opacity-70 mx-2"></i>
                             </span>
@@ -213,7 +267,6 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
                     </div>
                     <div class="flex items-center">
                         <?php for($i=0; $i<8; $i++): ?>
-                            <!-- (UPDATED) Added 'font-bangla' class -->
                             <span class="text-xl font-black uppercase mx-8 tracking-widest opacity-90 font-bangla">
                                 <?php echo e($marquee_text); ?> <i class="fa-solid fa-percent text-base opacity-70 mx-2"></i>
                             </span>
@@ -224,7 +277,6 @@ $marquee_animation = $settings['marquee_animation'] ?? 'scroll';
         <?php else: ?>
             <!-- STATIC -->
             <div class="bg-brand-red text-white h-12 flex items-center justify-center shadow-sm">
-                <!-- (UPDATED) Added 'font-bangla' class -->
                 <span class="text-xl font-black uppercase tracking-widest opacity-90 text-center px-4 font-bangla">
                     <?php echo e($marquee_text); ?>
                 </span>
